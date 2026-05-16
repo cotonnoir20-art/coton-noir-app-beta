@@ -1,0 +1,15 @@
+Variables à coller dans Vercel → Project → Settings → Environment Variables
+(Cocher Production + Preview. Ne pas ajouter les variables DEV_DEMO en prod.)
+
+EXPO_PUBLIC_SUPABASE_URL=https://nlaqiemopysggqgrepdl.supabase.co
+EXPO_PUBLIC_SUPABASE_ANON_KEY=<ta clé anon Supabase>
+EXPO_PUBLIC_ALLOW_WEB_PROD=true
+EXPO_PUBLIC_WEB_STAGING_AUTH_PERSIST=true
+
+Après le 1er déploiement, noter l’URL Vercel (ex. https://coton-noir-app.vercel.app)
+puis Supabase → Authentication → URL Configuration :
+  Site URL = cette URL
+  Redirect URLs = cette URL + cette URL/**
+
+Coach (optionnel) : Supabase Edge Function secret COACH_ALLOWED_ORIGINS
+  = https://ton-projet.vercel.app,http://localhost:8081

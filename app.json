@@ -1,36 +1,61 @@
 {
   "expo": {
-    "name": "coton-noir-app",
+    "name": "Coton Noir",
     "slug": "coton-noir-app",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
-    "scheme": "cotonnoirapp",
-    "userInterfaceStyle": "automatic",
+    "icon": "./assets/icon.png",
+    "description": "Ton copilote capillaire pour mieux prendre soin de tes cheveux — routines, suivi, récompenses et conseils.",
+    "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "splash": {
-      "image": "./assets/images/splash-icon.png",
+      "image": "./assets/logo-main.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#FAF7F4"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": false,
+      "bundleIdentifier": "com.cotonnoir.app",
+      "buildNumber": "1"
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
+        "foregroundImage": "./assets/icon.png",
+        "backgroundColor": "#7B0D14"
       },
+      "package": "com.cotonnoir.app",
+      "versionCode": 1,
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "softwareKeyboardLayoutMode": "resize"
     },
     "web": {
       "bundler": "metro",
       "output": "static",
-      "favicon": "./assets/images/favicon.png"
+      "favicon": "./assets/images/favicon.png",
+      "name": "Coton Noir",
+      "shortName": "Coton Noir",
+      "description": "Ton copilote capillaire — version beta web",
+      "themeColor": "#7B0D14",
+      "backgroundColor": "#FAF7F4",
+      "display": "standalone",
+      "orientation": "portrait",
+      "startUrl": "/",
+      "lang": "fr"
     },
     "plugins": [
-      "expo-router"
+      "expo-router",
+      "expo-secure-store",
+      "@react-native-community/datetimepicker",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/icon.png",
+          "color": "#7B0D14",
+          "defaultChannel": "default"
+        }
+      ],
+      "expo-iap"
     ],
     "experiments": {
       "typedRoutes": true

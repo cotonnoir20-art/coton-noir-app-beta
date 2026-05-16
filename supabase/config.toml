@@ -1,0 +1,8 @@
+# Supabase local / deploy — voir https://supabase.com/docs/guides/functions/function-configuration
+
+[auth]
+minimum_password_length = 8
+password_requirements = "lower_upper_letters_digits_symbols"
+
+[functions.coach-coton-noir]
+verify_jwt = true

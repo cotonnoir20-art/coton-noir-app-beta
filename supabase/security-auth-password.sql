@@ -1,0 +1,39 @@
+-- ============================================================
+-- Correctif sécurité — Auth : mots de passe, rate limit, MFA
+-- ============================================================
+--
+-- ⚠️ Sur Supabase hébergé (cloud), la plupart des réglages Auth
+--    se font dans le Dashboard, pas via SQL. Ce fichier sert de
+--    checklist + config pour Supabase CLI local (config.toml).
+--
+-- ── 1) Dashboard → Authentication → Settings ─────────────────
+--
+-- Password requirements :
+--   • Minimum length : 8 (aligné app : src/lib/passwordPolicy.ts)
+--   • Exiger : minuscule + majuscule + chiffre + symbole
+--     (équivalent "lower_upper_letters_digits_symbols")
+--
+-- ── 2) Dashboard → Authentication → Rate limits ────────────
+--
+-- Vérifier / renforcer (valeurs indicatives prod) :
+--   • Sign-in / sign-up : limiter les tentatives par IP / heure
+--   • Password recovery : limiter les emails de reset
+--   • Token refresh : laisser par défaut sauf abus observé
+--
+-- ── 3) Dashboard → Authentication → MFA (optionnel) ──────────
+--
+-- Activer TOTP pour les comptes admin / équipe.
+-- Pour toutes les utilisatrices : optionnel (roadmap) — l’app
+-- n’impose pas encore le 2e facteur côté mobile.
+--
+-- ── 4) Email confirmations ───────────────────────────────────
+--
+-- Recommandé en prod : confirmer l’email avant première session
+-- (Settings → Enable email confirmations).
+--
+-- ── 5) Supabase CLI local : supabase/config.toml ─────────────
+--
+-- Section [auth] : minimum_password_length + password_requirements
+-- (voir config.toml du repo — à répliquer mentalement en cloud).
+--
+-- ============================================================

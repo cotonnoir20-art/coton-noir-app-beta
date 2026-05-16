@@ -1,0 +1,25 @@
+-- ============================================================
+-- Web — Auth / XSS (checklist hébergement)
+-- ============================================================
+--
+-- Côté app (déjà en place) :
+--   • Prod web sans staging : écran « utilise l’app mobile »
+--   • PWA beta : EXPO_PUBLIC_ALLOW_WEB_PROD=true + WEB_STAGING_AUTH_PERSIST=true
+--   • sessionStorage uniquement (jamais localStorage pour les tokens)
+--   • CSP : app/+html.tsx + src/lib/webCsp.ts
+--   • Build : npm run build:web → dist/ → HTTPS (vercel.json / public/netlify.toml)
+--
+-- Hébergement statique (Vercel / Netlify / Cloudflare Pages) — en-têtes HTTP :
+--
+--   Content-Security-Policy: (reprendre buildWebContentSecurityPolicy ou plus strict)
+--   X-Content-Type-Options: nosniff
+--   X-Frame-Options: DENY
+--   Referrer-Policy: strict-origin-when-cross-origin
+--   Permissions-Policy: geolocation=(), microphone=(), camera=()
+--
+-- Cookies httpOnly (option avancée) :
+--   Nécessite un proxy BFF (Next.js, Cloudflare Worker) qui échange
+--   le JWT Supabase contre un cookie httpOnly. Non implémenté dans
+--   l’app Expo ; privilégier les builds iOS/Android en production.
+--
+-- ============================================================
