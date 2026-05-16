@@ -25,6 +25,7 @@ import Reanimated, {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useApp } from '../../src/context/AppContext';
+import { useAuth } from '../../src/context/AuthContext';
 import { useBlackCotton } from '../../src/components/blackCotton';
 import { useNotifications } from '../../src/context/NotificationsContext';
 import { AppIconBox } from '../../src/components/AppIconBox';
@@ -50,6 +51,11 @@ import {
   HomeMomentsForts,
   HomeShortcuts,
 } from '../../src/components/home';
+import { FirstMeasureGuidePopin } from '../../src/components/FirstMeasureGuidePopin';
+import {
+  hasSeenFirstMeasureGuide,
+  markFirstMeasureGuideSeen,
+} from '../../src/lib/firstMeasureGuide';
 
 function toLocalISODate(d: Date): string {
   const y = d.getFullYear();
@@ -67,6 +73,7 @@ const MONTHS_SHORT = [
 
 export default function HomeScreen() {
   const router = useRouter();
+  const { session } = useAuth();
   const { state } = useApp();
   const { streak, profile } = state;
   const { fire } = useBlackCotton();
@@ -148,6 +155,33 @@ export default function HomeScreen() {
 
   const lengthMetrics = useMemo(() => getHomeLengthMetrics(state), [state]);
   const healthScore = useMemo(() => computeHairHealthScore(state), [state]);
+
+  const [measureGuideOpen, setMeasureGuideOpen] = useState(false);
+
+  useEffect(() => {
+    if (lengthMetrics.hasMeasurements) {
+      setMeasureGuideOpen(false);
+      return;
+    }
+    const userId = session?.user?.id ?? null;
+    let cancelled = false;
+    (async () => {
+      const seen = await hasSeenFirstMeasureGuide(userId);
+      if (!cancelled && !seen) setMeasureGuideOpen(true);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [lengthMetrics.hasMeasurements, session?.user?.id]);
+
+  const closeMeasureGuide = useCallback(
+    async (startMeasure: boolean) => {
+      await markFirstMeasureGuideSeen(session?.user?.id ?? null);
+      setMeasureGuideOpen(false);
+      if (startMeasure) router.push('/hair-length' as any);
+    },
+    [router, session?.user?.id],
+  );
 
   const goalHorizonLabel = useMemo(() => {
     const raw = state.profile.objectiveTargetDate?.trim();
@@ -465,6 +499,12 @@ export default function HomeScreen() {
           </Reanimated.View>
         </View>
       </Modal>
+
+      <FirstMeasureGuidePopin
+        visible={measureGuideOpen}
+        onClose={() => closeMeasureGuide(false)}
+        onStartMeasure={() => closeMeasureGuide(true)}
+      />
     </SafeAreaView>
   );
 }

@@ -5,12 +5,24 @@ import {
   isWebProductionRestricted,
   purgeLegacyWebLocalStorageAuth,
 } from '../lib/webAuthPolicy';
-import { openSafeUrl } from '../lib/safeLinking';
+import { openSafeUrl, validateExternalUrl } from '../lib/safeLinking';
 
-const STORE_URL = 'https://www.cotonnoir.app';
+function readStoreUrl(): string | null {
+  const raw =
+    typeof process !== 'undefined' && process.env?.EXPO_PUBLIC_STORE_URL;
+  if (typeof raw !== 'string' || !raw.trim()) return null;
+  const v = validateExternalUrl(raw.trim(), 'store');
+  return v.ok ? v.url : null;
+}
+
+function isVercelStagingHost(): boolean {
+  if (typeof globalThis.location === 'undefined') return false;
+  return /\.vercel\.app$/i.test(globalThis.location.hostname);
+}
 
 /**
- * En production web : bloque l’app (pas de session Supabase persistante / surface XSS).
+ * En production web sans staging : bloque l’app (sécurité).
+ * Avec EXPO_PUBLIC_ALLOW_WEB_PROD=true au build → l’app PWA beta s’affiche.
  */
 export function WebProductionBlocker({ children }: { children: React.ReactNode }) {
   useEffect(() => {
@@ -21,20 +33,33 @@ export function WebProductionBlocker({ children }: { children: React.ReactNode }
     return <>{children}</>;
   }
 
+  const onVercel = isVercelStagingHost();
+  const storeUrl = readStoreUrl();
+
   return (
     <View style={S.root}>
-      <Text style={S.emoji}>📱</Text>
-      <Text style={S.title}>Coton Noir sur mobile</Text>
+      <Text style={S.emoji}>{onVercel ? '⚙️' : '📱'}</Text>
+      <Text style={S.title}>
+        {onVercel ? 'Beta web en cours de configuration' : 'Coton Noir sur mobile'}
+      </Text>
       <Text style={S.body}>
-        Pour ta sécurité, la version navigateur complète n’est pas disponible. Télécharge
-        l’application iOS ou Android pour te connecter en toute sécurité.
+        {onVercel
+          ? "Ce déploiement Vercel n'a pas encore les variables PWA. Dans Vercel → Settings → Environment Variables, ajoute EXPO_PUBLIC_ALLOW_WEB_PROD=true et EXPO_PUBLIC_WEB_STAGING_AUTH_PERSIST=true, puis Redeploy."
+          : "Pour ta sécurité, la version navigateur complète n'est pas disponible ici. Télécharge l'application iOS ou Android pour te connecter en toute sécurité."}
       </Text>
-      <Text
-        style={S.link}
-        onPress={() => openSafeUrl(STORE_URL, 'store').catch(() => {})}
-      >
-        Découvrir Coton Noir →
-      </Text>
+      {storeUrl ? (
+        <Text
+          style={S.link}
+          onPress={() => openSafeUrl(storeUrl, 'store').catch(() => {})}
+        >
+          En savoir plus →
+        </Text>
+      ) : onVercel ? (
+        <Text style={S.hint}>
+          En attendant, utilise l’URL .vercel.app après le redeploy — pas www.cotonnoir.app
+          (domaine pas encore configuré).
+        </Text>
+      ) : null}
     </View>
   );
 }
@@ -61,6 +86,15 @@ const S = StyleSheet.create({
     color: Colors.warmGray,
     textAlign: 'center',
     lineHeight: 22,
+    maxWidth: 400,
+  },
+  hint: {
+    marginTop: 20,
+    fontSize: 12,
+    fontFamily: 'DMSans_400Regular',
+    color: Colors.warmGray,
+    textAlign: 'center',
+    lineHeight: 18,
     maxWidth: 400,
   },
   link: {

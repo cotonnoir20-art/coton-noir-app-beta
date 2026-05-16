@@ -6,7 +6,10 @@ EXPO_PUBLIC_SUPABASE_ANON_KEY=<ta clé anon Supabase>
 EXPO_PUBLIC_ALLOW_WEB_PROD=true
 EXPO_PUBLIC_WEB_STAGING_AUTH_PERSIST=true
 
-Après le 1er déploiement, noter l’URL Vercel (ex. https://coton-noir-app.vercel.app)
+IMPORTANT : après avoir ajouté les variables → Deployments → … → Redeploy
+(sinon l’écran « Coton Noir sur mobile » reste affiché).
+
+Après le 1er déploiement, noter l’URL Vercel (.vercel.app — pas www.cotonnoir.app) (ex. https://coton-noir-app.vercel.app)
 puis Supabase → Authentication → URL Configuration :
   Site URL = cette URL
   Redirect URLs = cette URL + cette URL/**

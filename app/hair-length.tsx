@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { FirstMeasureGuidePopin } from '../src/components/FirstMeasureGuidePopin';
 import {
   Image, KeyboardAvoidingView, Platform, ScrollView,
   StyleSheet, Text, TextInput, TouchableOpacity, View,
@@ -38,6 +39,7 @@ export default function HairLengthScreen() {
   const [values, setValues] = useState<Record<ZoneKey, string>>({
     devant: '', gauche: '', droite: '', derriere: '',
   });
+  const [guideOpen, setGuideOpen] = useState(false);
 
   const zoneLengths = ZONES.map(z => {
     const input = parseFloat(values[z.key]);
@@ -104,6 +106,13 @@ export default function HairLengthScreen() {
           {/* Zones */}
           <Text style={S.secTitle}>Mesure par zone</Text>
           <Text style={S.secSub}>Entre la longueur en centimètres du cheveu le plus long dans chaque zone.</Text>
+          <TouchableOpacity
+            onPress={() => setGuideOpen(true)}
+            accessibilityRole="button"
+            accessibilityLabel="Voir le guide de première mesure"
+          >
+            <Text style={S.guideLink}>Comment mesurer ? Voir le guide pas à pas</Text>
+          </TouchableOpacity>
 
           <View style={S.zonesCard}>
             {ZONES.map((z, i) => {
@@ -150,6 +159,12 @@ export default function HairLengthScreen() {
           <View style={{ height: 32 }} />
         </ScrollView>
       </KeyboardAvoidingView>
+
+      <FirstMeasureGuidePopin
+        visible={guideOpen}
+        onClose={() => setGuideOpen(false)}
+        onStartMeasure={() => setGuideOpen(false)}
+      />
     </SafeAreaView>
   );
 }
@@ -199,7 +214,13 @@ const S = StyleSheet.create({
 
   // Section
   secTitle: { fontSize: 18, fontFamily: 'Poppins_600SemiBold', color: Colors.ink, marginTop: 24, marginBottom: 4 },
-  secSub:   { fontSize: 12, fontFamily: 'DMSans_400Regular', color: Colors.warmGray, lineHeight: 18, marginBottom: 16 },
+  secSub:   { fontSize: 12, fontFamily: 'DMSans_400Regular', color: Colors.warmGray, lineHeight: 18, marginBottom: 8 },
+  guideLink: {
+    fontSize: 13,
+    fontFamily: 'DMSans_600SemiBold',
+    color: Colors.amberDark,
+    marginBottom: 16,
+  },
 
   // Zones
   zonesCard: {
