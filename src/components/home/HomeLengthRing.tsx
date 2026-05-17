@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useMemo } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 import { buildConicSweepSegments } from '../../lib/ringSweepPaths';
 import { getHealthScoreColors } from '../../lib/homeGrowth';
@@ -86,14 +86,14 @@ export function HomeLengthRing({
   return (
     <View style={s.wrap}>
       <Pressable
-        style={[s.ringShadow, { width: size, height: size }]}
+        style={[s.ringOuter, Platform.OS === 'web' ? s.ringOuterWeb : s.ringOuterNative, { width: size, height: size }]}
         onPress={onRingPress}
         disabled={!onRingPress}
         accessibilityRole={onRingPress ? 'button' : undefined}
         accessibilityLabel={onRingPress ? 'Voir la progression et les mesures' : undefined}
       >
-        <View style={{ width: size, height: size, position: 'relative' }}>
-          <Svg width={size} height={size}>
+        <View style={[s.ringCanvas, { width: size, height: size }]}>
+          <Svg width={size} height={size} style={s.ringSvg}>
             {sweep.map((seg, i) => (
               <Path
                 key={i}
@@ -163,15 +163,37 @@ export function HomeLengthRing({
 
 const s = StyleSheet.create({
   wrap: { alignItems: 'center', marginBottom: 20 },
-  ringShadow: {
+  ringOuter: {
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  /** iOS / Android : ombre douce sous l’anneau */
+  ringOuterNative: {
     shadowColor: '#2C1810',
     shadowOpacity: 0.14,
     shadowRadius: 22,
     shadowOffset: { width: 0, height: 10 },
     elevation: 10,
   },
+  /**
+   * Web/PWA : shadow* sur un View carré force un fond opaque (carré visible).
+   * Fond transparent ; l’anneau SVG porte un léger drop-shadow CSS.
+   */
+  ringOuterWeb: {
+    backgroundColor: 'transparent',
+  },
+  ringCanvas: {
+    position: 'relative',
+    backgroundColor: 'transparent',
+    overflow: 'visible',
+  },
+  ringSvg: Platform.OS === 'web'
+    ? ({
+        backgroundColor: 'transparent',
+        overflow: 'visible',
+        filter: 'drop-shadow(0px 10px 18px rgba(44, 24, 16, 0.12))',
+      } as object)
+    : {},
   inner: {
     position: 'absolute',
     alignItems: 'center',
@@ -183,11 +205,15 @@ const s = StyleSheet.create({
     backgroundColor: Colors.ink,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOpacity: 0.25,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 6,
+    ...(Platform.OS === 'web'
+      ? { boxShadow: '0px 2px 6px rgba(0,0,0,0.25)' }
+      : {
+          shadowColor: '#000',
+          shadowOpacity: 0.25,
+          shadowRadius: 6,
+          shadowOffset: { width: 0, height: 2 },
+          elevation: 6,
+        }),
   },
   kicker: {
     fontSize: 11,
