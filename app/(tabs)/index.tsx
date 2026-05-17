@@ -33,7 +33,8 @@ import { Colors } from '../../src/theme/colors';
 import { ROUTINE_TYPES, type RoutineType } from '../../src/data/routines';
 import { getCurrentLevel } from '../../src/data/levels';
 import { CC_ROUTINE_VALIDATION_REWARD, CC_ROUTINE_WASHDAY } from '../../src/lib/cotonCoins';
-import { HOME_TAGLINE } from '../../src/constants/productPitch';
+import { HOME_TAGLINE, HOME_TAGLINE_WEB } from '../../src/constants/productPitch';
+import { isWebPlatform } from '../../src/lib/webStaging';
 import { PANTRY_ITEMS } from '../../src/data/pantryItems';
 import { buildGrowthMilestones, computeHairHealthScore, getHomeLengthMetrics } from '../../src/lib/homeGrowth';
 import { fetchHomeHighlights } from '../../src/lib/fetchHomeHighlights';
@@ -342,7 +343,7 @@ export default function HomeScreen() {
             <HomeGreetingRow displayName={profile.name} greetingEmoji="🌸" />
             <Text
               style={s.homeTagline}
-              numberOfLines={1}
+              numberOfLines={Platform.OS === 'web' ? 2 : 1}
               {...(Platform.OS === 'ios'
                 ? { adjustsFontSizeToFit: true, minimumFontScale: 0.72 }
                 : {})}
@@ -524,6 +525,13 @@ const s = StyleSheet.create({
     marginTop: 6,
     marginBottom: 14,
     paddingHorizontal: 2,
+  },
+  homeTaglineWeb: {
+    width: '100%',
+    maxWidth: 400,
+    alignSelf: 'center',
+    lineHeight: 20,
+    paddingHorizontal: 8,
   },
   whiteBlock: { backgroundColor: Colors.bg, paddingTop: 4 },
   footer: {

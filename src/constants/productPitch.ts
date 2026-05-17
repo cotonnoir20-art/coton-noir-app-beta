@@ -3,9 +3,13 @@
  * Tutoiement — à réutiliser dans l’app pour rester cohérent.
  */
 
-/** Une ligne sous le salut sur l’accueil. */
+/** Sous le salut sur l’accueil (une ligne sur mobile natif). */
 export const HOME_TAGLINE =
   'Ton copilote capillaire — pour mieux prendre soin de tes cheveux.';
+
+/** PWA / web : coupure manuelle pour éviter l’ellipse CSS (line-clamp). */
+export const HOME_TAGLINE_WEB =
+  'Ton copilote capillaire —\npour mieux prendre soin de tes cheveux.';
 
 /** Sous-titre écran Récompenses. */
 export const REWARDS_MONEY_LEGEND =
