@@ -191,10 +191,26 @@ export default function WashDayScreen() {
     setTimerDone(false);
   };
 
+  const washPlan = state.routinePlans?.washday ?? null;
+
+  const checklistSteps = useMemo(() => {
+    if (washPlan) {
+      return state.routineSteps.washday.map((s, i) => ({
+        id: s.id,
+        label: s.title,
+        icon: ['🫙', '🪮', '🫧', '🧴', '❄️', '💧', '✨', '🌙'][i % 8],
+        dur: s.duration,
+      }));
+    }
+    return CHECKLIST_STEPS;
+  }, [washPlan, state.routineSteps.washday]);
+
   /* ── Checklists ── */
   const [checked, setChecked] = useState<Record<number, boolean>>({});
-  const doneCount = Object.values(checked).filter(Boolean).length;
-  const checkPct  = Math.round((doneCount / CHECKLIST_STEPS.length) * 100);
+  const doneCount = checklistSteps.filter(s => checked[s.id]).length;
+  const checkPct  = checklistSteps.length > 0
+    ? Math.round((doneCount / checklistSteps.length) * 100)
+    : 0;
 
   /* ── Rappel ── */
   const [reminderTime, setReminderTime]     = useState('09:00');
@@ -288,6 +304,50 @@ export default function WashDayScreen() {
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={S.content}>
+
+        <TouchableOpacity
+          style={S.planCard}
+          onPress={() => router.push({ pathname: '/routine-plan', params: { kind: 'washday' } } as any)}
+          activeOpacity={0.85}
+        >
+          <View style={S.planCardLeft}>
+            <Text style={S.planCardEmoji}>{washPlan ? '✏️' : '🚿'}</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={S.planCardTitle}>
+                {washPlan ? 'Modifier mon wash day' : 'Définir mon wash day'}
+              </Text>
+              <Text style={S.planCardSub} numberOfLines={2}>
+                {washPlan
+                  ? washPlan.mode === 'try_new'
+                    ? `Test · ${washPlan.name}`
+                    : washPlan.name
+                  : 'Produits, recettes, étapes et retours sur tes cheveux'}
+              </Text>
+            </View>
+          </View>
+          <Ionicons name="chevron-forward" size={20} color={Colors.warmGray} />
+        </TouchableOpacity>
+
+        {washPlan && (washPlan.hairStateComment || washPlan.evolutionComment) ? (
+          <View style={S.notesCard}>
+            <View style={S.notesHeader}>
+              <BCEmojiAvatar size={36} mood="thinking" />
+              <Text style={S.notesTitle}>Tes notes cheveux</Text>
+            </View>
+            {!!washPlan.hairStateComment && (
+              <Text style={S.notesText}>
+                <Text style={S.notesBold}>État : </Text>
+                {washPlan.hairStateComment}
+              </Text>
+            )}
+            {!!washPlan.evolutionComment && (
+              <Text style={[S.notesText, !!washPlan.hairStateComment && { marginTop: 8 }]}>
+                <Text style={S.notesBold}>Évolution : </Text>
+                {washPlan.evolutionComment}
+              </Text>
+            )}
+          </View>
+        ) : null}
 
         {/* ── Calendrier ── */}
         <View style={S.calCard}>
@@ -535,8 +595,10 @@ export default function WashDayScreen() {
         <View style={[S.checklistCard, { borderColor: Colors.amber, marginTop: 14 }]}>
           <View style={S.checklistHeader}>
             <View>
-              <Text style={S.checklistTitle}>Checklist · Vendredi 30</Text>
-              <Text style={S.checklistSub}>{doneCount}/{CHECKLIST_STEPS.length} étapes · {checkPct}%</Text>
+              <Text style={S.checklistTitle}>
+                {washPlan?.name?.trim() ? washPlan.name : 'Checklist wash day'}
+              </Text>
+              <Text style={S.checklistSub}>{doneCount}/{checklistSteps.length} étapes · {checkPct}%</Text>
               {!isWashdayValidated && (
                 <Text style={S.checklistRewardHint}>Terminer pour {earnLabel}</Text>
               )}
@@ -551,10 +613,10 @@ export default function WashDayScreen() {
               backgroundColor: checkPct === 100 ? Colors.sage : Colors.amber,
             }]} />
           </View>
-          {CHECKLIST_STEPS.map((step, i) => (
+          {checklistSteps.map((step, i) => (
             <TouchableOpacity
               key={step.id}
-              style={[S.checkRow, i < CHECKLIST_STEPS.length - 1 && S.checkRowBorder]}
+              style={[S.checkRow, i < checklistSteps.length - 1 && S.checkRowBorder]}
               onPress={() => setChecked(c => ({ ...c, [step.id]: !c[step.id] }))}
             >
               <View style={[S.checkBox, { borderRadius: 6 }, checked[step.id] && S.checkBoxDone]}>
@@ -903,6 +965,35 @@ export default function WashDayScreen() {
 const S = StyleSheet.create({
   safe:    { flex: 1, backgroundColor: Colors.bg },
   content: { paddingHorizontal: 20, paddingBottom: 20 },
+
+  planCard: {
+    marginTop: 12,
+    marginBottom: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: Colors.surface,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: 14,
+    padding: 14,
+  },
+  planCardLeft: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 },
+  planCardEmoji: { fontSize: 28 },
+  planCardTitle: { fontFamily: 'Poppins_600SemiBold', fontSize: 14, color: Colors.ink },
+  planCardSub: { fontFamily: 'DMSans_400Regular', fontSize: 12, color: Colors.warmGray, marginTop: 2 },
+  notesCard: {
+    marginBottom: 8,
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: 14,
+    padding: 14,
+  },
+  notesHeader: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 10 },
+  notesTitle: { fontFamily: 'Poppins_600SemiBold', fontSize: 14, color: Colors.ink },
+  notesText: { fontFamily: 'DMSans_400Regular', fontSize: 13, color: Colors.ink, lineHeight: 19 },
+  notesBold: { fontFamily: 'DMSans_700Bold' },
 
   header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12, gap: 8 },
   backBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: Colors.surface, borderWidth: 1, borderColor: Colors.border, alignItems: 'center', justifyContent: 'center' },

@@ -68,6 +68,7 @@ function RootLayoutNav() {
         <Stack.Screen name="shop"          options={{ presentation: 'card', animation: 'slide_from_right' }} />
         <Stack.Screen name="tutorials"     options={{ presentation: 'card', animation: 'slide_from_right' }} />
         <Stack.Screen name="washday"       options={{ presentation: 'card', animation: 'slide_from_right' }} />
+        <Stack.Screen name="routine-plan"  options={{ presentation: 'card', animation: 'slide_from_right' }} />
         <Stack.Screen name="community"     options={{ presentation: 'card', animation: 'slide_from_right' }} />
         <Stack.Screen name="box"           options={{ presentation: 'card', animation: 'slide_from_right' }} />
         <Stack.Screen name="discover"      options={{ presentation: 'card', animation: 'slide_from_right' }} />

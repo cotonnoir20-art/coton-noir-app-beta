@@ -99,8 +99,10 @@ export default function RoutineScreen() {
   }, []);
 
   const currentSteps = state.routineSteps[type];
+  const customPlan   = state.routinePlans?.[type] ?? null;
   const isValidated  = state.validated[type];
   const routine      = ROUTINE_TYPES[type];
+  const displayTitle = customPlan?.name?.trim() || 'Routine complète';
   const done         = currentSteps.filter(s => s.done).length;
   const total        = currentSteps.length;
   const pct          = Math.round((done / total) * 100);
@@ -224,11 +226,63 @@ export default function RoutineScreen() {
           ))}
         </View>
 
+        {/* ── Personnaliser ── */}
+        <TouchableOpacity
+          style={S.planCard}
+          onPress={() => router.push({ pathname: '/routine-plan', params: { kind: type } } as any)}
+          activeOpacity={0.85}
+        >
+          <View style={S.planCardLeft}>
+            <AppIconBox
+              name={customPlan ? 'create-outline' : 'sparkles-outline'}
+              backgroundColor={Colors.amberLight}
+              color={Colors.ink}
+              size={40}
+              iconSize={20}
+              borderRadius={12}
+            />
+            <View style={{ flex: 1 }}>
+              <Text style={S.planCardTitle}>
+                {customPlan ? 'Modifier ma routine' : 'Définir ma routine'}
+              </Text>
+              <Text style={S.planCardSub} numberOfLines={2}>
+                {customPlan
+                  ? customPlan.mode === 'try_new'
+                    ? `Test en cours · ${customPlan.name}`
+                    : customPlan.name
+                  : 'Nom, produits, recettes, étapes et tes retours cheveux'}
+              </Text>
+            </View>
+          </View>
+          <Ionicons name="chevron-forward" size={20} color={Colors.warmGray} />
+        </TouchableOpacity>
+
+        {customPlan && (customPlan.hairStateComment || customPlan.evolutionComment) ? (
+          <View style={S.notesCard}>
+            <View style={S.notesHeader}>
+              <BCEmojiAvatar size={36} mood="thinking" />
+              <Text style={S.notesTitle}>Tes notes cheveux</Text>
+            </View>
+            {!!customPlan.hairStateComment && (
+              <Text style={S.notesText}>
+                <Text style={S.notesBold}>État : </Text>
+                {customPlan.hairStateComment}
+              </Text>
+            )}
+            {!!customPlan.evolutionComment && (
+              <Text style={[S.notesText, !!customPlan.hairStateComment && { marginTop: 8 }]}>
+                <Text style={S.notesBold}>Évolution : </Text>
+                {customPlan.evolutionComment}
+              </Text>
+            )}
+          </View>
+        ) : null}
+
         {/* ── Dark progress card ── */}
         <View style={S.darkCard}>
           <Ionicons name="leaf-outline" size={88} color="rgba(255,255,255,0.08)" style={S.darkLeafIon} />
           <Text style={S.darkSub}>Aujourd'hui · {routine.label}</Text>
-          <Text style={S.darkTitle}>Routine Complète</Text>
+          <Text style={S.darkTitle}>{displayTitle}</Text>
           <View style={S.barBg}>
             <View style={[S.barFill, { width: `${pct}%` as any }]} />
           </View>
@@ -250,13 +304,17 @@ export default function RoutineScreen() {
               <Text style={S.miniSubLight}>{lastRoutine}</Text>
             </View>
           </View>
-          <View style={S.miniDark}>
+          <TouchableOpacity
+            style={S.miniDark}
+            onPress={() => router.push('/washday' as any)}
+            activeOpacity={0.85}
+          >
             <AppIconBox name="water-outline" backgroundColor="rgba(255,255,255,0.12)" color={Colors.amber} size={36} iconSize={18} borderRadius={11} />
             <View>
               <Text style={S.miniTitleDark}>Prochain wash day</Text>
               <Text style={S.miniSubAmber}>{nextWashDayDays !== null ? `dans ${nextWashDayDays} jour${nextWashDayDays > 1 ? 's' : ''} →` : 'Non planifié →'}</Text>
             </View>
-          </View>
+          </TouchableOpacity>
         </View>
 
         {/* ── Steps ── */}
@@ -531,6 +589,36 @@ const S = StyleSheet.create({
   typeTabActive:   { borderWidth: 2, borderColor: Colors.amber, backgroundColor: '#FFFBEB' },
   typeLabel:       { fontSize: 11, fontFamily: 'DMSans_500Medium', color: Colors.warmGray },
   typeLabelActive: { fontFamily: 'DMSans_700Bold', color: Colors.amber },
+
+  planCard: {
+    marginHorizontal: 20,
+    marginBottom: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: Colors.surface,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: 14,
+    padding: 14,
+  },
+  planCardLeft: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 },
+  planCardTitle: { fontFamily: 'Poppins_600SemiBold', fontSize: 14, color: Colors.ink },
+  planCardSub: { fontFamily: 'DMSans_400Regular', fontSize: 12, color: Colors.warmGray, marginTop: 2 },
+
+  notesCard: {
+    marginHorizontal: 20,
+    marginBottom: 12,
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: 14,
+    padding: 14,
+  },
+  notesHeader: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 10 },
+  notesTitle: { fontFamily: 'Poppins_600SemiBold', fontSize: 14, color: Colors.ink },
+  notesText: { fontFamily: 'DMSans_400Regular', fontSize: 13, color: Colors.ink, lineHeight: 19 },
+  notesBold: { fontFamily: 'DMSans_700Bold' },
 
   // ── Dark progress card ──
   darkCard: {

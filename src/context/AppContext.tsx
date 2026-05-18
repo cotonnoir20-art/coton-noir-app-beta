@@ -40,6 +40,13 @@ import {
   parseOfflineSlice,
   pickOfflinePersistSlice,
 } from '../lib/appOfflineState';
+import type { RoutinePlansState, UserRoutinePlan } from '../types/userRoutinePlan';
+import { emptyRoutinePlans, planToRoutineSteps } from '../lib/userRoutinePlan';
+import {
+  clearRoutinePlansStorage,
+  loadRoutinePlans,
+  saveRoutinePlans,
+} from '../lib/routinePlanStorage';
 
 /** Au-delà, on considère un hydrate / import batch — pas de haptique « niveau atteint ». */
 const MAX_SINGLE_GAIN_FOR_LEVEL_HAPTIC = 400;
@@ -102,6 +109,8 @@ export type AppState = {
   coinHistory: CoinHistoryEntry[];
   growthHistory: GrowthEntry[];
   plannedSoins: PlannedSoin[];
+  /** Plans personnalisés (nom, produits, étapes, commentaires) par type de routine */
+  routinePlans: RoutinePlansState;
 };
 
 type Action =
@@ -145,6 +154,7 @@ const initialState: AppState = {
   coinHistory: [],
   growthHistory: [],
   plannedSoins: [],
+  routinePlans: emptyRoutinePlans(),
 };
 
 // ── Calcul du streak basé sur la dernière date de routine ──────────────────
@@ -191,6 +201,35 @@ function reducer(state: AppState, action: Action): AppState {
               { id: Date.now(), label: ONBOARDING_GIFT_LABEL, amount: CC_ONBOARDING_GIFT, date: today },
               ...state.coinHistory,
             ],
+      };
+    }
+
+    case 'loadRoutinePlans': {
+      const routineSteps = { ...state.routineSteps };
+      (Object.keys(action.plans) as RoutineType[]).forEach(k => {
+        const plan = action.plans[k];
+        if (plan) routineSteps[k] = planToRoutineSteps(plan);
+      });
+      return { ...state, routinePlans: action.plans, routineSteps };
+    }
+
+    case 'setRoutinePlan': {
+      const plan = { ...action.plan, updatedAt: new Date().toISOString() };
+      const steps = planToRoutineSteps(plan);
+      return {
+        ...state,
+        routinePlans: { ...state.routinePlans, [plan.kind]: plan },
+        routineSteps: { ...state.routineSteps, [plan.kind]: steps },
+      };
+    }
+
+    case 'clearRoutinePlan': {
+      const kind = action.kind;
+      const defaultSteps = ROUTINE_TYPES[kind].steps.map(s => ({ ...s, done: false }));
+      return {
+        ...state,
+        routinePlans: { ...state.routinePlans, [kind]: null },
+        routineSteps: { ...state.routineSteps, [kind]: defaultSteps },
       };
     }
 
@@ -346,6 +385,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const syncedGrowthCount  = useRef(0);
   // Suit quels types de routine ont déjà été loggés cette session
   const loggedRoutines     = useRef<Set<RoutineType>>(new Set());
+  const routinePlansReady  = useRef(false);
   // Compte de démo : on désactive tous les syncs Supabase pour ne pas polluer
   // la DB. Les données vivent uniquement en mémoire + cache local.
   const isDemo             = useRef(false);
@@ -486,6 +526,22 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     void migrateLegacyPlaintextCache();
   }, []);
 
+  // Plans de routine personnalisés (toutes sessions)
+  useEffect(() => {
+    let cancelled = false;
+    void loadRoutinePlans().then(plans => {
+      if (cancelled) return;
+      routinePlansReady.current = true;
+      dispatch({ type: 'loadRoutinePlans', plans });
+    });
+    return () => { cancelled = true; };
+  }, []);
+
+  useEffect(() => {
+    if (!routinePlansReady.current) return;
+    void saveRoutinePlans(state.routinePlans);
+  }, [state.routinePlans]);
+
   // Hors session : routines / soins planifiés uniquement (SecureStore, pas d’économie).
   useEffect(() => {
     if (userId) return;
@@ -505,7 +561,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (userId) return;
     void saveOfflineSlice(pickOfflinePersistSlice(state));
-  }, [userId, state.routineSteps, state.plannedSoins, state.profile]);
+  }, [userId, state.routineSteps, state.plannedSoins, state.profile, state.routinePlans]);
 
   // ── Chargement Supabase au login ──
   useEffect(() => {
@@ -519,6 +575,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         loggedRoutines.current = new Set();
         dispatch({ type: 'reset' });
         void clearSensitiveAppStorage();
+        routinePlansReady.current = false;
+        void clearRoutinePlansStorage();
         cancelDailyCoach().catch(() => {});
       }
       return;

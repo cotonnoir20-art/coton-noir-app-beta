@@ -1,4 +1,6 @@
 import type { AppState, HairProfile } from '../context/AppContext';
+import type { RoutinePlansState } from '../types/userRoutinePlan';
+import { parseRoutinePlansState } from './userRoutinePlan';
 
 const PROFILE_DRAFT_KEYS: (keyof HairProfile)[] = [
   'name',
@@ -21,6 +23,7 @@ export type OfflineAppSlice = {
   routineSteps: AppState['routineSteps'];
   plannedSoins: AppState['plannedSoins'];
   profileDraft?: Partial<HairProfile>;
+  routinePlans?: RoutinePlansState;
 };
 
 export function pickOfflinePersistSlice(state: AppState): OfflineAppSlice {
@@ -47,6 +50,7 @@ export function mergeOfflineSlice(base: AppState, slice: OfflineAppSlice | null)
     profile: slice.profileDraft
       ? { ...base.profile, ...slice.profileDraft }
       : base.profile,
+    routinePlans: slice.routinePlans ?? base.routinePlans,
   };
 }
 
@@ -55,11 +59,16 @@ export function parseOfflineSlice(raw: {
   routineSteps?: unknown;
   plannedSoins?: unknown;
   profileDraft?: Record<string, unknown>;
+  routinePlans?: unknown;
 } | null): OfflineAppSlice | null {
   if (!raw?.routineSteps || !Array.isArray(raw.plannedSoins)) return null;
+  const routinePlans = raw.routinePlans
+    ? parseRoutinePlansState(raw.routinePlans) ?? undefined
+    : undefined;
   return {
     routineSteps: raw.routineSteps as AppState['routineSteps'],
     plannedSoins: raw.plannedSoins as AppState['plannedSoins'],
     profileDraft: raw.profileDraft as Partial<HairProfile> | undefined,
+    routinePlans,
   };
 }
