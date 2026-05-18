@@ -2,13 +2,14 @@
 // Comptes de démonstration (build DEV uniquement — exclu des releases store)
 //
 // Les emails ci-dessous ne sont pas inclus dans l’APK/IPA production : le bloc
-// DEMO_FIXTURES est compilé avec `__DEV__ ? … : {}`. En release, isDemoEmail()
-// retourne toujours false.
+// Comptes dev : `DEV_DEMO_FIXTURES` (__DEV__ uniquement).
+// Compte présentation Paula : actif aussi en build production (PWA Vercel).
 //
 // Mots de passe Supabase : uniquement dans .env.local (voir demoMode.ts).
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { isDemoModeAvailable } from '../lib/demoMode';
+import type { RoutineType } from './routines';
 import type {
   AppState,
   CoinHistoryEntry,
@@ -16,6 +17,8 @@ import type {
   HairProfile,
   PlannedSoin,
 } from '../context/AppContext';
+import type { RoutinePlansState, UserRoutinePlan } from '../types/userRoutinePlan';
+import { emptyRoutinePlans, mergePlanIntoRoutineSteps } from '../lib/userRoutinePlan';
 import type { Notif } from '../context/NotificationsContext';
 import {
   CC_REFERRAL_SIGNUP,
@@ -62,6 +65,8 @@ interface DemoFixture {
   protective: { active: boolean; type?: string };
   /** Notifications personnalisées (sinon défaut). */
   notifs?: Notif[];
+  /** Routines personnalisées (matin / soir / wash day). */
+  routinePlans?: RoutinePlansState;
 }
 
 // ─── Définitions ────────────────────────────────────────────────────────────
@@ -73,7 +78,230 @@ interface DemoFixture {
 //
 // Score final = round(profile_filled/9 * 60) + min(streak*2, 20) + min(growth*5, 20)
 
-const DEMO_FIXTURES: Record<string, DemoFixture> = __DEV__ ? {
+/** Compte présentation — actif aussi sur PWA / build production (Vercel). */
+export const PRESENTATION_DEMO_EMAIL = 'pauleflora.kouame@gmail.com';
+
+function buildPaulaPresentationRoutinePlans(): RoutinePlansState {
+  const updatedAt = new Date().toISOString();
+  const daily: UserRoutinePlan = {
+    kind: 'daily',
+    mode: 'keep',
+    name: 'LOC hydratation 3C',
+    items: [
+      { id: 'paula-p1', kind: 'product', label: 'Spray eau florale' },
+      { id: 'paula-p2', kind: 'product', label: 'Leave-in Hydrate' },
+      { id: 'paula-p3', kind: 'recipe', label: 'Gelée de lin maison' },
+    ],
+    steps: [
+      {
+        id: 'paula-d1',
+        title: 'Humidification',
+        duration: '3 min',
+        desc: 'Vaporise sur longueurs et pointes avant le leave-in.',
+        productLabels: ['Spray eau florale'],
+      },
+      {
+        id: 'paula-d2',
+        title: 'Leave-in',
+        duration: '5 min',
+        desc: 'Applique en sections, doigts ou peigne à dents larges.',
+        productLabels: ['Leave-in Hydrate'],
+      },
+      {
+        id: 'paula-d3',
+        title: 'Scellage',
+        duration: '3 min',
+        desc: 'Gelée de lin sur les pointes pour tenir les boucles.',
+        productLabels: ['Gelée de lin maison'],
+      },
+      {
+        id: 'paula-d4',
+        title: 'Coiffage',
+        duration: '8 min',
+        desc: 'Twist-outs ou wash-and-go selon le temps disponible.',
+        productLabels: [],
+      },
+    ],
+    hairStateComment: 'Boucles définies le matin, légère sécheresse en fin de journée sur les pointes.',
+    evolutionComment: 'Moins de frisottis depuis 3 semaines avec cette LOC.',
+    updatedAt,
+  };
+  const night: UserRoutinePlan = {
+    kind: 'night',
+    mode: 'keep',
+    name: 'Protection nuit 3C',
+    items: [
+      { id: 'paula-n1', kind: 'product', label: 'Leave-in léger' },
+      { id: 'paula-n2', kind: 'product', label: 'Bonnet satin' },
+    ],
+    steps: [
+      {
+        id: 'paula-n1s',
+        title: 'Démêlage doux',
+        duration: '5 min',
+        desc: 'Des pointes vers les racines, cheveux légèrement humides.',
+        productLabels: [],
+      },
+      {
+        id: 'paula-n2s',
+        title: 'Hydratation nocturne',
+        duration: '5 min',
+        desc: 'Leave-in sur pointes et longueurs.',
+        productLabels: ['Leave-in léger'],
+      },
+      {
+        id: 'paula-n3s',
+        title: 'Tresses de protection',
+        duration: '10 min',
+        desc: '2 à 4 tresses lâches pour limiter les nœuds.',
+        productLabels: [],
+      },
+      {
+        id: 'paula-n4s',
+        title: 'Bonnet satin',
+        duration: '2 min',
+        desc: 'Préserve l’hydratation et réduit la casse.',
+        productLabels: ['Bonnet satin'],
+      },
+    ],
+    hairStateComment: 'Cheveux souples au réveil quand les tresses sont bien faites.',
+    evolutionComment: 'Moins de nœuds au réveil depuis le bonnet + tresses.',
+    updatedAt,
+  };
+  const washday: UserRoutinePlan = {
+    kind: 'washday',
+    mode: 'try_new',
+    name: 'Wash day coco & karité',
+    items: [
+      { id: 'paula-w1', kind: 'product', label: 'Huile de coco' },
+      { id: 'paula-w2', kind: 'product', label: 'Co-wash Aloe' },
+      { id: 'paula-w3', kind: 'product', label: 'Masque Karité Profond' },
+      { id: 'paula-w4', kind: 'recipe', label: 'Rinçage vinaigre de cidre' },
+    ],
+    steps: [
+      {
+        id: 'paula-w1s',
+        title: 'Pré-poo',
+        duration: '30 min',
+        desc: 'Huile de coco sur cheveux secs, cuir chevelu inclus.',
+        productLabels: ['Huile de coco'],
+      },
+      {
+        id: 'paula-w2s',
+        title: 'Co-wash',
+        duration: '15 min',
+        desc: 'Nettoyage doux, focus racines.',
+        productLabels: ['Co-wash Aloe'],
+      },
+      {
+        id: 'paula-w3s',
+        title: 'Masque hydratant',
+        duration: '20 min',
+        desc: 'Sous charlotte, démêlage à plat.',
+        productLabels: ['Masque Karité Profond'],
+      },
+      {
+        id: 'paula-w4s',
+        title: 'Rinçage & leave-in',
+        duration: '15 min',
+        desc: 'Rinçage froid final puis leave-in + huile légère.',
+        productLabels: ['Rinçage vinaigre de cidre'],
+      },
+      {
+        id: 'paula-w5s',
+        title: 'Coiffage',
+        duration: '15 min',
+        desc: 'Définition des boucles section par section.',
+        productLabels: [],
+      },
+    ],
+    hairStateComment: 'Cheveux propres et légers après wash day, boucles rebondies.',
+    evolutionComment: 'Test du protocole coco depuis 2 wash days — bonne réaction sur les longueurs.',
+    updatedAt,
+  };
+  return { daily, night, washday };
+}
+
+const PAULEFLORA_PRESENTATION_FIXTURE: DemoFixture = {
+  email: PRESENTATION_DEMO_EMAIL,
+  name: 'Paula',
+  ageDays: 95,
+  coins: 1750,
+  totalEarned: 2680,
+  streak: 42,
+  washdaysThisMonth: 3,
+  growth: [
+    { daysAgo: 92, cm: 14.0, zone: 'Devant' },
+    { daysAgo: 92, cm: 13.6, zone: 'Derrière' },
+    { daysAgo: 92, cm: 13.8, zone: 'Droite' },
+    { daysAgo: 92, cm: 13.7, zone: 'Gauche' },
+    { daysAgo: 62, cm: 14.4, zone: 'Devant' },
+    { daysAgo: 62, cm: 14.0, zone: 'Derrière' },
+    { daysAgo: 31, cm: 14.8, zone: 'Devant' },
+    { daysAgo: 31, cm: 14.3, zone: 'Derrière' },
+    { daysAgo: 7, cm: 15.2, zone: 'Devant' },
+    { daysAgo: 7, cm: 14.7, zone: 'Derrière' },
+  ],
+  profile: {
+    name: 'Paula',
+    hairType: '3C',
+    porosity: 'Moyenne',
+    density: 'Moyenne',
+    length: 'Épaules',
+    objective: 'longueur',
+    targetLength: '18 cm',
+    objectiveTargetDate: '2026-12-31',
+    routineType: 'LOC',
+    region: 'Europe',
+    climate: 'tempéré',
+    budget: 'moyen',
+    careStyle: 'mix',
+    problematics: ['Sécheresse', 'Rétraction'],
+  },
+  avatar: { emoji: '✨', bg: '#1A4731' },
+  protective: { active: true, type: 'Tresses' },
+  routinePlans: buildPaulaPresentationRoutinePlans(),
+  notifs: [
+    {
+      id: 1, type: 'tip', read: false, time: "Il y a 1 h",
+      title: 'Black Cotton · Routine du matin',
+      body: 'Tes boucles réagissent bien à ta LOC. Pense au scellage sur pointes humides.',
+      route: '/(tabs)/routine',
+    },
+    {
+      id: 2, type: 'coins', read: false, time: "Aujourd'hui",
+      title: '1750 CotonCoins disponibles',
+      body: 'Tu peux débloquer des récompenses ou codes partenaires dans la boutique.',
+      route: '/rewards',
+    },
+    {
+      id: 3, type: 'routine', read: false, time: 'Hier',
+      title: 'Wash day dans 5 jours',
+      body: 'Ton protocole coco & karité est prêt — prévois le pré-poo la veille.',
+      route: '/washday',
+    },
+    {
+      id: 4, type: 'coins', read: true, time: 'Il y a 3 jours',
+      title: 'Streak 42 jours 🔥',
+      body: 'Plus d’un mois de régularité. Continue comme ça !',
+      route: '/rewards',
+    },
+    {
+      id: 5, type: 'promo', read: true, time: 'Il y a 1 semaine',
+      title: 'Recette du mois · Gelée de lin',
+      body: 'Ta recette maison est notée 4,8/5 par la communauté.',
+      route: '/recipes',
+    },
+    {
+      id: 6, type: 'system', read: true, time: 'Il y a 3 mois',
+      title: 'Bienvenue Paula ✨',
+      body: 'Profil 3C enregistré. Black Cotton personnalise tes conseils.',
+      route: '/(tabs)',
+    },
+  ],
+};
+
+const DEV_DEMO_FIXTURES: Record<string, DemoFixture> = __DEV__ ? {
   // ── Britta · 1 mois · 560 CC · streak 25 · score 75 · 4 washdays ────────
   'cotonnoir20@gmail.com': {
     email: 'cotonnoir20@gmail.com',
@@ -222,93 +450,33 @@ const DEMO_FIXTURES: Record<string, DemoFixture> = __DEV__ ? {
       },
     ],
   },
-
-  // ── Paula · 3 mois · 1500 CC · streak 90 · score ~45 · 1 washday ────────
-  'pauleflora.kouame@gmail.com': {
-    email: 'pauleflora.kouame@gmail.com',
-    name: 'Paula',
-    ageDays: 90,
-    coins: 1500,
-    totalEarned: 2200,
-    streak: 90,
-    washdaysThisMonth: 1,
-    // 3 mesures "Devant" sur 3 mois → diff "Pousse ce mois" + 15 pts bonus
-    // 13 profil + 20 streak + 15 growth = 48 (cible 45, écart +3)
-    growth: [
-      { daysAgo: 70, cm: 14.0 }, // -2 mois
-      { daysAgo: 35, cm: 14.4 }, // mois précédent
-      { daysAgo: 6,  cm: 14.7 }, // mois en cours
-    ],
-    profile: {
-      name: 'Paula',
-      hairType: '3C',
-      length: 'Courts',
-      // 7 champs vides → 2/9 → 13 pts (+ streak 20 + growth 15 = 48 ≈ 45)
-      porosity: '',
-      density: '',
-      objective: '',
-      targetLength: '',
-      routineType: '',
-      region: '',
-      climate: '',
-      budget: '',
-      careStyle: 'diy',
-      problematics: ['Sécheresse', 'Rétraction'],
-    },
-    avatar: { emoji: '✨', bg: '#1A4731' },
-    protective: { active: true, type: 'Tresses' },
-    notifs: [
-      {
-        id: 1, type: 'tip', read: false, time: "Il y a 1 h",
-        title: "Mode protecteur · Hydratation des tresses",
-        body: "Vaporise un mélange eau + glycérine 1 fois par jour pour garder tes longueurs souples.",
-      },
-      {
-        id: 2, type: 'system', read: false, time: "Aujourd'hui",
-        title: 'Complète ton profil pour +25 CC',
-        body: "Il te manque ta porosité et ton objectif. 1 minute, gros impact sur le score.",
-        route: '/hair-profile',
-      },
-      {
-        id: 3, type: 'coins', read: false, time: "Hier",
-        title: "Streak 90 jours 🏆 +100 CC",
-        body: "Tu n'as pas raté un jour depuis l'inscription. Inarrêtable.",
-        route: '/rewards',
-      },
-      {
-        id: 4, type: 'routine', read: true, time: "Il y a 4 jours",
-        title: "Wash day plus dur pour toi",
-        body: "Tu n'as fait qu'un wash day ce mois — laisse pas filer la routine !",
-        route: '/(tabs)/routine',
-      },
-      {
-        id: 5, type: 'promo', read: true, time: "Il y a 2 semaines",
-        title: "Tes 1500 CC peuvent partir en cadeau",
-        body: "Catalogue de récompenses mis à jour — vois ce que tu peux débloquer.",
-        route: '/rewards',
-      },
-      {
-        id: 6, type: 'system', read: true, time: "Il y a 3 mois",
-        title: "Bienvenue chez Coton Noir ✨",
-        body: "Black Cotton va t'accompagner dans ta routine 3C.",
-        route: '/(tabs)',
-      },
-    ],
-  },
 } : {};
+
+function resolveDemoFixture(email: string): DemoFixture | null {
+  const key = email.toLowerCase().trim();
+  if (key === PRESENTATION_DEMO_EMAIL) return PAULEFLORA_PRESENTATION_FIXTURE;
+  return DEV_DEMO_FIXTURES[key] ?? null;
+}
 
 // ─── Helpers publics ────────────────────────────────────────────────────────
 
+export function isPresentationDemoEmail(email: string | undefined | null): boolean {
+  if (!email) return false;
+  return email.toLowerCase().trim() === PRESENTATION_DEMO_EMAIL;
+}
+
 export function isDemoEmail(email: string | undefined | null): boolean {
-  if (!isDemoModeAvailable() || !email) return false;
+  if (!email) return false;
+  if (isPresentationDemoEmail(email)) return true;
+  if (!isDemoModeAvailable()) return false;
   return Object.prototype.hasOwnProperty.call(
-    DEMO_FIXTURES,
+    DEV_DEMO_FIXTURES,
     email.toLowerCase().trim(),
   );
 }
 
 export function getDemoFixture(email: string): DemoFixture | null {
-  return DEMO_FIXTURES[email.toLowerCase().trim()] ?? null;
+  return resolveDemoFixture(email);
 }
 
 export type DemoPopinVariant = 'premium';
@@ -514,6 +682,22 @@ export function buildDemoAppState(
   fixture: DemoFixture,
   baseState: AppState,
 ): AppState {
+  const routinePlans = fixture.routinePlans ?? emptyRoutinePlans();
+  const routineSteps = { ...baseState.routineSteps };
+  (['washday', 'daily', 'night'] as RoutineType[]).forEach(k => {
+    const plan = routinePlans[k];
+    if (plan) {
+      routineSteps[k] = mergePlanIntoRoutineSteps(plan, plan, routineSteps[k]);
+    }
+  });
+  // Progression visible sur la routine du matin (démo présentation)
+  if (routineSteps.daily.length > 0) {
+    routineSteps.daily = routineSteps.daily.map((s, i) => ({
+      ...s,
+      done: i < 2,
+    }));
+  }
+
   return {
     ...baseState,
     coins: fixture.coins,
@@ -527,6 +711,8 @@ export function buildDemoAppState(
     coinHistory: buildCoinHistory(fixture),
     plannedSoins: buildPlannedSoins(fixture),
     growthHistory: buildGrowthHistory(fixture),
+    routinePlans,
+    routineSteps,
     // Aujourd'hui démarre frais : la démo peut tap "valider" et voir les gains
     validated: { washday: false, daily: false, night: false },
   };
@@ -577,7 +763,7 @@ export type DemoRecipe = {
   created_at:  string;
 };
 
-export const DEMO_RECIPES: DemoRecipe[] = __DEV__ ? [
+export const DEMO_RECIPES: DemoRecipe[] = [
   {
     id:          'demo-recipe-masque-avocat-miel',
     name:        'Masque avocat-miel hydratant',
@@ -658,7 +844,7 @@ export const DEMO_RECIPES: DemoRecipe[] = __DEV__ ? [
     likes:      57,
     created_at: '2026-05-02T09:15:00.000Z',
   },
-] : [];
+];
 
 /**
  * Retourne les recettes démo si l'email correspond à un compte démo, sinon
@@ -691,7 +877,7 @@ export type DemoArticle = {
   created_at:     string;
 };
 
-export const DEMO_ARTICLES: DemoArticle[] = __DEV__ ? [
+export const DEMO_ARTICLES: DemoArticle[] = [
   {
     id:        'demo-article-trichologue-pousse',
     title:     "5 erreurs qui freinent la pousse de tes cheveux",
@@ -762,7 +948,7 @@ export const DEMO_ARTICLES: DemoArticle[] = __DEV__ ? [
     likes:          203,
     created_at:     '2026-05-04T16:15:00.000Z',
   },
-] : [];
+];
 
 export function getDemoArticles(email: string | undefined | null): DemoArticle[] {
   return isDemoEmail(email) ? DEMO_ARTICLES : [];
@@ -891,13 +1077,13 @@ export const DEMO_PRODUCTS: DemoProduct[] = __DEV__ ? [
     url: 'https://www.cotonnoir.com/',
     rating: 4.7, rating_count: 348,
   },
-] : [];
+];
 
 export function getDemoProducts(email: string | undefined | null): DemoProduct[] {
   return isDemoEmail(email) ? DEMO_PRODUCTS : [];
 }
 
 export function getDemoProductById(productId: string): DemoProduct | undefined {
-  if (!isDemoModeAvailable() || !productId.startsWith('demo-prod-')) return undefined;
+  if (!productId.startsWith('demo-prod-')) return undefined;
   return DEMO_PRODUCTS.find(p => p.id === productId);
 }

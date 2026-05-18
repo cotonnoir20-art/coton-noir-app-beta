@@ -537,8 +537,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     void migrateLegacyPlaintextCache();
   }, []);
 
-  // Plans de routine personnalisés (toutes sessions)
+  // Plans de routine personnalisés (hors comptes démo — données injectées par fixture)
   useEffect(() => {
+    if (isDemoEmail(userEmail)) {
+      routinePlansReady.current = true;
+      return;
+    }
     let cancelled = false;
     void loadRoutinePlans().then(plans => {
       if (cancelled) return;
@@ -546,12 +550,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       dispatch({ type: 'loadRoutinePlans', plans });
     });
     return () => { cancelled = true; };
-  }, []);
+  }, [userEmail]);
 
   useEffect(() => {
-    if (!routinePlansReady.current) return;
+    if (!routinePlansReady.current || isDemoEmail(userEmail)) return;
     void saveRoutinePlans(state.routinePlans);
-  }, [state.routinePlans]);
+  }, [state.routinePlans, userEmail]);
 
   // Hors session : routines / soins planifiés uniquement (SecureStore, pas d’économie).
   useEffect(() => {
