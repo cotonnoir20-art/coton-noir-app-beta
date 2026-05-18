@@ -980,7 +980,7 @@ export type DemoProduct = {
 // `category` utilise les IDs courts du shop (`mask`, `sham`, `oil`, `style`,
 // `compl`) pour que les produits apparaissent sous les bons filtres dans
 // `app/shop.tsx`. Les `tags` restent en mots-clés français pour le scoring.
-export const DEMO_PRODUCTS: DemoProduct[] = __DEV__ ? [
+export const DEMO_PRODUCTS: DemoProduct[] = [
   {
     id:    'demo-prod-mask-avocat-deep',
     name:  'Masque hydratant intense Avocat',
