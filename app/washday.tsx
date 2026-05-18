@@ -35,17 +35,6 @@ const MONTH_NAMES_WD = [
   'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
   'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre',
 ];
-const CHECKLIST_STEPS = [
-  { id: 1, label: 'Pré-poo',             icon: '🫙', dur: '30 min' },
-  { id: 2, label: 'Démêlage',            icon: '🪮', dur: '15 min' },
-  { id: 3, label: 'Shampoing',           icon: '🫧', dur: '10 min' },
-  { id: 4, label: 'Masque hydratant',    icon: '🧴', dur: '20 min' },
-  { id: 5, label: 'Rinçage froid',       icon: '❄️', dur: '5 min'  },
-  { id: 6, label: 'Leave-in + huile',    icon: '💧', dur: '10 min' },
-  { id: 7, label: 'Coiffage',            icon: '✨', dur: '15 min' },
-  { id: 8, label: 'Protection nocturne', icon: '🌙', dur: '5 min'  },
-];
-
 const TIMER_PRESETS = [
   { label: 'Pré-poo',  min: 30, icon: '🫙' },
   { label: 'Masque',   min: 20, icon: '🧴' },
@@ -192,24 +181,12 @@ export default function WashDayScreen() {
   };
 
   const washPlan = state.routinePlans?.washday ?? null;
+  const washSteps = state.routineSteps.washday;
 
-  const checklistSteps = useMemo(() => {
-    if (washPlan) {
-      return state.routineSteps.washday.map((s, i) => ({
-        id: s.id,
-        label: s.title,
-        icon: ['🫙', '🪮', '🫧', '🧴', '❄️', '💧', '✨', '🌙'][i % 8],
-        dur: s.duration,
-      }));
-    }
-    return CHECKLIST_STEPS;
-  }, [washPlan, state.routineSteps.washday]);
-
-  /* ── Checklists ── */
-  const [checked, setChecked] = useState<Record<number, boolean>>({});
-  const doneCount = checklistSteps.filter(s => checked[s.id]).length;
-  const checkPct  = checklistSteps.length > 0
-    ? Math.round((doneCount / checklistSteps.length) * 100)
+  const washStepIcons = ['🫙', '🪮', '🫧', '🧴', '❄️', '💧', '✨', '🌙'];
+  const doneCount = washSteps.filter(s => s.done).length;
+  const checkPct  = washSteps.length > 0
+    ? Math.round((doneCount / washSteps.length) * 100)
     : 0;
 
   /* ── Rappel ── */
@@ -598,7 +575,7 @@ export default function WashDayScreen() {
               <Text style={S.checklistTitle}>
                 {washPlan?.name?.trim() ? washPlan.name : 'Checklist wash day'}
               </Text>
-              <Text style={S.checklistSub}>{doneCount}/{checklistSteps.length} étapes · {checkPct}%</Text>
+              <Text style={S.checklistSub}>{doneCount}/{washSteps.length} étapes · {checkPct}%</Text>
               {!isWashdayValidated && (
                 <Text style={S.checklistRewardHint}>Terminer pour {earnLabel}</Text>
               )}
@@ -613,18 +590,20 @@ export default function WashDayScreen() {
               backgroundColor: checkPct === 100 ? Colors.sage : Colors.amber,
             }]} />
           </View>
-          {checklistSteps.map((step, i) => (
+          {washSteps.map((step, i) => (
             <TouchableOpacity
-              key={step.id}
-              style={[S.checkRow, i < checklistSteps.length - 1 && S.checkRowBorder]}
-              onPress={() => setChecked(c => ({ ...c, [step.id]: !c[step.id] }))}
+              key={`${step.id}-${step.title}-${step.duration}`}
+              style={[S.checkRow, i < washSteps.length - 1 && S.checkRowBorder]}
+              onPress={() =>
+                dispatch({ type: 'toggleRoutineStep', routineType: 'washday', stepId: step.id })
+              }
             >
-              <View style={[S.checkBox, { borderRadius: 6 }, checked[step.id] && S.checkBoxDone]}>
-                {checked[step.id] && <Text style={S.checkMark}>✓</Text>}
+              <View style={[S.checkBox, { borderRadius: 6 }, step.done && S.checkBoxDone]}>
+                {step.done && <Text style={S.checkMark}>✓</Text>}
               </View>
-              <Text style={S.checkIcon}>{step.icon}</Text>
-              <Text style={[S.checkLabel, { flex: 1 }, checked[step.id] && S.checkLabelDone]}>{step.label}</Text>
-              <Text style={S.checkDur}>{step.dur}</Text>
+              <Text style={S.checkIcon}>{washStepIcons[i % washStepIcons.length]}</Text>
+              <Text style={[S.checkLabel, { flex: 1 }, step.done && S.checkLabelDone]}>{step.title}</Text>
+              <Text style={S.checkDur}>{step.duration}</Text>
             </TouchableOpacity>
           ))}
           {checkPct === 100 && !isWashdayValidated && (

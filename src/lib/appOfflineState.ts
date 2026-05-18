@@ -1,6 +1,7 @@
 import type { AppState, HairProfile } from '../context/AppContext';
 import type { RoutinePlansState } from '../types/userRoutinePlan';
-import { parseRoutinePlansState } from './userRoutinePlan';
+import { mergePlanIntoRoutineSteps, parseRoutinePlansState } from './userRoutinePlan';
+import type { RoutineType } from '../data/routines';
 
 const PROFILE_DRAFT_KEYS: (keyof HairProfile)[] = [
   'name',
@@ -34,16 +35,29 @@ export function pickOfflinePersistSlice(state: AppState): OfflineAppSlice {
       (profileDraft as Record<string, unknown>)[key] = v;
     }
   }
+  const hasPlans = Object.values(state.routinePlans).some(Boolean);
   return {
     routineSteps: state.routineSteps,
     plannedSoins: state.plannedSoins,
     profileDraft: Object.keys(profileDraft).length > 0 ? profileDraft : undefined,
+    routinePlans: hasPlans ? state.routinePlans : undefined,
   };
+}
+
+function syncStepsWithPlans(state: AppState): AppState {
+  const routineSteps = { ...state.routineSteps };
+  (['washday', 'daily', 'night'] as RoutineType[]).forEach(k => {
+    const plan = state.routinePlans[k];
+    if (plan) {
+      routineSteps[k] = mergePlanIntoRoutineSteps(plan, plan, routineSteps[k]);
+    }
+  });
+  return { ...state, routineSteps };
 }
 
 export function mergeOfflineSlice(base: AppState, slice: OfflineAppSlice | null): AppState {
   if (!slice) return base;
-  return {
+  const merged: AppState = {
     ...base,
     routineSteps: slice.routineSteps ?? base.routineSteps,
     plannedSoins: slice.plannedSoins ?? base.plannedSoins,
@@ -52,6 +66,7 @@ export function mergeOfflineSlice(base: AppState, slice: OfflineAppSlice | null)
       : base.profile,
     routinePlans: slice.routinePlans ?? base.routinePlans,
   };
+  return syncStepsWithPlans(merged);
 }
 
 /** Valide un slice chargé depuis SecureStore. */

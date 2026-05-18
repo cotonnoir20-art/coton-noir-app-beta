@@ -41,7 +41,7 @@ import {
   pickOfflinePersistSlice,
 } from '../lib/appOfflineState';
 import type { RoutinePlansState, UserRoutinePlan } from '../types/userRoutinePlan';
-import { emptyRoutinePlans, planToRoutineSteps } from '../lib/userRoutinePlan';
+import { emptyRoutinePlans, mergePlanIntoRoutineSteps } from '../lib/userRoutinePlan';
 import {
   clearRoutinePlansStorage,
   loadRoutinePlans,
@@ -208,14 +208,25 @@ function reducer(state: AppState, action: Action): AppState {
       const routineSteps = { ...state.routineSteps };
       (Object.keys(action.plans) as RoutineType[]).forEach(k => {
         const plan = action.plans[k];
-        if (plan) routineSteps[k] = planToRoutineSteps(plan);
+        if (plan) {
+          routineSteps[k] = mergePlanIntoRoutineSteps(
+            plan,
+            plan,
+            state.routineSteps[k],
+          );
+        }
       });
       return { ...state, routinePlans: action.plans, routineSteps };
     }
 
     case 'setRoutinePlan': {
       const plan = { ...action.plan, updatedAt: new Date().toISOString() };
-      const steps = planToRoutineSteps(plan);
+      const prevPlan = state.routinePlans[plan.kind];
+      const steps = mergePlanIntoRoutineSteps(
+        plan,
+        prevPlan,
+        state.routineSteps[plan.kind],
+      );
       return {
         ...state,
         routinePlans: { ...state.routinePlans, [plan.kind]: plan },

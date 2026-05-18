@@ -17,7 +17,7 @@ import { Colors } from '../src/theme/colors';
 import { useApp } from '../src/context/AppContext';
 import { AppHeader } from '../src/components/AppHeader';
 import { BCEmojiAvatar } from '../src/components/blackCotton/BCEmojiAvatar';
-import { RoutineType } from '../src/data/routines';
+import { ROUTINE_TYPES, RoutineType } from '../src/data/routines';
 import {
   ROUTINE_ITEM_KIND_LABELS,
   ROUTINE_PLAN_LABELS,
@@ -29,8 +29,8 @@ import {
 } from '../src/types/userRoutinePlan';
 import {
   createBlankStep,
-  defaultPlanFromCatalog,
   newPlanId,
+  planFromDisplayedSteps,
   validatePlan,
 } from '../src/lib/userRoutinePlan';
 import { hapticSuccess } from '../src/lib/haptics';
@@ -49,17 +49,18 @@ export default function RoutinePlanScreen() {
   const params = useLocalSearchParams<{ kind?: string | string[] }>();
   const kind = parseKind(params.kind);
 
-  const existing = state.routinePlans[kind];
+  const savedPlan = state.routinePlans?.[kind] ?? null;
+  const seedPlan = planFromDisplayedSteps(kind, state.routineSteps[kind], savedPlan);
   const meta = ROUTINE_PLAN_LABELS[kind];
 
-  const [mode, setMode] = useState<RoutinePlanMode>(existing?.mode ?? 'keep');
-  const [name, setName] = useState(existing?.name ?? '');
-  const [items, setItems] = useState<RoutinePlanItem[]>(existing?.items ?? []);
-  const [steps, setSteps] = useState<RoutinePlanStep[]>(
-    existing?.steps?.length ? existing.steps : defaultPlanFromCatalog(kind).steps,
+  const [mode, setMode] = useState<RoutinePlanMode>(seedPlan.mode);
+  const [name, setName] = useState(
+    savedPlan?.name?.trim() || seedPlan.name || ROUTINE_TYPES[kind].label,
   );
-  const [hairStateComment, setHairStateComment] = useState(existing?.hairStateComment ?? '');
-  const [evolutionComment, setEvolutionComment] = useState(existing?.evolutionComment ?? '');
+  const [items, setItems] = useState<RoutinePlanItem[]>(seedPlan.items);
+  const [steps, setSteps] = useState<RoutinePlanStep[]>(seedPlan.steps);
+  const [hairStateComment, setHairStateComment] = useState(savedPlan?.hairStateComment ?? '');
+  const [evolutionComment, setEvolutionComment] = useState(savedPlan?.evolutionComment ?? '');
   const [newItemLabel, setNewItemLabel] = useState('');
   const [newItemKind, setNewItemKind] = useState<RoutineItemKind>('product');
 
@@ -332,7 +333,7 @@ export default function RoutinePlanScreen() {
             <Text style={S.saveBtnText}>Enregistrer ma routine</Text>
           </TouchableOpacity>
 
-          {existing && (
+          {savedPlan && (
             <TouchableOpacity style={S.resetBtn} onPress={handleReset}>
               <Text style={S.resetBtnText}>Réinitialiser au modèle Coton Noir</Text>
             </TouchableOpacity>

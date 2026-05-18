@@ -320,7 +320,7 @@ export default function RoutineScreen() {
         {/* ── Steps ── */}
         <Text style={S.secTitle}>Étapes</Text>
         {currentSteps.map((s, i) => (
-          <View key={s.id} style={S.stepRow}>
+          <View key={`${s.id}-${s.title}-${s.duration}-${i}`} style={S.stepRow}>
             <View style={S.timeline}>
               <TouchableOpacity
                 style={[S.check, s.done && S.checkDone]}
