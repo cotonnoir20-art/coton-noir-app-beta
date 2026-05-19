@@ -9,7 +9,7 @@ const STOPS: { t: number; c: string }[] = [
   { t: 0.18, c: '#F5D0D8' },
   { t: 0.4, c: '#D4A088' },
   { t: 0.62, c: '#D4822A' },
-  { t: 0.82, c: '#F2A04A' },
+  { t: 0.82, c: '#F49423' },
   { t: 1, c: '#FDF3EC' },
 ];
 

@@ -12,7 +12,7 @@ import { CARE_STYLES } from '../src/constants/careStyles';
 type OptionGroup = { key: string; label: string; options: string[] };
 
 const HAIR_GROUPS: OptionGroup[] = [
-  { key: 'hairType', label: 'Type de cheveux', options: ['3A', '3B', '3C', '4A', '4B', '4C'] },
+  { key: 'hairType', label: 'Type de cheveux', options: ['3A', '3B', '3C', '4A', '4B', '4C', 'Locks'] },
   { key: 'porosity', label: 'Porosité',         options: ['Basse', 'Moyenne', 'Haute'] },
   { key: 'density',  label: 'Densité',           options: ['Fine', 'Moyenne', 'Épaisse'] },
   { key: 'routineType', label: 'Style de routine', options: ['Minimaliste', 'Standard', 'Intensive'] },

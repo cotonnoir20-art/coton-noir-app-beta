@@ -48,8 +48,8 @@ export const ARTICLE_CATEGORIES: {
 
 export const ARTICLE_EXPERTS: ArticleExpert[] = [
   { id: 'sow', initials: 'AS', name: 'Dr. Sow', role: 'Trichologue', color: '#D4748C' },
-  { id: 'bertrand', initials: 'LB', name: 'Dr. Bertrand', role: 'Dermato', color: '#8BAF7A' },
-  { id: 'diallo', initials: 'MD', name: 'Mariama', role: 'Coiffeuse', color: '#F2A04A' },
+  { id: 'bertrand', initials: 'LB', name: 'Dr. Bertrand', role: 'Dermato', color: '#79B7A1' },
+  { id: 'diallo', initials: 'MD', name: 'Mariama', role: 'Coiffeuse', color: '#F49423' },
   { id: 'tazi', initials: 'NT', name: 'Naïma', role: 'Aromath.', color: '#9B4D6A' },
 ];
 

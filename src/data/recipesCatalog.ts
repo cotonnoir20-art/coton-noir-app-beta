@@ -81,7 +81,7 @@ export const CATALOG_RECIPES: CatalogRecipe[] = [
     ingredient_count: 4,
     avg_cost_eur: 2.5,
     thumb_emoji: '🥑',
-    thumb_bg: '#8BAF7A',
+    thumb_bg: '#79B7A1',
     hair_types: ['3C', '4A', '4B', '4C'],
     ingredients: [
       '2 c. à soupe de beurre de karité',

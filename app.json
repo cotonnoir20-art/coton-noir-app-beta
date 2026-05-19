@@ -21,7 +21,7 @@
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/icon.png",
-        "backgroundColor": "#7B0D14"
+        "backgroundColor": "#631617"
       },
       "package": "com.cotonnoir.app",
       "versionCode": 1,
@@ -51,7 +51,7 @@
         "expo-notifications",
         {
           "icon": "./assets/icon.png",
-          "color": "#7B0D14",
+          "color": "#631617",
           "defaultChannel": "default"
         }
       ],

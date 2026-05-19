@@ -1,71 +1,82 @@
 /**
- * Système couleur Coton Noir — règle 60 / 30 / 10
+ * Couleurs Coton Noir — alignées charte graphique (PDF officiel).
  *
- *   60% NOIR + NEUTRES    → structure, calme, élégance
- *   30% AMBRE             → identité signature, valeur, progression, motivation
- *   10% ROSE              → émotion pure (favoris, likes, célébrations) — JAMAIS structurel
+ * Charte (HEX) :
+ *   noir #1d1d1b · orange #f49423 · sage #79b7a1
+ *   ardoise #2f4b59 · bordeaux #631617 · rouge #b1282e
  *
- * Sémantique stricte : chaque couleur a UN rôle unique, jamais redondant.
- * Voir le tableau de rôles ci-dessous avant tout nouvel usage.
+ * Règle 60 / 30 / 10 dans l’app :
+ *   60% noir + neutres  → structure, textes, CTAs
+ *   30% orange          → CotonCoins, progression, identité
+ *   10% sage + rouge    → succès / alerte (pas de promo en rouge)
+ *
+ * Typo charte : Montserrat (corps) · Yellowtail (titres) — voir typography.ts
  */
+
+/** Valeurs brutes de la charte — ne pas utiliser directement dans les écrans. */
+export const BrandCharter = {
+  black: '#1D1D1B',
+  orange: '#F49423',
+  sage: '#79B7A1',
+  slate: '#2F4B59',
+  burgundy: '#631617',
+  red: '#B1282E',
+} as const;
+
 export const Colors = {
+  // ── PRIMARY — NOIR (charte #1d1d1b) ───────────────────────────────────
+  ink: '#1D1D1B',
+  inkSoft: BrandCharter.slate,
 
-  // ── PRIMARY — NOIR ────────────────────────────────────────────────────
-  // RÔLE : action & autorité.
-  // USAGES : TOUS les CTAs primaires, titres, nav active, badge coins,
-  // card-on-image, icônes d'action.
-  ink:      '#1A1209',   // noir chaud (quasi-noir espresso)
-  inkSoft:  '#2C1F14',   // variante légèrement plus douce
+  // ── SIGNATURE — ORANGE (charte #f49423) ─────────────────────────────────
+  amber: BrandCharter.orange,
+  amberDark: '#D07A12',
+  amberInk: '#8A4E0A',
+  amberLight: '#FDE9D0',
+  amberPowder: '#FDF3E6',
 
-  // ── SIGNATURE — AMBRE ─────────────────────────────────────────────────
-  // RÔLE : identité de la marque, valeur, motivation.
-  // USAGES : CotonCoins, jauges de progression, badges "premium/featured",
-  // niveau atteint, étoile de note, accent informatif.
-  // INTERDITS : pas de CTA structurel (réservé au noir).
-  amber:       '#F2A04A',  // orange chaud principal
-  amberDark:   '#D4822A',  // orange foncé (hover, actif, accent prix)
-  amberInk:    '#7A4E0A',  // texte ambre foncé sur fond amberPowder/Light
-  amberLight:  '#FDE8C8',  // fond doux ambre (cards "valeur", pills actives)
-  amberPowder: '#FDF1E2',  // ambre poudré ultra dilué — fond hero / sections "warm"
+  // ── ACCENT ÉMOTION (hors charte — favoris / communauté) ─────────────────
+  // Dérivé du rouge charte, plus doux pour ne pas confondre avec alert.
+  rose: '#C45A62',
+  blush: '#F5D8DA',
 
-  // ── ACCENT ÉMOTION — ROSE ─────────────────────────────────────────────
-  // RÔLE : émotion pure, féminité, coup de cœur.
-  // USAGES : cœur favori actif, badge "communauté", célébration de niveau,
-  // sélection de date calendrier, dot "soin programmé", offBadge promo.
-  // INTERDITS : pas de CTA, pas de "Voir tout", pas de bouton structurel.
-  rose:  '#D4748C',  // rose vif (favori, sélection, promo)
-  blush: '#F2C4CC',  // fond doux rose (badges affectifs, tags)
+  // ── SUCCÈS — SAGE (charte #79b7a1) ──────────────────────────────────────
+  sage: BrandCharter.sage,
+  sageBright: '#92C9B5',
+  sageDark: '#3D6B5C',
+  sageLight: '#D9EBE5',
 
-  // ── SUCCÈS — SAGE ─────────────────────────────────────────────────────
-  // RÔLE : validation, état "validé/sain" UNIQUEMENT.
-  // USAGES : check routine validée, score santé > 55%, badge débloqué.
-  // INTERDITS : ne pas l'utiliser comme "vert d'envie" générique.
-  sage:       '#8BAF7A',  // vert doux (badges, validations)
-  sageBright: '#3DDC84',  // vert "néon doux" — réservé donut score >= 55
-  sageDark:   '#3A6B2A',  // texte vert foncé sur fond sageLight
-  sageLight:  '#E2EDD8',  // fond doux vert
+  // ── POUSSE — ARDOISE (charte #2f4b59) ───────────────────────────────────
+  growth: BrandCharter.slate,
+  growthDark: '#1F3540',
+  growthLight: '#DCE4E8',
 
-  // ── POUSSE — BLEU ─────────────────────────────────────────────────────
-  // RÔLE : progression longueur (delta mensuel, chip anneau accueil).
-  growth:      '#2563EB',  // accent pousse
-  growthDark:  '#1E40AF',  // texte sur fond growthLight
-  growthLight: '#DBEAFE',  // fond chip pousse
+  // ── ALERTE — ROUGE CHARTE (#b1282e / #631617) ───────────────────────────
+  alert: BrandCharter.red,
+  alertDark: BrandCharter.burgundy,
+  alertLight: '#F5D4D6',
 
-  // ── ALERTE — ROUGE ────────────────────────────────────────────────────
-  // RÔLE : urgence ou suppression destructive UNIQUEMENT.
-  // USAGES : score santé < 30, suppression définitive, notification critique,
-  // streak en danger (badge timer).
-  // INTERDITS : ne JAMAIS l'utiliser pour une promo (c'est le rôle du rose).
-  alert:      '#E53935',
-  alertDark:  '#7A1F1F',  // texte rouge foncé sur fond alertLight
-  alertLight: '#FEE2E2',
+  // ── NEUTRES (non définis dans la charte — fonds UI chauds) ─────────────
+  bg: '#FDF8F4',
+  bgShell: '#EDE8E2',
+  surface: '#FFFFFF',
+  cream: '#FAF3EC',
+  border: '#E8DDD5',
+  warmGray: '#5C5652',
+  white: '#FFFFFF',
+};
 
-  // ── NEUTRES ───────────────────────────────────────────────────────────
-  bg:       '#FDF8F4',  // fond global app (blanc cassé chaud)
-  bgShell:  '#EDE8E2',  // fond légèrement plus sombre
-  surface:  '#FFFFFF',  // fond carte / modale
-  cream:    '#FAF3EC',  // fond input, sections internes
-  border:   '#E8DDD5',  // bordures, séparateurs
-  warmGray: '#7A6E66',  // textes secondaires, placeholders
-  white:    '#FFFFFF',
+/**
+ * Dégradés des cartes « Moments forts » (`HighlightCard`).
+ * - live    → sage (challenges, communauté, parrainage)
+ * - premium → orange → bordeaux (box, offres)
+ * - neutral → ardoise → noir (tutos, analyse, actus)
+ */
+export const HighlightGradients: Record<
+  'live' | 'premium' | 'neutral',
+  readonly [string, string]
+> = {
+  live: [BrandCharter.sage, Colors.sageDark],
+  premium: [BrandCharter.orange, BrandCharter.burgundy],
+  neutral: [BrandCharter.slate, BrandCharter.black],
 };

@@ -5,7 +5,7 @@ import {
 } from 'react-native';
 import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../../src/lib/supabase';
@@ -17,6 +17,10 @@ import { Colors } from '../../src/theme/colors';
 import { useApp, type CareStyle } from '../../src/context/AppContext';
 import { displayObjective, HAIR_OBJECTIVES, normalizeObjectiveId } from '../../src/constants/hairObjectives';
 import { CARE_STYLES, type CareStyleId } from '../../src/constants/careStyles';
+import {
+  buildOnboardingRecommendations,
+  recoStepsToRoutineSteps,
+} from '../../src/lib/onboardingRecommendations';
 import { ONBOARDING_HAIR_TYPES } from '../../src/constants/onboardingHairTypes';
 import { canAttemptAuth, recordAuthAttempt } from '../../src/lib/authThrottle';
 import {
@@ -67,29 +71,9 @@ const BUDGETS = [
   { id: 'libre',   emoji: '💎', label: 'Pas de limite',      range: '100 €+/mois',   desc: 'Les meilleurs produits sans compromis' },
 ];
 
-function getRoutine(hairType: string) {
-  if (hairType.startsWith('4')) return [
-    "🫧 Pré-poo à l'huile de coco (30 min)",
-    '🚿 Shampoing sans sulfates',
-    '💧 Masque hydratant 20 min sous bonnet',
-    '🌿 Leave-in + beurre karité scellé',
-  ];
-  if (hairType.startsWith('3')) return [
-    '🚿 Co-wash doux sans sulfates',
-    '💆 Masque démêlant 15 min',
-    '💧 Leave-in crème légère',
-    '✨ Gel définissant pour les boucles',
-  ];
-  return [
-    '🚿 Shampoing hydratant léger',
-    '💧 Après-shampoing sans rinçage',
-    '🌿 Sérum nourrissant',
-    '✨ Mousse coiffante légère',
-  ];
-}
-
 export default function OnboardingScreen() {
   const router = useRouter();
+  const { signup } = useLocalSearchParams<{ signup?: string }>();
   const { dispatch } = useApp();
   const [hydrated, setHydrated]   = useState(false);
   const [step, setStep]           = useState(0);
@@ -135,6 +119,10 @@ export default function OnboardingScreen() {
     });
   }, []);
 
+  useEffect(() => {
+    if (hydrated && signup === '1') setStep(8);
+  }, [hydrated, signup]);
+
   // ── Sauvegarde à chaque changement (jamais le mot de passe) ──
   useEffect(() => {
     if (!hydrated) return;
@@ -146,6 +134,9 @@ export default function OnboardingScreen() {
 
   function next() { setStep(s => Math.min(s + 1, TOTAL - 1)); }
   function skip() { next(); }
+  function goToRecommendations() {
+    router.push('/(auth)/recommendations');
+  }
   function back() {
     if (step === 0) router.back();
     else setStep(s => s - 1);
@@ -227,13 +218,27 @@ export default function OnboardingScreen() {
       },
     });
 
+    const reco = buildOnboardingRecommendations({
+      hairType: profileRow.hair_type,
+      porosity: profileRow.porosity,
+      density: profileRow.density,
+      objective: profileRow.objective,
+      region: profileRow.region,
+      budget: profileRow.budget,
+      careStyle: (profileRow.care_style || '') as CareStyleId,
+    });
+    dispatch({
+      type: 'applyRecoRoutineSteps',
+      daily: recoStepsToRoutineSteps(reco.morning),
+      evening: recoStepsToRoutineSteps(reco.evening),
+    });
+
     await AsyncStorage.removeItem(ONBOARDING_STORAGE_KEY);
 
     setLoading(false);
     router.replace('/(tabs)');
   }
 
-  const routine = getRoutine(hairType);
   const selectedRegion = REGIONS.find(r => r.id === region);
 
   const canNext = (
@@ -243,8 +248,7 @@ export default function OnboardingScreen() {
     (step === 3 && !!objective) ||
     step === 4 ||                 // région : optionnel
     step === 5 ||                 // budget : optionnel
-    (step === 6 && !!careStyle) ||
-    step === 7
+    (step === 6 && !!careStyle)
   );
 
   return (
@@ -481,57 +485,13 @@ export default function OnboardingScreen() {
             </>
           )}
 
-          {/* ── ÉTAPE 7 : WOW moment ── */}
-          {step === 7 && (
-            <>
-              <Text style={S.stepTitle}>Ta routine est prête ! 🎉</Text>
-              <Text style={S.stepSub}>
-                Personnalisée pour un profil {hairType || '3C'} ·{' '}
-                {objective ? displayObjective(objective) : displayObjective('Hydratation')}
-                {selectedRegion ? ` · ${selectedRegion.label}` : ''}
-              </Text>
-
-              <View style={S.wowCard}>
-                <Text style={S.wowRoutineLabel}>TA ROUTINE HEBDOMADAIRE</Text>
-                {routine.map((s, i) => (
-                  <View key={i} style={S.wowStep}>
-                    <View style={S.wowStepNum}>
-                      <Text style={S.wowStepNumText}>{i + 1}</Text>
-                    </View>
-                    <Text style={S.wowStepText}>{s}</Text>
-                  </View>
-                ))}
-              </View>
-
-              {selectedRegion && (
-                <View style={S.climateBanner}>
-                  <Text style={S.climateBannerEmoji}>🌍</Text>
-                  <View style={{ flex: 1 }}>
-                    <Text style={S.climateBannerTitle}>Routine adaptée · {selectedRegion.climate}</Text>
-                    <Text style={S.climateBannerSub}>
-                      Produits disponibles en {selectedRegion.label} · conseils climat inclus
-                    </Text>
-                  </View>
-                </View>
-              )}
-
-              <View style={S.coinsTeaser}>
-                <Text style={S.coinsTeaserEmoji}>🎁</Text>
-                <View style={S.coinsTeaserBody}>
-                  <Text style={S.coinsTeaserTitle}>+{CC_ONBOARDING_GIFT} CotonCoins offerts 🎁</Text>
-                  <Text style={S.coinsTeaserSub}>
-                    Crédités à l'inscription · commence à les dépenser dès aujourd'hui
-                  </Text>
-                </View>
-              </View>
-            </>
-          )}
-
-          {/* ── ÉTAPE 8 : Créer le compte ── */}
+          {/* ── ÉTAPE 8 : Créer le compte (après page recommandations) ── */}
           {step === 8 && (
             <>
-              <Text style={S.stepTitle}>Sauvegarde ta routine</Text>
-              <Text style={S.stepSub}>Crée ton compte pour ne rien perdre.</Text>
+              <Text style={S.stepTitle}>Sauvegarde tes recommandations</Text>
+              <Text style={S.stepSub}>
+                Crée ton compte pour débloquer ta routine complète et tes {CC_ONBOARDING_GIFT} CotonCoins offerts.
+              </Text>
 
               {error ? <Text style={S.errorText}>{error}</Text> : null}
 
@@ -603,11 +563,11 @@ export default function OnboardingScreen() {
         <View style={S.footer}>
           <TouchableOpacity
             style={[S.nextBtn, !canNext && S.nextBtnDisabled]}
-            onPress={next}
+            onPress={step === 6 ? goToRecommendations : next}
             disabled={!canNext}
           >
             <Text style={S.nextBtnText}>
-              {step === 7 ? 'Créer mon compte' : 'Continuer'}{' '}
+              {step === 6 ? 'Voir mes recommandations' : 'Continuer'}{' '}
               <Text style={S.nextBtnAccent}>→</Text>
             </Text>
           </TouchableOpacity>

@@ -1,12 +1,10 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { StyleSheet, Text, TouchableOpacity, View, type ViewStyle } from 'react-native';
-import { Colors } from '../../theme/colors';
+import { Colors, HighlightGradients } from '../../theme/colors';
 import type { MomentCard } from '../../data/homeHighlights';
 
 function gradientColors(m: MomentCard): [string, string] {
-  if (m.variant === 'live') return ['#F472B6', '#BE185D'];
-  if (m.variant === 'premium') return ['#C2410C', '#7C2D12'];
-  return [Colors.ink, '#3f3a36'];
+  return [...HighlightGradients[m.variant]] as [string, string];
 }
 
 type Props = {
@@ -59,14 +57,14 @@ const s = StyleSheet.create({
   cardCarousel: { borderRadius: 20, padding: 16, minHeight: 160, justifyContent: 'space-between' },
   cardList: { borderRadius: 20, padding: 16, minHeight: 140, justifyContent: 'space-between' },
   badge: { fontSize: 10, fontFamily: 'DMSans_700Bold', color: 'rgba(255,255,255,0.95)', letterSpacing: 0.5 },
-  cardTitle: { fontSize: 20, fontFamily: 'Poppins_700Bold', color: '#fff', marginTop: 8 },
-  cardSub: { fontSize: 12, fontFamily: 'DMSans_400Regular', color: 'rgba(255,255,255,0.88)', marginTop: 4, lineHeight: 17 },
+  cardTitle: { fontSize: 20, fontFamily: 'Poppins_700Bold', color: Colors.white, marginTop: 8 },
+  cardSub: { fontSize: 12, fontFamily: 'DMSans_400Regular', color: 'rgba(255,255,255,0.9)', marginTop: 4, lineHeight: 17 },
   footer: {
     marginTop: 14,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.2)',
+    backgroundColor: 'rgba(29, 29, 27, 0.28)',
     marginHorizontal: -16,
     marginBottom: -16,
     paddingHorizontal: 16,
@@ -74,6 +72,6 @@ const s = StyleSheet.create({
     borderBottomLeftRadius: 20,
     borderBottomRightRadius: 20,
   },
-  footerLeft: { fontSize: 12, fontFamily: 'DMSans_700Bold', color: '#fff' },
-  footerArrow: { fontSize: 16, color: '#fff' },
+  footerLeft: { fontSize: 12, fontFamily: 'DMSans_700Bold', color: Colors.white },
+  footerArrow: { fontSize: 16, color: Colors.white },
 });

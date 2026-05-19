@@ -43,6 +43,12 @@ import {
 import type { RoutinePlansState, UserRoutinePlan } from '../types/userRoutinePlan';
 import { emptyRoutinePlans, mergePlanIntoRoutineSteps } from '../lib/userRoutinePlan';
 import {
+  buildOnboardingRecommendations,
+  diagnosticSnapshotFromProfile,
+  recoStepsToRoutineSteps,
+  routineStepsMatchCatalog,
+} from '../lib/onboardingRecommendations';
+import {
   clearRoutinePlansStorage,
   loadRoutinePlans,
   saveRoutinePlans,
@@ -126,6 +132,10 @@ type Action =
   | { type: 'hydrate'; payload: AppState }
   | { type: 'grantOnboardingGift' }
   | { type: 'applyEconomySnapshot'; payload: EconomySnapshot }
+  | { type: 'applyRecoRoutineSteps'; daily: RoutineStep[]; evening: RoutineStep[] }
+  | { type: 'loadRoutinePlans'; plans: RoutinePlansState }
+  | { type: 'setRoutinePlan'; plan: UserRoutinePlan }
+  | { type: 'clearRoutinePlan'; kind: RoutineType }
   | { type: 'reset' };
 
 function makeInitialSteps(): RoutineStepsState {
@@ -201,6 +211,21 @@ function reducer(state: AppState, action: Action): AppState {
               { id: Date.now(), label: ONBOARDING_GIFT_LABEL, amount: CC_ONBOARDING_GIFT, date: today },
               ...state.coinHistory,
             ],
+      };
+    }
+
+    case 'applyRecoRoutineSteps': {
+      const applyKind = (kind: 'daily' | 'night', next: RoutineStep[]) => {
+        if (state.routinePlans[kind] != null) return state.routineSteps[kind];
+        return next;
+      };
+      return {
+        ...state,
+        routineSteps: {
+          ...state.routineSteps,
+          daily: applyKind('daily', action.daily),
+          night: applyKind('night', action.evening),
+        },
       };
     }
 
@@ -556,6 +581,39 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (!routinePlansReady.current || isDemoEmail(userEmail)) return;
     void saveRoutinePlans(state.routinePlans);
   }, [state.routinePlans, userEmail]);
+
+  // Étapes recommandées du diagnostic → onglet Routine + carte accueil (si pas de plan perso).
+  useEffect(() => {
+    if (!routinePlansReady.current) return;
+    if (!state.profile.careStyle) return;
+
+    const needsDaily =
+      !state.routinePlans.daily && routineStepsMatchCatalog(state.routineSteps.daily, 'daily');
+    const needsNight =
+      !state.routinePlans.night && routineStepsMatchCatalog(state.routineSteps.night, 'night');
+    if (!needsDaily && !needsNight) return;
+
+    const reco = buildOnboardingRecommendations(diagnosticSnapshotFromProfile(state.profile));
+    dispatch({
+      type: 'applyRecoRoutineSteps',
+      daily: needsDaily
+        ? recoStepsToRoutineSteps(reco.morning, state.routineSteps.daily)
+        : state.routineSteps.daily,
+      evening: needsNight
+        ? recoStepsToRoutineSteps(reco.evening, state.routineSteps.night)
+        : state.routineSteps.night,
+    });
+  }, [
+    state.profile.careStyle,
+    state.profile.hairType,
+    state.profile.porosity,
+    state.profile.density,
+    state.profile.objective,
+    state.routinePlans.daily,
+    state.routinePlans.night,
+    state.routineSteps.daily,
+    state.routineSteps.night,
+  ]);
 
   // Hors session : routines / soins planifiés uniquement (SecureStore, pas d’économie).
   useEffect(() => {

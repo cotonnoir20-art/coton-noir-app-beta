@@ -2,6 +2,8 @@
  * Aplatit tous les PNG de assets/images/hair-types/ sur un fond opaque (cream),
  * pour supprimer transparence / damier. Réécrit chaque fichier sur place.
  * Usage : npm run flatten-hair-types
+ *
+ * Pour Locks.png (fond noir opaque) : npm run flatten-locks
  */
 const fs = require('fs');
 const path = require('path');
@@ -34,6 +36,7 @@ async function main() {
     process.exit(1);
   }
   for (const f of files.sort()) {
+    if (f === 'Locks.png') continue;
     const p = path.join(dir, f);
     const n = await flattenFile(p);
     console.log('OK', f, n, 'bytes');

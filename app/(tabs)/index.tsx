@@ -49,6 +49,9 @@ import {
   HomeRoutineCTA,
   type HomeRoutineFocus,
   HomeGrowthMilestones,
+  HomeRoutinePlanCard,
+  HomeRecoExtras,
+  HomeBlackCottonRecommendations,
   HomeMomentsForts,
   HomeShortcuts,
 } from '../../src/components/home';
@@ -376,6 +379,12 @@ export default function HomeScreen() {
             currentCm={lengthMetrics.currentCm}
             targetCm={lengthMetrics.targetCm}
           />
+          <HomeRoutinePlanCard
+            morningSteps={state.routineSteps.daily}
+            eveningSteps={state.routineSteps.night}
+          />
+          <HomeRecoExtras profile={profile} washdaySteps={state.routineSteps.washday} />
+          <HomeBlackCottonRecommendations profile={profile} />
           <HomeMomentsForts
             moments={moments}
             onSeeAll={() => router.push('/highlights' as any)}
