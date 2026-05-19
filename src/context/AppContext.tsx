@@ -480,9 +480,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       return { ok: true };
     }
     const result = await validateRoutineOnServer(routineType);
-    if (result.ok && result.snapshot) applyEconomySnapshot(result.snapshot);
+    if (result.ok && result.snapshot) {
+      applyEconomySnapshot(result.snapshot);
+    } else if (!result.ok) {
+      void refreshEconomySecure();
+    }
     return result;
-  }, [applyEconomySnapshot]);
+  }, [applyEconomySnapshot, refreshEconomySecure]);
 
   const grantCoinsSecure = useCallback(async (args: {
     amount: number;
@@ -773,23 +777,37 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           night:   validatedToday.includes('night'),
         };
 
-        // totalEarned : depuis la DB si disponible, sinon calculé depuis l'historique
+        // Économie : vérité serveur uniquement (évite afficher +50 CC locaux puis -40 à la validation)
         const computedTotalEarned = (coinRows ?? []).reduce(
-          (sum: number, e: any) => sum + Math.max(0, e.amount), 0
+          (sum: number, e: any) => sum + Math.max(0, e.amount), 0,
         );
-        let totalEarned = (profile as any).total_earned ?? computedTotalEarned;
+        let totalEarned = Number((profile as any).total_earned) || computedTotalEarned;
         let coins = Number(profile.coins) || 0;
+        let history = coinHistory;
+        let streak = Number(profile.streak) || 0;
+        let lastRoutineDate = profile.last_routine_date ?? null;
+        let validatedState = validated;
 
-        const wallet = ensureOnboardingWallet({
-          coins: pendingGift ? 0 : coins,
-          totalEarned,
-          coinHistory,
-        });
-        coins = wallet.coins;
-        totalEarned = wallet.totalEarned;
-        const history = wallet.coinHistory as CoinHistoryEntry[];
+        const needsOnboardingGift =
+          pendingGift ||
+          (coins < CC_ONBOARDING_GIFT && !hasOnboardingGiftInHistory(history));
 
-        // memberSince : depuis Supabase Auth (created_at)
+        if (needsOnboardingGift) {
+          const claim = await claimOnboardingGiftOnServer();
+          if (claim.ok && claim.snapshot) {
+            const s = claim.snapshot;
+            coins = s.coins;
+            totalEarned = s.totalEarned;
+            history = s.coinHistory;
+            streak = s.streak;
+            lastRoutineDate = s.lastRoutineDate;
+            validatedState = s.validated;
+            loggedRoutines.current = new Set(
+              (Object.keys(s.validated) as RoutineType[]).filter(t => s.validated[t]),
+            );
+          }
+        }
+
         const createdAt = authSession?.user?.created_at;
         const memberSince = createdAt ? createdAt.slice(0, 10) : null;
 
@@ -802,22 +820,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             profile:         hydratedProfile,
             coins,
             totalEarned,
-            streak:          profile.streak,
-            lastRoutineDate: profile.last_routine_date ?? null,
+            streak,
+            lastRoutineDate,
             memberSince,
             coinHistory:     history,
             growthHistory,
-            validated,
+            validated:     validatedState,
           },
         });
-
-        if (pendingGift || coins < CC_ONBOARDING_GIFT) {
-          void claimOnboardingGiftOnServer().then(r => {
-            if (r.ok && r.snapshot) {
-              applyEconomySnapshot(r.snapshot);
-            }
-          });
-        }
       } else {
         const wallet = ensureOnboardingWallet({
           coins: 0,
