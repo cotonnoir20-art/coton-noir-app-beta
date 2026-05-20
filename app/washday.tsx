@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { Modal, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View, useWindowDimensions } from 'react-native';
-import DateTimePicker from '@react-native-community/datetimepicker';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -8,6 +7,7 @@ import { Colors } from '../src/theme/colors';
 import { useApp } from '../src/context/AppContext';
 import { BCEmojiAvatar } from '../src/components/blackCotton/BCEmojiAvatar';
 import { AppHeader } from '../src/components/AppHeader';
+import { DatePickerSheet } from '../src/components/DatePickerSheet';
 import { CompletionLottieOverlay } from '../src/components/animations/CompletionLottieOverlay';
 import { hapticSuccess } from '../src/lib/haptics';
 import { CC_WASHDAY_COMPLETE, PTS_WASHDAY_COMPLETE, formatDualEarnReward } from '../src/lib/cotonCoins';
@@ -17,9 +17,12 @@ import {
   buildLast6MonthsWashdayFrequency,
   countWashdaysInMonth,
   formatWashdayHistoryDate,
-  getCompletedWashdayDaysInMonth,
+  buildWashdayCalendarMonthMarkers,
+  getNextPlannedWashday,
   getWashdayHistoryEntries,
+  isWashdayCalendarToday,
 } from '../src/lib/washdayHistory';
+import { toLocalISODate } from '../src/lib/homeGrowth';
 
 const WASH_TYPES = [
   'Shampoing classique',
@@ -64,17 +67,18 @@ export default function WashDayScreen() {
   const calWidth  = width - 40 - 32;
   const cellSize  = Math.floor((calWidth - 7 * 6) / 7);
 
-  /* ── Compte à rebours prochain wash day ── */
-  const todayMs       = new Date().setHours(0, 0, 0, 0);
-  const todayStrWd    = new Date().toISOString().slice(0, 10);
-  const futureSoinsWd = state.plannedSoins
-    .filter(s => s.date >= todayStrWd)
-    .sort((a, b) => a.date.localeCompare(b.date));
-  const nextSoinWd    = futureSoinsWd[0] ?? null;
-  const nextMs        = nextSoinWd ? new Date(nextSoinWd.date + 'T00:00:00').getTime() : null;
-  const daysUntil     = nextMs !== null ? Math.max(0, Math.round((nextMs - todayMs) / 86400000)) : null;
-  const nextWashLabel = nextSoinWd
-    ? new Date(nextSoinWd.date + 'T00:00:00').toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })
+  /* ── Compte à rebours prochain wash day (aligné accueil / routine) ── */
+  const nextPlannedWd = getNextPlannedWashday(state.plannedSoins);
+  const nextSoinWd    = nextPlannedWd
+    ? state.plannedSoins.find(s => s.date === nextPlannedWd.date) ?? null
+    : null;
+  const daysUntil     = nextPlannedWd?.daysUntil ?? null;
+  const nextWashLabel = nextPlannedWd
+    ? new Date(nextPlannedWd.date + 'T12:00:00').toLocaleDateString('fr-FR', {
+        weekday: 'long',
+        day: 'numeric',
+        month: 'long',
+      })
     : 'Aucun soin planifié';
 
   /* ── Calendrier dynamique ── */
@@ -82,18 +86,25 @@ export default function WashDayScreen() {
   const [calDate, setCalDate] = useState(() => { const n = new Date(); return { year: n.getFullYear(), month: n.getMonth() }; });
   const daysInMonthWd = new Date(calDate.year, calDate.month + 1, 0).getDate();
   const firstOffsetWd = (new Date(calDate.year, calDate.month, 1).getDay() + 6) % 7;
-  const isCurMonthWd  = calDate.year === todayReal.getFullYear() && calDate.month === todayReal.getMonth();
-
   const washdayHistory = useMemo(
     () => getWashdayHistoryEntries(state.coinHistory),
     [state.coinHistory],
   );
   const hasWashdayHistory = washdayHistory.length > 0;
 
-  const completedWashDaysWd = useMemo(
-    () => getCompletedWashdayDaysInMonth(state.coinHistory, calDate.year, calDate.month),
-    [state.coinHistory, calDate.year, calDate.month],
+  const calendarMarkersWd = useMemo(
+    () =>
+      buildWashdayCalendarMonthMarkers(
+        calDate.year,
+        calDate.month,
+        state.plannedSoins,
+        state.coinHistory,
+      ),
+    [calDate.year, calDate.month, state.plannedSoins, state.coinHistory],
   );
+  const completedWashDaysWd = calendarMarkersWd.completedDays;
+  const plannedSoinDaysWd = calendarMarkersWd.plannedDays;
+  const missedWashDaysWd = calendarMarkersWd.missedDays;
 
   const washdaysThisMonth = useMemo(
     () => countWashdaysInMonth(state.coinHistory, todayReal.getFullYear(), todayReal.getMonth()),
@@ -116,15 +127,6 @@ export default function WashDayScreen() {
   const freqMax = useMemo(
     () => Math.max(1, ...monthlyFreq.map(m => m.count)),
     [monthlyFreq],
-  );
-
-  const plannedSoinDaysWd = new Set(
-    state.plannedSoins
-      .filter(s => {
-        const d = new Date(s.date);
-        return d.getFullYear() === calDate.year && d.getMonth() === calDate.month;
-      })
-      .map(s => new Date(s.date).getDate())
   );
 
   function prevMonthWd() {
@@ -195,8 +197,15 @@ export default function WashDayScreen() {
   const [reminderSaved, setReminderSaved]   = useState(false);
 
   /* ── Soins planifiés ── */
-  const futureSoins = futureSoinsWd;
-  const nextSoin    = nextSoinWd;
+  const todayStrWd = toLocalISODate(todayReal);
+  const futureSoins = useMemo(
+    () =>
+      [...state.plannedSoins]
+        .filter(s => s.date >= todayStrWd)
+        .sort((a, b) => a.date.localeCompare(b.date)),
+    [state.plannedSoins, todayStrWd],
+  );
+  const nextSoin = nextSoinWd;
   const [showGerer, setShowGerer] = useState(false);
 
   /* ── Édition d'un soin ── */
@@ -211,11 +220,6 @@ export default function WashDayScreen() {
     setEditDate(new Date(s.date + 'T00:00:00'));
     setEditType(s.soinType);
     setShowEdit(true);
-  }
-
-  function onEditDateChange(_: any, date?: Date) {
-    if (Platform.OS === 'android') setShowEditPicker(false);
-    if (date) setEditDate(date);
   }
 
   function handleEditSave() {
@@ -350,6 +354,10 @@ export default function WashDayScreen() {
                 <View style={S.legendDotPlanned} />
                 <Text style={S.legendText}>Planifié</Text>
               </View>
+              <View style={S.legendItem}>
+                <View style={S.legendDotMissed} />
+                <Text style={S.legendText}>Non fait</Text>
+              </View>
             </View>
           </View>
 
@@ -375,21 +383,36 @@ export default function WashDayScreen() {
               <View key={'e' + i} style={{ width: cellSize, height: cellSize, margin: 3 }} />
             ))}
             {Array.from({ length: daysInMonthWd }, (_, i) => i + 1).map(d => {
-              const isToday   = isCurMonthWd && d === todayReal.getDate();
-              const isWash    = completedWashDaysWd.has(d);
+              const isToday = isWashdayCalendarToday(
+                calDate.year,
+                calDate.month,
+                d,
+                toLocalISODate(todayReal),
+              );
+              const isWash = completedWashDaysWd.has(d);
               const isPlanned = plannedSoinDaysWd.has(d);
+              const isMissed = missedWashDaysWd.has(d);
               return (
                 <TouchableOpacity
                   key={d}
                   style={[
                     S.dayCell,
                     { width: cellSize, height: cellSize, borderRadius: cellSize / 2 },
-                    isToday   && S.dayCellToday,
-                    isWash    && S.dayCellWash,
-                    isPlanned && S.dayCellPlanned,
+                    isToday && S.dayCellToday,
+                    isWash && S.dayCellWash,
+                    isPlanned && !isWash && S.dayCellPlanned,
+                    isMissed && !isWash && S.dayCellMissed,
                   ]}
                 >
-                  <Text style={[S.dayText, (isToday || isWash) && S.dayTextLight]}>{d}</Text>
+                  <Text
+                    style={[
+                      S.dayText,
+                      (isToday || isWash) && S.dayTextLight,
+                      isMissed && !isWash && S.dayTextMissed,
+                    ]}
+                  >
+                    {d}
+                  </Text>
                 </TouchableOpacity>
               );
             })}
@@ -475,26 +498,6 @@ export default function WashDayScreen() {
                   {editDate.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
                 </Text>
               </TouchableOpacity>
-
-              {showEditPicker && Platform.OS === 'android' && (
-                <DateTimePicker
-                  value={editDate}
-                  mode="date"
-                  minimumDate={new Date()}
-                  onChange={onEditDateChange}
-                />
-              )}
-              {Platform.OS === 'ios' && showEditPicker && (
-                <DateTimePicker
-                  value={editDate}
-                  mode="date"
-                  display="spinner"
-                  minimumDate={new Date()}
-                  onChange={onEditDateChange}
-                  locale="fr-FR"
-                  style={{ width: '100%' }}
-                />
-              )}
 
               {/* Type */}
               <Text style={S.editLabel}>Type de soin</Text>
@@ -931,6 +934,14 @@ export default function WashDayScreen() {
         <View style={{ height: 40 }} />
       </ScrollView>
 
+      <DatePickerSheet
+        visible={showEditPicker}
+        value={editDate}
+        minimumDate={new Date()}
+        onClose={() => setShowEditPicker(false)}
+        onConfirm={setEditDate}
+      />
+
       <CompletionLottieOverlay
         visible={completionOpen}
         variant="strong"
@@ -1012,11 +1023,28 @@ const S = StyleSheet.create({
   dayCellToday:   { backgroundColor: Colors.ink },
   dayCellWash:    { backgroundColor: Colors.rose },
   dayCellPlanned: { borderWidth: 2, borderColor: Colors.amber },
+  dayCellMissed: {
+    backgroundColor: Colors.cream,
+    borderWidth: 1.5,
+    borderColor: Colors.warmGray,
+  },
   dayText:      { fontSize: 12, fontFamily: 'DMSans_500Medium', color: Colors.ink },
   dayTextLight: { color: '#fff' },
+  dayTextMissed: {
+    color: Colors.warmGray,
+    textDecorationLine: 'line-through',
+  },
   legendItem: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   legendDot:  { width: 8, height: 8, borderRadius: 4 },
   legendDotPlanned: { width: 8, height: 8, borderRadius: 4, borderWidth: 2, borderColor: Colors.amber },
+  legendDotMissed: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: Colors.cream,
+    borderWidth: 1.5,
+    borderColor: Colors.warmGray,
+  },
   legendText: { fontSize: 10, fontFamily: 'DMSans_400Regular', color: Colors.warmGray },
   calBtns:    { flexDirection: 'row', gap: 10, marginBottom: 14 },
   // CTA primaire : noir plein (action principale "Ajouter un wash day").

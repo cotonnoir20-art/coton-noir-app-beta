@@ -1,28 +1,42 @@
 import { useMemo, type ReactNode } from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { AppIconBox, type IonName } from '../AppIconBox';
 import { Colors } from '../../theme/colors';
 import type { HairProfile } from '../../context/AppContext';
-import type { RoutineStep } from '../../data/routines';
 import {
   buildOnboardingRecommendations,
   diagnosticSnapshotFromProfile,
-  type RecoRoutineStep,
+  type RecoArticle,
 } from '../../lib/onboardingRecommendations';
-import { getWashdayStepIcon } from '../../lib/routineStepVisual';
 
 type Props = {
   profile: HairProfile;
-  washdaySteps: RoutineStep[];
 };
 
-type WeeklyRow = RecoRoutineStep & { done?: boolean; index: number };
-
-function parseDurationMin(str: string): number {
-  const m = str.match(/(\d+)/);
-  return m ? parseInt(m[1], 10) : 5;
+/** Bol + spatule (DIY / recettes maison). */
+function RecipeBowlIconBox({
+  backgroundColor,
+  color,
+  size = 48,
+  iconSize = 24,
+}: {
+  backgroundColor: string;
+  color: string;
+  size?: number;
+  iconSize?: number;
+}) {
+  return (
+    <View
+      style={[
+        s.recipeIconBox,
+        { width: size, height: size, borderRadius: 14, backgroundColor },
+      ]}
+    >
+      <MaterialCommunityIcons name="bowl-mix-outline" size={iconSize} color={color} />
+    </View>
+  );
 }
 
 function ExtraCard({
@@ -50,37 +64,13 @@ function ExtraCard({
   return <View style={s.card}>{children}</View>;
 }
 
-function SectionHeader({
-  kicker,
-  title,
-  meta,
-  icon,
-}: {
-  kicker: string;
-  title: string;
-  meta?: string;
-  icon?: { ion: IonName; bg: string; color: string };
-}) {
+function CardHeader({ kicker, title }: { kicker: string; title: string }) {
   return (
-    <View style={s.sectionHead}>
-      <View style={s.sectionHeadLeft}>
-        <Text style={s.kicker}>{kicker}</Text>
-        <View style={s.titleRow}>
-          {icon ? (
-            <AppIconBox
-              name={icon.ion}
-              backgroundColor={icon.bg}
-              color={icon.color}
-              size={32}
-              iconSize={17}
-              borderRadius={10}
-            />
-          ) : null}
-          <Text style={s.blockTitle}>{title}</Text>
-        </View>
-      </View>
-      {meta ? <Text style={s.sectionMeta}>{meta}</Text> : null}
-    </View>
+    <>
+      <Text style={s.kicker}>{kicker}</Text>
+      <Text style={s.cardTitle}>{title}</Text>
+      <View style={s.titleDivider} />
+    </>
   );
 }
 
@@ -93,111 +83,14 @@ function FooterLink({ label, onPress }: { label: string; onPress: () => void }) 
   );
 }
 
-function WashdayCard({
-  steps,
-  onOpenWashday,
-  onOpenRoutine,
-}: {
-  steps: WeeklyRow[];
-  onOpenWashday: () => void;
-  onOpenRoutine: () => void;
-}) {
-  const done = steps.filter(s => s.done).length;
-  const total = steps.length;
-  const totalMin = steps.reduce((acc, s) => acc + parseDurationMin(s.duration), 0);
-
-  return (
-    <ExtraCard onPress={onOpenRoutine} accessibilityLabel="Routine wash day">
-      <SectionHeader
-        kicker="Routine hebdomadaire"
-        title="Wash day"
-        icon={{ ion: 'water-outline', bg: Colors.sageLight, color: Colors.sageDark }}
-        meta={totalMin > 0 ? `~${totalMin} min` : undefined}
-      />
-      {total > 0 ? (
-        <Text style={s.progressLine}>
-          {done}/{total} étape{total > 1 ? 's' : ''} faite{done > 1 ? 's' : ''}
-        </Text>
-      ) : null}
-
-      <View style={s.timeline}>
-        {steps.map((step, i) => {
-          const icon = getWashdayStepIcon(step.title);
-          return (
-          <View key={`wd-${step.index}`} style={s.timelineRow}>
-            <View style={s.timelineRail}>
-              <View style={[s.timelineDot, step.done && s.timelineDotDone, !step.done && { backgroundColor: icon.ionBg }]}>
-                {step.done ? (
-                  <Ionicons name="checkmark" size={10} color={Colors.white} />
-                ) : (
-                  <Ionicons name={icon.ion} size={14} color={icon.ionColor} />
-                )}
-              </View>
-              {i < steps.length - 1 ? (
-                <View style={[s.timelineLine, step.done && s.timelineLineDone]} />
-              ) : null}
-            </View>
-            <View style={s.timelineContent}>
-              <Text style={[s.stepTitle, step.done && s.stepTitleDone]}>{step.title}</Text>
-              <Text style={s.stepMeta}>{step.duration}</Text>
-            </View>
-          </View>
-          );
-        })}
-      </View>
-
-      <FooterLink label="Planifier mon wash day" onPress={onOpenWashday} />
-    </ExtraCard>
-  );
-}
-
-function ProductsCard({
-  products,
-  onShop,
-}: {
-  products: { brand: string; name: string; price: string; emoji: string }[];
-  onShop: () => void;
-}) {
-  return (
-    <ExtraCard>
-      <SectionHeader kicker="Sélection" title="Produits recommandés" />
-      <ScrollView
-        horizontal
-        nestedScrollEnabled
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={s.productScroll}
-      >
-        {products.map((p, i) => (
-          <TouchableOpacity
-            key={`${p.brand}-${i}`}
-            style={s.productChip}
-            onPress={onShop}
-            activeOpacity={0.88}
-            accessibilityRole="button"
-            accessibilityLabel={`${p.brand} ${p.name}`}
-          >
-            <AppIconBox
-              name="bag-handle-outline"
-              backgroundColor={Colors.amberLight}
-              color={Colors.amberDark}
-              size={40}
-              iconSize={20}
-              borderRadius={12}
-            />
-            <Text style={s.productChipBrand} numberOfLines={1}>
-              {p.brand}
-            </Text>
-            <Text style={s.productChipName} numberOfLines={2}>
-              {p.name}
-            </Text>
-            <Text style={s.productChipPrice}>{p.price}</Text>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
-      <FooterLink label="Voir la boutique" onPress={onShop} />
-    </ExtraCard>
-  );
-}
+type MediaItem = {
+  id: string;
+  name: string;
+  meta: string;
+  icon?: IonName;
+  iconBg: string;
+  iconColor: string;
+};
 
 function MediaCard({
   kicker,
@@ -205,16 +98,20 @@ function MediaCard({
   items,
   linkLabel,
   onLink,
+  recipeIcons,
 }: {
   kicker: string;
   title: string;
-  items: { id: string; name: string; meta: string; icon: IonName; iconBg: string; iconColor: string }[];
+  items: MediaItem[];
   linkLabel: string;
   onLink: () => void;
+  recipeIcons?: boolean;
 }) {
   return (
     <ExtraCard>
-      <SectionHeader kicker={kicker} title={title} />
+      <View style={s.cardHeaderWrap}>
+        <CardHeader kicker={kicker} title={title} />
+      </View>
       <View style={s.mediaList}>
         {items.map((item, i) => (
           <TouchableOpacity
@@ -225,14 +122,21 @@ function MediaCard({
             accessibilityRole="button"
             accessibilityLabel={item.name}
           >
-            <AppIconBox
-              name={item.icon}
-              backgroundColor={item.iconBg}
-              color={item.iconColor}
-              size={48}
-              iconSize={22}
-              borderRadius={14}
-            />
+            {recipeIcons ? (
+              <RecipeBowlIconBox
+                backgroundColor={item.iconBg}
+                color={item.iconColor}
+              />
+            ) : item.icon ? (
+              <AppIconBox
+                name={item.icon}
+                backgroundColor={item.iconBg}
+                color={item.iconColor}
+                size={48}
+                iconSize={22}
+                borderRadius={14}
+              />
+            ) : null}
             <View style={s.mediaBody}>
               <Text style={s.mediaName} numberOfLines={2}>
                 {item.name}
@@ -243,12 +147,67 @@ function MediaCard({
           </TouchableOpacity>
         ))}
       </View>
-      <FooterLink label={linkLabel} onPress={onLink} />
+      <View style={s.footerWrap}>
+        <FooterLink label={linkLabel} onPress={onLink} />
+      </View>
     </ExtraCard>
   );
 }
 
-export function HomeRecoExtras({ profile, washdaySteps }: Props) {
+function ArticlesCarouselCard({
+  articles,
+  onOpenArticles,
+}: {
+  articles: RecoArticle[];
+  onOpenArticles: () => void;
+}) {
+  return (
+    <ExtraCard>
+      <View style={s.cardHeaderWrap}>
+        <CardHeader kicker="Lecture" title="Mes articles" />
+      </View>
+
+      <View style={s.carouselSlot}>
+        <ScrollView
+          horizontal
+          nestedScrollEnabled
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={s.articleScroll}
+        >
+          {articles.map((article, i) => (
+            <TouchableOpacity
+              key={article.id}
+              style={[s.articleCard, i === articles.length - 1 && s.articleCardLast]}
+            onPress={onOpenArticles}
+            activeOpacity={0.88}
+            accessibilityRole="button"
+            accessibilityLabel={article.title}
+          >
+            <View style={[s.articleThumb, { backgroundColor: article.thumb_bg }]}>
+              <Text style={s.articleEmoji}>{article.thumb_emoji}</Text>
+            </View>
+            <Text style={s.articleTitle} numberOfLines={3}>
+              {article.title}
+            </Text>
+            {article.subtitle ? (
+              <Text style={s.articleSubtitle} numberOfLines={2}>
+                {article.subtitle}
+              </Text>
+            ) : null}
+            <Text style={s.articleMeta}>{article.read_time} min de lecture</Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      </View>
+
+      <View style={s.footerWrap}>
+        <FooterLink label="Tous les articles" onPress={onOpenArticles} />
+      </View>
+    </ExtraCard>
+  );
+}
+
+export function HomeRecoExtras({ profile }: Props) {
   const router = useRouter();
 
   const reco = useMemo(
@@ -264,120 +223,72 @@ export function HomeRecoExtras({ profile, washdaySteps }: Props) {
     ],
   );
 
-  const weeklyRows: WeeklyRow[] = useMemo(() => {
-    const source =
-      washdaySteps.length > 0
-        ? washdaySteps.map(s => ({
-            title: s.title,
-            duration: s.duration,
-            desc: s.desc,
-            products: s.products ?? [],
-            done: s.done,
-          }))
-        : reco.weekly.map(s => ({ ...s, done: false }));
-
-    return source.map((s, index) => ({
-      title: s.title,
-      duration: s.duration,
-      desc: s.desc,
-      products: s.products,
-      done: 'done' in s ? s.done : false,
-      index,
-    }));
-  }, [washdaySteps, reco.weekly]);
-
   if (!profile.careStyle) return null;
 
-  const hasWeekly = weeklyRows.length > 0;
-  const hasProducts = reco.showProducts && reco.products.length > 0;
   const hasRecipes = reco.showRecipes && reco.recipes.length > 0;
   const hasArticles = reco.articles.length > 0;
 
-  if (!hasWeekly && !hasProducts && !hasRecipes && !hasArticles) {
+  if (!hasRecipes && !hasArticles) {
     return null;
   }
 
   return (
-    <View style={s.section}>
-      {hasWeekly ? (
-        <WashdayCard
-          steps={weeklyRows}
-          onOpenWashday={() => router.push('/washday' as any)}
-          onOpenRoutine={() =>
-            router.push({ pathname: '/(tabs)/routine', params: { routine: 'washday' } } as any)
-          }
-        />
-      ) : null}
-
-      {hasProducts ? (
-        <ProductsCard products={reco.products} onShop={() => router.push('/shop' as any)} />
-      ) : null}
-
+    <>
       {hasRecipes ? (
-        <MediaCard
-          kicker="DIY"
-          title="Recettes pour toi"
-          items={reco.recipes.map(r => ({
-            id: r.id,
-            name: r.name,
-            meta: `${r.category} · ${r.duration} min`,
-            icon: 'restaurant-outline' as IonName,
-            iconBg: Colors.amberLight,
-            iconColor: Colors.amberDark,
-          }))}
-          linkLabel="Toutes les recettes"
-          onLink={() => router.push('/recipes' as any)}
-        />
+        <View style={s.section}>
+          <MediaCard
+            kicker="DIY"
+            title="Mes recettes"
+            recipeIcons
+            items={reco.recipes.map(r => ({
+              id: r.id,
+              name: r.name,
+              meta: `${r.category} · ${r.duration} min`,
+              iconBg: Colors.amberLight,
+              iconColor: Colors.amberDark,
+            }))}
+            linkLabel="Toutes les recettes"
+            onLink={() => router.push('/recipes' as any)}
+          />
+        </View>
       ) : null}
 
       {hasArticles ? (
-        <MediaCard
-          kicker="Lecture"
-          title="Articles pour toi"
-          items={reco.articles.map(a => ({
-            id: a.id,
-            name: a.title,
-            meta: `${a.read_time} min de lecture`,
-            icon: 'book-outline' as IonName,
-            iconBg: Colors.growthLight,
-            iconColor: Colors.growth,
-          }))}
-          linkLabel="Tous les articles"
-          onLink={() => router.push('/articles' as any)}
-        />
+        <View style={s.section}>
+          <ArticlesCarouselCard
+            articles={reco.articles}
+            onOpenArticles={() => router.push('/articles' as any)}
+          />
+        </View>
       ) : null}
-    </View>
+    </>
   );
 }
 
 const s = StyleSheet.create({
   section: {
     marginBottom: 22,
-    paddingHorizontal: 20,
-    marginTop: 4,
-    gap: 12,
+    paddingHorizontal: 14,
+    alignSelf: 'stretch',
   },
   card: {
-    backgroundColor: Colors.surface,
+    width: '100%',
+    backgroundColor: Colors.white,
     borderRadius: 18,
     borderWidth: 1,
     borderColor: Colors.border,
-    paddingVertical: 16,
-    paddingHorizontal: 16,
+    paddingBottom: 4,
     shadowColor: Colors.ink,
-    shadowOpacity: 0.05,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 2,
+    shadowOpacity: 0.08,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 4,
   },
-  sectionHead: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-    gap: 12,
-    marginBottom: 10,
+  cardHeaderWrap: {
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 4,
   },
-  sectionHeadLeft: { flex: 1 },
   kicker: {
     fontSize: 10,
     fontFamily: 'DMSans_700Bold',
@@ -386,85 +297,25 @@ const s = StyleSheet.create({
     marginBottom: 4,
     textTransform: 'uppercase',
   },
-  titleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    marginTop: 2,
-  },
-  blockTitle: {
-    fontSize: 16,
-    fontFamily: 'DMSans_700Bold',
+  cardTitle: {
+    fontSize: 18,
+    fontFamily: 'Poppins_700Bold',
     color: Colors.ink,
-    lineHeight: 22,
-    flex: 1,
+    paddingBottom: 12,
   },
-  sectionMeta: {
-    fontSize: 12,
-    fontFamily: 'DMSans_600SemiBold',
-    color: Colors.warmGray,
-    marginTop: 18,
+  titleDivider: {
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: Colors.border,
+    marginBottom: 4,
   },
-  progressLine: {
-    fontSize: 12,
-    fontFamily: 'DMSans_600SemiBold',
-    color: Colors.amberDark,
-    marginBottom: 12,
-    marginTop: -4,
-  },
-  timeline: { marginBottom: 4 },
-  timelineRow: {
-    flexDirection: 'row',
-    minHeight: 52,
-  },
-  timelineRail: {
-    width: 32,
-    alignItems: 'center',
-  },
-  timelineDot: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: Colors.amberLight,
-    borderWidth: 1,
-    borderColor: Colors.border,
+  recipeIconBox: {
     alignItems: 'center',
     justifyContent: 'center',
+    flexShrink: 0,
   },
-  timelineDotDone: {
-    backgroundColor: Colors.ink,
-    borderColor: Colors.ink,
-  },
-  timelineLine: {
-    flex: 1,
-    width: 2,
-    backgroundColor: Colors.border,
-    marginVertical: 4,
-    minHeight: 16,
-  },
-  timelineLineDone: {
-    backgroundColor: Colors.sage,
-  },
-  timelineContent: {
-    flex: 1,
-    paddingBottom: 14,
-    paddingLeft: 4,
-  },
-  stepTitle: {
-    fontSize: 15,
-    fontFamily: 'DMSans_700Bold',
-    color: Colors.ink,
-    lineHeight: 20,
-  },
-  stepTitleDone: {
-    color: Colors.warmGray,
-    textDecorationLine: 'line-through',
-  },
-  stepMeta: {
-    fontSize: 12,
-    fontFamily: 'DMSans_400Regular',
-    color: Colors.warmGray,
-    marginTop: 3,
+  footerWrap: {
+    paddingHorizontal: 16,
+    paddingBottom: 12,
   },
   footerLink: {
     flexDirection: 'row',
@@ -481,39 +332,7 @@ const s = StyleSheet.create({
     fontFamily: 'DMSans_600SemiBold',
     color: Colors.amberDark,
   },
-  productScroll: {
-    gap: 10,
-    paddingBottom: 4,
-  },
-  productChip: {
-    width: 132,
-    backgroundColor: Colors.amberPowder,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: Colors.amberLight,
-    padding: 12,
-  },
-  productChipBrand: {
-    marginTop: 8,
-    fontSize: 10,
-    fontFamily: 'DMSans_400Regular',
-    color: Colors.warmGray,
-    marginBottom: 2,
-  },
-  productChipName: {
-    fontSize: 13,
-    fontFamily: 'DMSans_600SemiBold',
-    color: Colors.ink,
-    lineHeight: 17,
-    minHeight: 34,
-  },
-  productChipPrice: {
-    fontSize: 12,
-    fontFamily: 'DMSans_700Bold',
-    color: Colors.amberDark,
-    marginTop: 6,
-  },
-  mediaList: { marginBottom: 2 },
+  mediaList: { marginBottom: 2, paddingHorizontal: 16 },
   mediaRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -538,5 +357,61 @@ const s = StyleSheet.create({
     fontFamily: 'DMSans_400Regular',
     color: Colors.warmGray,
     marginTop: 3,
+  },
+  carouselSlot: {
+    paddingHorizontal: 16,
+    marginBottom: 4,
+  },
+  articleScroll: {
+    paddingVertical: 2,
+  },
+  articleCard: {
+    width: 168,
+    minHeight: 196,
+    marginRight: 10,
+    backgroundColor: Colors.cream,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    paddingHorizontal: 12,
+    paddingTop: 12,
+    paddingBottom: 14,
+    justifyContent: 'space-between',
+  },
+  articleCardLast: {
+    marginRight: 0,
+  },
+  articleThumb: {
+    width: '100%',
+    height: 72,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 10,
+  },
+  articleEmoji: {
+    fontSize: 32,
+    lineHeight: 38,
+  },
+  articleTitle: {
+    fontSize: 14,
+    fontFamily: 'DMSans_700Bold',
+    color: Colors.ink,
+    lineHeight: 19,
+    minHeight: 57,
+  },
+  articleSubtitle: {
+    fontSize: 11,
+    fontFamily: 'DMSans_400Regular',
+    color: Colors.warmGray,
+    lineHeight: 15,
+    marginTop: 4,
+    marginBottom: 6,
+  },
+  articleMeta: {
+    fontSize: 11,
+    fontFamily: 'DMSans_600SemiBold',
+    color: Colors.growth,
+    marginTop: 8,
   },
 });

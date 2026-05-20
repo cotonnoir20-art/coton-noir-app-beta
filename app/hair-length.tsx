@@ -76,7 +76,7 @@ export default function HairLengthScreen() {
           rightSlot={
             <TouchableOpacity
               style={S.graphBtn}
-              onPress={() => router.push('/(tabs)/growth' as any)}
+              onPress={() => router.push('/growth' as any)}
               accessibilityRole="button"
               accessibilityLabel="Voir la progression"
             >

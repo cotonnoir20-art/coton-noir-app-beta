@@ -17,7 +17,7 @@ import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Colors } from '../src/theme/colors';
-import { FontDisplay } from '../src/theme/typography';
+import { AppHeader } from '../src/components/AppHeader';
 import { supabase } from '../src/lib/supabase';
 import { useApp } from '../src/context/AppContext';
 import { EmptyAnimation } from '../src/components/animations/EmptyAnimation';
@@ -209,21 +209,9 @@ export default function RecipesScreen() {
 
   return (
     <SafeAreaView style={S.safe} edges={['top']}>
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={S.scroll}>
-        {/* Header */}
-        <View style={S.header}>
-          <TouchableOpacity
-            style={S.backBtn}
-            onPress={() => router.back()}
-            hitSlop={12}
-            accessibilityLabel="Retour"
-          >
-            <Ionicons name="chevron-back" size={22} color={Colors.ink} />
-          </TouchableOpacity>
-          <Text style={S.headerTitle}>Recettes naturelles</Text>
-          <View style={S.headerSpacer} />
-        </View>
+      <AppHeader title="Recettes" />
 
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={S.scroll}>
         {/* Hero */}
         <View style={S.heroCard}>
           <Text style={S.heroLabel}>🌿 Recettes naturelles</Text>
@@ -622,32 +610,6 @@ const S = StyleSheet.create({
   safe: { flex: 1, backgroundColor: Colors.bg },
   scroll: { paddingBottom: 8 },
 
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingTop: 4,
-    marginBottom: 16,
-  },
-  backBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: Colors.surface,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: Colors.border,
-  },
-  headerTitle: {
-    flex: 1,
-    fontSize: 20,
-    fontFamily: FontDisplay,
-    color: Colors.ink,
-    marginLeft: 12,
-  },
-  headerSpacer: { width: 8 },
-
   heroCard: {
     marginHorizontal: 16,
     marginBottom: 18,
@@ -666,7 +628,7 @@ const S = StyleSheet.create({
   heroTitle: {
     fontSize: 24,
     lineHeight: 30,
-    fontFamily: FontDisplay,
+    fontFamily: 'Poppins_700Bold',
     color: '#1A3D12',
     marginBottom: 8,
   },
@@ -729,7 +691,7 @@ const S = StyleSheet.create({
 
   sectionTitle: {
     fontSize: 20,
-    fontFamily: FontDisplay,
+    fontFamily: 'Poppins_700Bold',
     color: Colors.ink,
     paddingHorizontal: 16,
     marginBottom: 14,
@@ -791,7 +753,7 @@ const S = StyleSheet.create({
   featuredTitle: {
     fontSize: 18,
     lineHeight: 24,
-    fontFamily: FontDisplay,
+    fontFamily: 'Poppins_700Bold',
     color: Colors.ink,
     marginBottom: 8,
   },
@@ -939,7 +901,7 @@ const S = StyleSheet.create({
   modalBody: { paddingHorizontal: 20, paddingTop: 20 },
   modalTitle: {
     fontSize: 22,
-    fontFamily: FontDisplay,
+    fontFamily: 'Poppins_700Bold',
     color: Colors.ink,
     lineHeight: 28,
     marginBottom: 12,

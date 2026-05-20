@@ -45,15 +45,16 @@ import {
   HomeGreetingRow,
   HomeLengthRing,
   HomeWeekStrip,
-  HomeNextWashday,
   HomeRoutineCTA,
   type HomeRoutineFocus,
   HomeGrowthMilestones,
   HomeRoutinePlanCard,
+  HomeMesuresCard,
+  HomeSoinsHistoryCard,
+  HomeRecommendedProductsCard,
   HomeRecoExtras,
   HomeBlackCottonRecommendations,
   HomeMomentsForts,
-  HomeShortcuts,
 } from '../../src/components/home';
 import { FirstMeasureGuidePopin } from '../../src/components/FirstMeasureGuidePopin';
 import {
@@ -147,7 +148,7 @@ export default function HomeScreen() {
 
   const openFocusRoutine = useCallback(() => {
     if (!focusRoutine) {
-      router.push('/(tabs)/growth' as any);
+      router.push('/growth' as any);
       return;
     }
     router.push({ pathname: '/(tabs)/routine', params: { routine: focusRoutine } } as any);
@@ -325,7 +326,7 @@ export default function HomeScreen() {
           streak={streak}
           unreadCount={unreadCount}
           onCoinsPress={() => router.push('/rewards')}
-          onStreakPress={() => router.push('/(tabs)/growth' as any)}
+          onStreakPress={() => router.push('/growth' as any)}
           onNotifPress={() => router.push('/notifications')}
         />
 
@@ -364,7 +365,7 @@ export default function HomeScreen() {
               goalHorizonLabel={goalHorizonLabel}
               hint={lengthMetrics.hint}
               healthScore={healthScore}
-              onRingPress={() => router.push('/(tabs)/growth' as any)}
+              onRingPress={() => router.push('/growth' as any)}
               onEmptyPress={() => router.push('/hair-length' as any)}
             />
 
@@ -383,7 +384,14 @@ export default function HomeScreen() {
             morningSteps={state.routineSteps.daily}
             eveningSteps={state.routineSteps.night}
           />
-          <HomeRecoExtras profile={profile} washdaySteps={state.routineSteps.washday} />
+          <HomeMesuresCard profile={profile} growthHistory={state.growthHistory} />
+          <HomeSoinsHistoryCard
+            coinHistory={state.coinHistory}
+            plannedSoins={state.plannedSoins}
+            washdaySteps={state.routineSteps.washday}
+          />
+          <HomeRecommendedProductsCard profile={profile} />
+          <HomeRecoExtras profile={profile} />
           <HomeBlackCottonRecommendations profile={profile} />
           <HomeMomentsForts
             moments={moments}
@@ -392,8 +400,6 @@ export default function HomeScreen() {
               if (m.route) router.push(m.route as any);
             }}
           />
-          <HomeShortcuts />
-          <HomeNextWashday routineDates={routineDatesSet} />
         </View>
 
         <View style={s.footer}>

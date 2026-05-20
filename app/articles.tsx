@@ -15,7 +15,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Colors } from '../src/theme/colors';
-import { FontDisplay } from '../src/theme/typography';
+import { AppHeader } from '../src/components/AppHeader';
 import { supabase } from '../src/lib/supabase';
 import { EmptyAnimation } from '../src/components/animations/EmptyAnimation';
 import { openSafeMailto, openSafeUrl } from '../src/lib/safeLinking';
@@ -183,24 +183,12 @@ export default function ArticlesScreen() {
 
   return (
     <SafeAreaView style={S.safe} edges={['top']}>
+      <AppHeader title="Articles" />
+
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={S.scroll}
       >
-        {/* Header */}
-        <View style={S.header}>
-          <TouchableOpacity
-            style={S.backBtn}
-            onPress={() => router.back()}
-            hitSlop={12}
-            accessibilityLabel="Retour"
-          >
-            <Ionicons name="chevron-back" size={22} color={Colors.ink} />
-          </TouchableOpacity>
-          <Text style={S.headerTitle}>Articles</Text>
-          <View style={S.headerSpacer} />
-        </View>
-
         {/* Hero */}
         <Text style={S.heroTitle}>
           Les pros prennent{'\n'}
@@ -516,36 +504,10 @@ const S = StyleSheet.create({
   safe: { flex: 1, backgroundColor: Colors.bg },
   scroll: { paddingBottom: 8 },
 
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingTop: 4,
-    marginBottom: 16,
-  },
-  backBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: Colors.surface,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: Colors.border,
-  },
-  headerTitle: {
-    flex: 1,
-    textAlign: 'center',
-    fontSize: 18,
-    fontFamily: FontDisplay,
-    color: Colors.ink,
-  },
-  headerSpacer: { width: 40 },
-
   heroTitle: {
     fontSize: 28,
     lineHeight: 36,
-    fontFamily: FontDisplay,
+    fontFamily: 'Poppins_700Bold',
     color: Colors.ink,
     paddingHorizontal: 20,
     marginBottom: 10,
@@ -600,7 +562,7 @@ const S = StyleSheet.create({
 
   sectionTitle: {
     fontSize: 20,
-    fontFamily: FontDisplay,
+    fontFamily: 'Poppins_700Bold',
     color: Colors.ink,
     paddingHorizontal: 20,
     marginBottom: 14,
@@ -670,7 +632,7 @@ const S = StyleSheet.create({
   featuredTitle: {
     fontSize: 18,
     lineHeight: 24,
-    fontFamily: FontDisplay,
+    fontFamily: 'Poppins_700Bold',
     color: Colors.ink,
     marginBottom: 8,
   },
@@ -949,7 +911,7 @@ const S = StyleSheet.create({
   },
   modalTitle: {
     fontSize: 24,
-    fontFamily: FontDisplay,
+    fontFamily: 'Poppins_700Bold',
     color: Colors.ink,
     lineHeight: 31,
     marginBottom: 8,

@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View, useWindowDimensions } from 'react-native';
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../src/theme/colors';
 import { useApp } from '../src/context/AppContext';
+import { MiniDateCalendar } from '../src/components/MiniDateCalendar';
 
 const SOIN_TYPES = [
   { icon: '🫧', label: 'Shampoing' },
@@ -17,12 +18,6 @@ const SOIN_TYPES = [
   { icon: '🧼', label: 'Soin clarifiant' },
   { icon: '💪', label: 'Soin fortifiant' },
 ];
-
-const MONTH_NAMES = [
-  'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
-  'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre',
-];
-const WEEK_DAYS = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
 
 function addDays(n: number) {
   const d = new Date();
@@ -52,82 +47,6 @@ const QUICK_DATES = [
   { label: "Aujourd'hui", date: addDays(0) },
   { label: 'Demain',      date: addDays(1) },
 ];
-
-function MiniCalendar({
-  selectedDate, onSelect,
-}: { selectedDate: Date | null; onSelect: (d: Date) => void }) {
-  const today = new Date();
-  const [calDate, setCalDate] = useState({ year: today.getFullYear(), month: today.getMonth() });
-  const { width } = useWindowDimensions();
-  // sheet paddingH=20 + wrap padding=12 → available = width - 40 - 24, 7 cells
-  const cellSize = Math.floor((width - 64) / 7);
-
-  const daysInMonth = new Date(calDate.year, calDate.month + 1, 0).getDate();
-  const firstOffset = (new Date(calDate.year, calDate.month, 1).getDay() + 6) % 7;
-
-  function prevMonth() {
-    setCalDate(d => d.month === 0 ? { year: d.year - 1, month: 11 } : { ...d, month: d.month - 1 });
-  }
-  function nextMonth() {
-    setCalDate(d => d.month === 11 ? { year: d.year + 1, month: 0 } : { ...d, month: d.month + 1 });
-  }
-
-  return (
-    <View style={C.wrap}>
-      {/* Nav */}
-      <View style={C.nav}>
-        <TouchableOpacity style={C.navBtn} onPress={prevMonth}>
-          <Text style={C.navArrow}>‹</Text>
-        </TouchableOpacity>
-        <Text style={C.navMonth}>{MONTH_NAMES[calDate.month]} {calDate.year}</Text>
-        <TouchableOpacity style={C.navBtn} onPress={nextMonth}>
-          <Text style={C.navArrow}>›</Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* Week labels */}
-      <View style={C.weekRow}>
-        {WEEK_DAYS.map((d, i) => (
-          <Text key={i} style={[C.weekDay, { width: cellSize }]}>{d}</Text>
-        ))}
-      </View>
-
-      {/* Days grid */}
-      <View style={C.grid}>
-        {Array.from({ length: firstOffset }).map((_, i) => (
-          <View key={`e${i}`} style={{ width: cellSize, height: cellSize }} />
-        ))}
-        {Array.from({ length: daysInMonth }, (_, i) => i + 1).map(d => {
-          const date = new Date(calDate.year, calDate.month, d);
-          const isPast = date < new Date(today.getFullYear(), today.getMonth(), today.getDate());
-          const isSelected = selectedDate ? isSameDay(date, selectedDate) : false;
-          const isToday    = isSameDay(date, today);
-          return (
-            <Pressable
-              key={d}
-              style={[C.cell, { width: cellSize, height: cellSize }]}
-              onPress={() => onSelect(date)}
-              disabled={isPast}
-            >
-              <View style={[
-                C.inner,
-                isSelected && C.innerSelected,
-                !isSelected && isToday && C.innerToday,
-              ]}>
-                <Text style={[
-                  C.dayText,
-                  isPast      && C.dayPast,
-                  isSelected  && C.daySelected,
-                  !isSelected && isToday && C.dayToday,
-                ]}>{d}</Text>
-              </View>
-            </Pressable>
-          );
-        })}
-      </View>
-    </View>
-  );
-}
 
 function toISO(d: Date) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -234,12 +153,15 @@ export default function PlanSoinModal() {
           </View>
 
           {/* Mini calendrier */}
-          {showCal && (
-            <MiniCalendar
-              selectedDate={customDate}
-              onSelect={selectCustom}
-            />
-          )}
+          {showCal ? (
+            <View style={S.calWrap}>
+              <MiniDateCalendar
+                selectedDate={customDate}
+                onSelect={selectCustom}
+                minimumDate={new Date()}
+              />
+            </View>
+          ) : null}
 
           {/* Date choisie */}
           <View style={S.dateChosen}>
@@ -264,28 +186,6 @@ export default function PlanSoinModal() {
     </View>
   );
 }
-
-/* Mini calendar styles */
-const C = StyleSheet.create({
-  wrap:    { backgroundColor: Colors.surface, borderWidth: 1, borderColor: Colors.border, borderRadius: 16, padding: 12, marginTop: 12 },
-  nav:     { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 },
-  navBtn:  { width: 30, height: 30, borderRadius: 15, backgroundColor: Colors.cream, borderWidth: 1, borderColor: Colors.border, alignItems: 'center', justifyContent: 'center' },
-  navArrow:{ fontSize: 16, color: Colors.ink },
-  navMonth:{ fontSize: 14, fontFamily: 'DMSans_700Bold', color: Colors.ink },
-  weekRow: { flexDirection: 'row', marginBottom: 4 },
-  weekDay: { textAlign: 'center', fontSize: 10, fontFamily: 'DMSans_500Medium', color: Colors.warmGray },
-  grid:    { flexDirection: 'row', flexWrap: 'wrap' },
-  cell:    { alignItems: 'center', justifyContent: 'center' },
-  inner:   { width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center' },
-  // Date sélectionnée : pastille pleine noire (état actif principal).
-  innerSelected: { backgroundColor: Colors.ink },
-  // Aujourd'hui (si non sélectionné) : anneau noir, sans remplissage.
-  innerToday:    { borderWidth: 1.5, borderColor: Colors.ink },
-  dayText:     { fontSize: 12, fontFamily: 'DMSans_500Medium', color: Colors.ink },
-  dayPast:     { color: Colors.border },
-  daySelected: { color: '#fff', fontFamily: 'DMSans_700Bold' },
-  dayToday:    { color: Colors.ink, fontFamily: 'DMSans_700Bold' },
-});
 
 const S = StyleSheet.create({
   overlay:  { flex: 1, justifyContent: 'flex-end' },
@@ -337,6 +237,7 @@ const S = StyleSheet.create({
   dateBtnTextActive:{ fontFamily: 'DMSans_700Bold', color: Colors.amber },
   dateBtnCalText:   { fontFamily: 'DMSans_700Bold', color: Colors.rose },
 
+  calWrap: { marginTop: 12 },
   dateChosen: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
     marginTop: 10, marginBottom: 4,

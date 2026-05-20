@@ -1,12 +1,13 @@
 import { useState } from 'react';
-import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
-import DateTimePicker from '@react-native-community/datetimepicker';
+import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../src/theme/colors';
 import { useApp } from '../src/context/AppContext';
 import { AppHeader } from '../src/components/AppHeader';
+import { DatePickerSheet } from '../src/components/DatePickerSheet';
+import { toLocalISODate } from '../src/lib/homeGrowth';
 
 const WASH_TYPES = [
   'Shampoing classique',
@@ -61,12 +62,8 @@ export default function AddWashDayScreen() {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [showPicker, setShowPicker]   = useState(false);
 
-  function onDateChange(_: any, date?: Date) {
-    if (date) setSelectedDate(date);
-  }
-
   function handleSave() {
-    const iso = selectedDate.toISOString().slice(0, 10);
+    const iso = toLocalISODate(selectedDate);
     dispatch({ type: 'planSoin', soin: { soinType: washType, date: iso } });
     setSaved(true);
     setTimeout(() => router.back(), 800);
@@ -95,27 +92,13 @@ export default function AddWashDayScreen() {
             <Ionicons name="chevron-forward" size={16} color={Colors.warmGray} style={{ marginLeft: 'auto' as any }} />
           </TouchableOpacity>
 
-          {/* Picker : même bottom sheet sur iOS et Android (le picker inline Android ne s’affiche pas bien dans un ScrollView). */}
-          <Modal visible={showPicker} transparent animationType="slide" onRequestClose={() => setShowPicker(false)}>
-            <View style={{ flex: 1, justifyContent: 'flex-end' }}>
-              <Pressable style={S.pickerBackdrop} onPress={() => setShowPicker(false)} />
-              <View style={S.pickerSheet}>
-                <View style={S.pickerHandle} />
-                <DateTimePicker
-                  value={selectedDate}
-                  mode="date"
-                  display={Platform.OS === 'ios' ? 'spinner' : 'calendar'}
-                  minimumDate={new Date()}
-                  onChange={onDateChange}
-                  locale="fr-FR"
-                  style={Platform.OS === 'ios' ? { width: '100%' } : { alignSelf: 'stretch' }}
-                />
-                <TouchableOpacity style={S.pickerConfirm} onPress={() => setShowPicker(false)}>
-                  <Text style={S.pickerConfirmText}>Confirmer</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </Modal>
+          <DatePickerSheet
+            visible={showPicker}
+            value={selectedDate}
+            minimumDate={new Date()}
+            onClose={() => setShowPicker(false)}
+            onConfirm={setSelectedDate}
+          />
 
           {/* Type de lavage */}
           <Dropdown
@@ -248,22 +231,4 @@ const S = StyleSheet.create({
   ctaSaved: { backgroundColor: Colors.sage },
   ctaText: { fontSize: 15, fontFamily: 'DMSans_700Bold', color: '#fff' },
 
-  pickerBackdrop: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.45)',
-  },
-  pickerSheet: {
-    backgroundColor: Colors.surface,
-    borderTopLeftRadius: 24, borderTopRightRadius: 24,
-    padding: 20, paddingBottom: 36, alignItems: 'center',
-  },
-  pickerHandle: {
-    width: 40, height: 4, borderRadius: 999,
-    backgroundColor: Colors.border, marginBottom: 12,
-  },
-  pickerConfirm: {
-    marginTop: 12, backgroundColor: Colors.ink, borderRadius: 14,
-    paddingVertical: 14, paddingHorizontal: 40, alignItems: 'center',
-  },
-  pickerConfirmText: { fontSize: 15, fontFamily: 'DMSans_700Bold', color: '#fff' },
 });

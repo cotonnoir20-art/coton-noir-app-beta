@@ -38,7 +38,7 @@ type TabDef = {
 
 const LEFT_TABS: TabDef[] = [
   { name: 'index',  label: 'Accueil', icon: 'home-outline',       iconFocused: 'home',        href: '/(tabs)/'       },
-  { name: 'growth', label: 'Progrès', icon: 'trending-up-outline', iconFocused: 'trending-up', href: '/(tabs)/growth' },
+  { name: 'shortcuts', label: 'Raccourcis', icon: 'grid-outline', iconFocused: 'grid', href: '/(tabs)/shortcuts' },
 ];
 
 const RIGHT_TABS: TabDef[] = [

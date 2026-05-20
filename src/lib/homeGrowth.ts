@@ -234,3 +234,61 @@ export function buildGrowthMilestones(currentCm: number, targetCm: number): Mile
     return { cm, status };
   });
 }
+
+export type HomeMeasureSession = {
+  date: string;
+  dateLabel: string;
+  avgCm: number;
+  zoneCount: number;
+  isLatest: boolean;
+  /** Delta vs la session précédente (plus ancienne), en cm. */
+  deltaCm: number | null;
+};
+
+function formatMeasureDateLabel(iso: string): string {
+  const d = new Date(iso + 'T12:00:00');
+  return d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+/** Historique de pousse groupé par date (moyenne des zones mesurées ce jour-là). */
+export function buildHomeMeasureSessions(
+  history: GrowthEntry[],
+  limit = 5,
+): HomeMeasureSession[] {
+  if (history.length === 0) return [];
+
+  const byDate = new Map<string, GrowthEntry[]>();
+  for (const h of history) {
+    const list = byDate.get(h.date) ?? [];
+    list.push(h);
+    byDate.set(h.date, list);
+  }
+
+  const sortedDates = [...byDate.keys()].sort((a, b) => b.localeCompare(a));
+  const latestDate = sortedDates[0];
+
+  const sessions: HomeMeasureSession[] = sortedDates.map((date, i) => {
+    const rows = byDate.get(date)!;
+    const avgCm = Math.round((rows.reduce((s, r) => s + r.cm, 0) / rows.length) * 10) / 10;
+
+    const prevDate = sortedDates[i + 1];
+    let deltaCm: number | null = null;
+    if (prevDate) {
+      const prevRows = byDate.get(prevDate)!;
+      const prevAvg =
+        Math.round((prevRows.reduce((s, r) => s + r.cm, 0) / prevRows.length) * 10) / 10;
+      deltaCm = +(avgCm - prevAvg).toFixed(1);
+    }
+
+    return {
+      date,
+      dateLabel: formatMeasureDateLabel(date),
+      avgCm,
+      zoneCount: rows.length,
+      isLatest: date === latestDate,
+      deltaCm,
+    };
+  });
+
+  return sessions.slice(0, limit);
+}

@@ -422,7 +422,7 @@ const DEV_DEMO_FIXTURES: Record<string, DemoFixture> = __DEV__ ? {
         id: 2, type: 'tip', read: false, time: "Hier",
         title: "Pense à mesurer ta pousse",
         body: "Tu n'as pas encore relevé tes cm — fais-le ce week-end pour suivre tes progrès.",
-        route: '/(tabs)/growth',
+        route: '/growth',
       },
       {
         id: 3, type: 'routine', read: true, time: "Il y a 3 jours",

@@ -134,44 +134,88 @@ export function HomeRoutinePlanCard({ morningSteps, eveningSteps }: Props) {
     router.push({ pathname: '/(tabs)/routine', params: { routine: kind } } as any);
   };
 
+  const openAllRoutines = () => {
+    router.push('/(tabs)/routine' as any);
+  };
+
   return (
     <View style={s.section}>
-      <Text style={s.sectionTitle}>Tes recommandations</Text>
       <View style={s.card}>
-        {morningSteps.length > 0 ? (
-          <PeriodRow kind="daily" steps={morningSteps} onPress={() => openRoutine('daily')} />
-        ) : null}
+        <Text style={s.cardTitle}>Mes routines</Text>
+        <View style={s.titleDivider} />
 
-        {morningSteps.length > 0 && eveningSteps.length > 0 ? <View style={s.divider} /> : null}
+        <View style={s.cardBody}>
+          {morningSteps.length > 0 ? (
+            <PeriodRow kind="daily" steps={morningSteps} onPress={() => openRoutine('daily')} />
+          ) : null}
 
-        {eveningSteps.length > 0 ? (
-          <PeriodRow kind="night" steps={eveningSteps} onPress={() => openRoutine('night')} />
-        ) : null}
+          {morningSteps.length > 0 && eveningSteps.length > 0 ? <View style={s.divider} /> : null}
+
+          {eveningSteps.length > 0 ? (
+            <PeriodRow kind="night" steps={eveningSteps} onPress={() => openRoutine('night')} />
+          ) : null}
+
+          <TouchableOpacity
+            style={s.voirPlusBtn}
+            onPress={openAllRoutines}
+            activeOpacity={0.85}
+            accessibilityRole="button"
+            accessibilityLabel="Voir plus de routines"
+          >
+            <Text style={s.voirPlusText}>Voir plus</Text>
+          </TouchableOpacity>
+        </View>
       </View>
     </View>
   );
 }
 
 const s = StyleSheet.create({
-  section: { marginBottom: 22, paddingHorizontal: 20 },
-  sectionTitle: {
-    fontSize: 18,
-    fontFamily: FontDisplay,
-    color: Colors.ink,
-    marginBottom: 10,
-  },
+  section: { marginBottom: 22, paddingHorizontal: 14 },
   card: {
-    backgroundColor: Colors.surface,
+    backgroundColor: Colors.white,
     borderRadius: 18,
     borderWidth: 1,
     borderColor: Colors.border,
-    paddingVertical: 16,
-    paddingHorizontal: 14,
+    overflow: 'hidden',
     shadowColor: Colors.ink,
-    shadowOpacity: 0.06,
-    shadowRadius: 12,
+    shadowOpacity: 0.08,
+    shadowRadius: 14,
     shadowOffset: { width: 0, height: 4 },
-    elevation: 3,
+    elevation: 4,
+  },
+  cardTitle: {
+    fontSize: 18,
+    fontFamily: FontDisplay,
+    color: Colors.ink,
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 12,
+  },
+  titleDivider: {
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: Colors.border,
+    marginHorizontal: 16,
+  },
+  cardBody: {
+    paddingTop: 14,
+    paddingBottom: 16,
+    paddingHorizontal: 14,
+  },
+  voirPlusBtn: {
+    marginTop: 14,
+    paddingVertical: 12,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    backgroundColor: Colors.white,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  voirPlusText: {
+    fontSize: 14,
+    fontFamily: 'DMSans_600SemiBold',
+    color: Colors.ink,
   },
   periodBlock: { paddingVertical: 4 },
   periodHead: {

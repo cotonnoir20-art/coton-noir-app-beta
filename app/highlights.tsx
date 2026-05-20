@@ -70,7 +70,7 @@ export default function HighlightsScreen() {
   const footer = useCallback(
     () => (
       <View>
-        <TouchableOpacity style={s.discoverLink} onPress={() => router.push('/discover' as any)} activeOpacity={0.85}>
+        <TouchableOpacity style={s.discoverLink} onPress={() => router.push('/(tabs)/shortcuts' as any)} activeOpacity={0.85}>
           <Text style={s.discoverText}>Voir aussi tous les outils et offres</Text>
           <Text style={s.discoverArrow}>→</Text>
         </TouchableOpacity>

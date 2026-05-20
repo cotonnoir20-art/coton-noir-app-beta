@@ -72,6 +72,7 @@ function RootLayoutNav() {
         <Stack.Screen name="community"     options={{ presentation: 'card', animation: 'slide_from_right' }} />
         <Stack.Screen name="box"           options={{ presentation: 'card', animation: 'slide_from_right' }} />
         <Stack.Screen name="discover"      options={{ presentation: 'card', animation: 'slide_from_right' }} />
+        <Stack.Screen name="growth"        options={{ presentation: 'card', animation: 'slide_from_right' }} />
         <Stack.Screen name="highlights"    options={{ presentation: 'card', animation: 'slide_from_right' }} />
         <Stack.Screen name="coiffures"     options={{ presentation: 'card', animation: 'slide_from_right' }} />
         <Stack.Screen name="hair-profile"  options={{ presentation: 'card', animation: 'slide_from_right' }} />

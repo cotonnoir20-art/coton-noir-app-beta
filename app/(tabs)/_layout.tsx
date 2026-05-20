@@ -9,9 +9,9 @@ export default function TabLayout() {
         tabBarStyle: { display: 'none' },
       }}
     >
-      <Tabs.Screen name="index"   options={{ title: 'Accueil' }} />
-      <Tabs.Screen name="growth"  options={{ title: 'Progrès' }} />
-      <Tabs.Screen name="analyze" options={{ title: 'Ajouter' }} />
+      <Tabs.Screen name="index"     options={{ title: 'Accueil' }} />
+      <Tabs.Screen name="shortcuts" options={{ title: 'Raccourcis' }} />
+      <Tabs.Screen name="analyze"   options={{ href: null }} />
       <Tabs.Screen name="routine" options={{ title: 'Routine' }} />
       <Tabs.Screen name="profile" options={{ title: 'Profil'  }} />
     </Tabs>

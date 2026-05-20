@@ -15,9 +15,10 @@ export const EXPLORER_SECTIONS: { id: string; label: string; items: ExplorerItem
     id: 'tools',
     label: 'Mes outils',
     items: [
+      { ion: 'camera-outline',         ionBg: Colors.cream,      ionColor: Colors.ink,     label: 'Analyse IA',  route: '/(tabs)/analyze' },
       { ion: 'leaf-outline',           ionBg: Colors.sageLight,  ionColor: Colors.sage,     label: 'Ma Routine',  route: '/(tabs)/routine' },
-      { ion: 'water-outline',          ionBg: '#DBEAFE',        ionColor: '#2563EB',      label: 'Wash Day',    route: '/washday' },
-      { ion: 'stats-chart-outline',    ionBg: Colors.cream,      ionColor: Colors.ink,     label: 'Progression', route: '/(tabs)/growth' },
+      { ion: 'water-outline',          ionBg: '#DBEAFE',        ionColor: '#2563EB',      label: 'Washday tracker', route: '/washday' },
+      { ion: 'stats-chart-outline',    ionBg: Colors.cream,      ionColor: Colors.ink,     label: 'Progression', route: '/growth' },
       { ion: 'flask-outline',          ionBg: Colors.amberLight, ionColor: Colors.amberDark, label: 'Recettes',    route: '/recipes' },
       { ion: 'trophy-outline',         ionBg: Colors.amberLight, ionColor: Colors.amberDark, label: 'Niveaux',     route: '/rewards' },
       { ion: 'heart-outline',          ionBg: Colors.blush,      ionColor: Colors.rose,     label: 'Favoris',     route: '/favorites' },

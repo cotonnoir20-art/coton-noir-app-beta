@@ -7,17 +7,17 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors } from '../../src/theme/colors';
-import { useApp, GrowthEntry } from '../../src/context/AppContext';
-import { MiniCalendar, formatFull } from '../../src/components/MiniCalendar';
-import { BCEmojiAvatar } from '../../src/components/blackCotton/BCEmojiAvatar';
-import { CoinIcon } from '../../src/components/CoinIcon';
+import { Colors } from '../src/theme/colors';
+import { useApp, GrowthEntry } from '../src/context/AppContext';
+import { MiniCalendar, formatFull } from '../src/components/MiniCalendar';
+import { BCEmojiAvatar } from '../src/components/blackCotton/BCEmojiAvatar';
+import { CoinIcon } from '../src/components/CoinIcon';
 import {
   averageLatestCmByZone,
   computeHairHealthScore,
   parseCmFromText,
   toLocalISODate,
-} from '../../src/lib/homeGrowth';
+} from '../src/lib/homeGrowth';
 
 const TODAY_DATE = new Date();
 const TODAY      = toLocalISODate(TODAY_DATE);
