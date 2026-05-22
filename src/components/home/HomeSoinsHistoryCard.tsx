@@ -4,7 +4,7 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import type { CoinHistoryEntry, PlannedSoin, RoutineStep } from '../../context/AppContext';
 import { Colors } from '../../theme/colors';
-import { FontDisplay } from '../../theme/typography';
+import { Type } from '../../theme/typography';
 import { buildHomeWashdaySessions } from '../../lib/washdayHistory';
 import { HomeWashdayCalendar } from './HomeWashdayCalendar';
 
@@ -81,6 +81,7 @@ export function HomeSoinsHistoryCard({ coinHistory, plannedSoins, washdaySteps }
 
   const openWashday = () => router.push('/washday' as any);
   const openPlanWashday = () => router.push('/add-washday' as any);
+  const openPlanSoin = () => router.push('/plan-soin' as any);
 
   return (
     <View style={s.section}>
@@ -133,6 +134,16 @@ export function HomeSoinsHistoryCard({ coinHistory, plannedSoins, washdaySteps }
           <Ionicons name="calendar-outline" size={16} color={Colors.amberDark} />
           <Text style={s.planBtnText}>Planifier un washday</Text>
         </TouchableOpacity>
+        <TouchableOpacity
+          style={[s.planBtn, s.planBtnSecondary]}
+          onPress={openPlanSoin}
+          activeOpacity={0.85}
+          accessibilityRole="button"
+          accessibilityLabel="Planifier un soin"
+        >
+          <Ionicons name="add-circle-outline" size={16} color={Colors.ink} />
+          <Text style={[s.planBtnText, s.planBtnTextSecondary]}>Planifier un soin</Text>
+        </TouchableOpacity>
       </View>
     </View>
   );
@@ -161,8 +172,8 @@ const s = StyleSheet.create({
     paddingBottom: 12,
   },
   cardTitle: {
+    ...Type.sectionTitle,
     fontSize: 17,
-    fontFamily: FontDisplay,
     color: Colors.ink,
   },
   seeAll: {
@@ -269,5 +280,13 @@ const s = StyleSheet.create({
     fontSize: 15,
     fontFamily: 'DMSans_700Bold',
     color: Colors.amberDark,
+  },
+  planBtnSecondary: {
+    marginTop: 8,
+    backgroundColor: Colors.cream,
+    borderColor: Colors.border,
+  },
+  planBtnTextSecondary: {
+    color: Colors.ink,
   },
 });

@@ -7,7 +7,7 @@ import { Colors } from '../../src/theme/colors';
 export default function ShortcutsTabScreen() {
   return (
     <SafeAreaView style={s.safe} edges={['top']}>
-      <AppHeader title="Raccourcis" subtitle="Tous tes outils et contenus au même endroit" rightAction="none" />
+      <AppHeader title="Découvrir" subtitle="Parcours par objectif — soin, progression, économies, motivation" rightAction="none" />
       <ShortcutsExplorer contentPaddingBottom={32} />
     </SafeAreaView>
   );

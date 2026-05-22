@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Colors } from '../../theme/colors';
-import { FontDisplay } from '../../theme/typography';
+import { Type } from '../../theme/typography';
 import { CoinIcon } from '../CoinIcon';
 
 type RoutineFocus = {
@@ -9,7 +9,10 @@ type RoutineFocus = {
   done: number;
   total: number;
   reward: number;
+  /** Libellé court catalogue (Matin, Nuit…) */
   label: string;
+  /** Libellé accueil (Routine matin, Routine soir…) */
+  displayLabel: string;
   allStepsDone: boolean;
 };
 
@@ -39,8 +42,8 @@ export function HomeRoutineCTA({ focus, onPress }: Props) {
   }
 
   const sub = focus.allStepsDone
-    ? `Valide sur l’onglet Routine pour créditer +${focus.reward} CC`
-    : `${focus.done} / ${focus.total} étapes faites aujourd’hui`;
+    ? `Valide ${focus.displayLabel.toLowerCase()} pour créditer +${focus.reward} CC`
+    : `${focus.displayLabel} · ${focus.done} / ${focus.total} étapes`;
 
   return (
     <TouchableOpacity style={s.card} onPress={onPress} activeOpacity={0.92}>
@@ -85,8 +88,9 @@ const s = StyleSheet.create({
   },
   mid: { flex: 1, minWidth: 0 },
   title: {
+    ...Type.sectionTitle,
     fontSize: 17,
-    fontFamily: FontDisplay,
+    lineHeight: 22,
     color: '#fff',
     letterSpacing: -0.2,
   },

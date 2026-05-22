@@ -174,6 +174,9 @@ export function computeHairHealthScore(state: AppState): number | null {
   return Math.min(100, total);
 }
 
+/** En dessous : bandeau « Routine / Analyser » recommandé. */
+export const HEALTH_SCORE_LOW_THRESHOLD = 30;
+
 /** Couleurs score santé (alignées charte : sage ≥ 55, alert < 30). */
 export function getHealthScoreColors(score: number | null): {
   value: string;
@@ -186,7 +189,7 @@ export function getHealthScoreColors(score: number | null): {
   if (score >= 55) {
     return { value: Colors.sageDark, muted: Colors.sageDark, bg: Colors.sageLight };
   }
-  if (score >= 30) {
+  if (score >= HEALTH_SCORE_LOW_THRESHOLD) {
     return { value: Colors.amberInk, muted: Colors.amberDark, bg: Colors.amberLight };
   }
   return { value: Colors.alertDark, muted: Colors.alert, bg: Colors.alertLight };

@@ -1,10 +1,12 @@
 import {
+  CC_ANALYSIS_COMPLETE,
   CC_REFERRAL_SIGNUP,
   CC_ROUTINE_DAILY_NIGHT,
   CC_ROUTINE_WASHDAY,
   CC_STREAK_BONUS_30,
   CC_STREAK_BONUS_7,
   CC_PROFILE_COMPLETE,
+  PTS_ANALYSIS_COMPLETE,
   PTS_ROUTINE_DAILY_NIGHT,
   PTS_ROUTINE_WASHDAY,
 } from '../lib/cotonCoins';
@@ -23,6 +25,9 @@ export const EARN_WAYS = [
   { emoji: '💧', name: 'Wash day complet',          freq: 'Par wash day',    amountCc: CC_ROUTINE_WASHDAY,    amountPts: PTS_ROUTINE_WASHDAY },
   { emoji: '🔥', name: 'Streak 7 jours',            freq: 'Bonus hebdo',     amountCc: CC_STREAK_BONUS_7 },
   { emoji: '🔥', name: 'Streak 30 jours',           freq: 'Bonus mensuel',   amountCc: CC_STREAK_BONUS_30 },
+  { emoji: '📸', name: 'Analyse capillaire complète', freq: 'Par analyse',    amountCc: CC_ANALYSIS_COMPLETE, amountPts: PTS_ANALYSIS_COMPLETE },
+  { emoji: '🧴', name: 'Journal · soin',            freq: '1× / jour',       amountCc: CC_ROUTINE_WASHDAY,    amountPts: PTS_ROUTINE_WASHDAY },
+  { emoji: '📋', name: 'Journal · routine',         freq: '1× / jour',       amountCc: CC_ROUTINE_DAILY_NIGHT, amountPts: PTS_ROUTINE_DAILY_NIGHT },
   { emoji: '👤', name: 'Profil complété à 100%',    freq: 'Une fois',        amountCc: CC_PROFILE_COMPLETE },
   { emoji: '🎁', name: 'Inviter une amie',          freq: 'Par inscription', amountCc: CC_REFERRAL_SIGNUP },
 ];

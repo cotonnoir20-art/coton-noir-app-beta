@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useApp } from '../context/AppContext';
 import { Colors } from '../theme/colors';
+import { Fonts, Type } from '../theme/typography';
 import { CoinIcon } from './CoinIcon';
 
 type AppHeaderProps = {
@@ -137,14 +138,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
   },
   title: {
-    fontSize: 18,
-    fontFamily: 'Poppins_700Bold',
+    ...Type.screenTitle,
     color: Colors.ink,
     textAlign: 'center',
   },
   subtitle: {
-    fontSize: 12,
-    fontFamily: 'DMSans_400Regular',
+    ...Type.caption,
+    fontFamily: Fonts.body,
     color: Colors.warmGray,
     marginTop: 2,
     textAlign: 'center',

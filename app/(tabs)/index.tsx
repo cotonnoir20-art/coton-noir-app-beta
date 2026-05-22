@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Modal,
   Platform,
@@ -30,13 +30,20 @@ import { useBlackCotton } from '../../src/components/blackCotton';
 import { useNotifications } from '../../src/context/NotificationsContext';
 import { AppIconBox } from '../../src/components/AppIconBox';
 import { Colors } from '../../src/theme/colors';
-import { ROUTINE_TYPES, type RoutineType } from '../../src/data/routines';
+import { ROUTINE_TYPES, getRoutineHomeLabel, type RoutineType } from '../../src/data/routines';
+import { loadUserPrefs } from '../../src/lib/userPrefs';
 import { getCurrentLevel } from '../../src/data/levels';
 import { CC_ROUTINE_VALIDATION_REWARD, CC_ROUTINE_WASHDAY } from '../../src/lib/cotonCoins';
 import { HOME_TAGLINE, HOME_TAGLINE_WEB } from '../../src/constants/productPitch';
 import { isWebPlatform } from '../../src/lib/webStaging';
 import { PANTRY_ITEMS } from '../../src/data/pantryItems';
-import { buildGrowthMilestones, computeHairHealthScore, getHomeLengthMetrics } from '../../src/lib/homeGrowth';
+import {
+  buildGrowthMilestones,
+  computeHairHealthScore,
+  getHomeLengthMetrics,
+  HEALTH_SCORE_LOW_THRESHOLD,
+} from '../../src/lib/homeGrowth';
+import { GrowthHealthActionBanner } from '../../src/components/growth/GrowthHealthActionBanner';
 import { fetchHomeHighlights } from '../../src/lib/fetchHomeHighlights';
 import type { MomentCard } from '../../src/data/homeHighlights';
 import { FALLBACK_HOME_HIGHLIGHTS } from '../../src/data/homeHighlights';
@@ -49,11 +56,14 @@ import {
   type HomeRoutineFocus,
   HomeGrowthMilestones,
   HomeRoutinePlanCard,
+  HomeDayZeroRoutineBanner,
   HomeMesuresCard,
+  HomeHairAnalysisCard,
   HomeSoinsHistoryCard,
   HomeRecommendedProductsCard,
   HomeRecoExtras,
   HomeBlackCottonRecommendations,
+  HomeDiscoverShortcuts,
   HomeMomentsForts,
 } from '../../src/components/home';
 import { FirstMeasureGuidePopin } from '../../src/components/FirstMeasureGuidePopin';
@@ -61,6 +71,23 @@ import {
   hasSeenFirstMeasureGuide,
   markFirstMeasureGuideSeen,
 } from '../../src/lib/firstMeasureGuide';
+import {
+  type DayZeroPrompt,
+  hasSeenDayZeroGuide,
+  markDayZeroGuideSeen,
+  resolveDayZeroPrompt,
+} from '../../src/lib/dayZeroGuide';
+import { HomeHairWeekCard } from '../../src/components/home/HomeHairWeekCard';
+import { HomeComebackBanner } from '../../src/components/home/HomeComebackBanner';
+import { HomeIntentCard } from '../../src/components/home/HomeIntentCard';
+import { HomeNextWashdayLine } from '../../src/components/home/HomeNextWashdayLine';
+import { resolveHomeIntent } from '../../src/lib/homeIntent';
+import {
+  daysSinceLastHairActivity,
+  dismissComebackBanner,
+  shouldShowComebackBanner,
+  wasComebackDismissedRecently,
+} from '../../src/lib/comebackWorkflow';
 
 function toLocalISODate(d: Date): string {
   const y = d.getFullYear();
@@ -79,7 +106,7 @@ const MONTHS_SHORT = [
 export default function HomeScreen() {
   const router = useRouter();
   const { session } = useAuth();
-  const { state } = useApp();
+  const { state, isAppReady, celebrateOnboardingGift } = useApp();
   const { streak, profile } = state;
   const { fire } = useBlackCotton();
   const { unreadCount } = useNotifications();
@@ -119,13 +146,27 @@ export default function HomeScreen() {
     });
   }, [weekStart.getTime(), todayStr, routineDatesSet, soinDatesSet]);
 
+  const [isProtective, setIsProtective] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    loadUserPrefs().then(p => {
+      if (!cancelled) setIsProtective(!!p.isProtective);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const focusRoutine = useMemo((): RoutineType | null => {
-    const order: RoutineType[] = ['daily', 'night', 'washday'];
+    const order: RoutineType[] = isProtective
+      ? ['night', 'daily', 'washday']
+      : ['daily', 'night', 'washday'];
     for (const t of order) {
       if (!state.validated[t]) return t;
     }
     return null;
-  }, [state.validated]);
+  }, [state.validated, isProtective]);
 
   const homeRoutineFocus: HomeRoutineFocus = useMemo(() => {
     if (!focusRoutine) {
@@ -142,6 +183,7 @@ export default function HomeScreen() {
       total,
       reward: focusRoutine === 'washday' ? CC_ROUTINE_WASHDAY : CC_ROUTINE_VALIDATION_REWARD,
       label: ROUTINE_TYPES[focusRoutine].label,
+      displayLabel: getRoutineHomeLabel(focusRoutine),
       allStepsDone,
     };
   }, [focusRoutine, state.routineSteps, state.totalEarned]);
@@ -154,38 +196,100 @@ export default function HomeScreen() {
     router.push({ pathname: '/(tabs)/routine', params: { routine: focusRoutine } } as any);
   }, [router, focusRoutine]);
 
-  useEffect(() => {
-    fire('first_login');
-  }, [fire]);
-
   const lengthMetrics = useMemo(() => getHomeLengthMetrics(state), [state]);
   const healthScore = useMemo(() => computeHairHealthScore(state), [state]);
 
+  const hasAnyRoutineValidation = useMemo(
+    () =>
+      state.coinHistory.some(
+        e =>
+          e.amount > 0 &&
+          (e.label.includes('Routine') || e.label.includes('Wash day')),
+      ),
+    [state.coinHistory],
+  );
+
+  const [dayZeroPrompt, setDayZeroPrompt] = useState<DayZeroPrompt>('none');
   const [measureGuideOpen, setMeasureGuideOpen] = useState(false);
+  const [showComeback, setShowComeback] = useState(false);
+  const firstLoginFired = useRef(false);
 
   useEffect(() => {
-    if (lengthMetrics.hasMeasurements) {
-      setMeasureGuideOpen(false);
-      return;
-    }
-    const userId = session?.user?.id ?? null;
     let cancelled = false;
     (async () => {
-      const seen = await hasSeenFirstMeasureGuide(userId);
-      if (!cancelled && !seen) setMeasureGuideOpen(true);
+      if (!shouldShowComebackBanner(state.coinHistory, state.lastRoutineDate)) return;
+      if (await wasComebackDismissedRecently()) return;
+      if (!cancelled) setShowComeback(true);
     })();
     return () => {
       cancelled = true;
     };
-  }, [lengthMetrics.hasMeasurements, session?.user?.id]);
+  }, [state.coinHistory, state.lastRoutineDate]);
+
+  const daysAway = useMemo(
+    () => daysSinceLastHairActivity(state.coinHistory, state.lastRoutineDate),
+    [state.coinHistory, state.lastRoutineDate],
+  );
+
+  useEffect(() => {
+    if (!isAppReady || celebrateOnboardingGift || firstLoginFired.current) return;
+    firstLoginFired.current = true;
+    fire('first_login');
+  }, [fire, isAppReady, celebrateOnboardingGift]);
+
+  const inactivityFired = useRef(false);
+  useEffect(() => {
+    if (!isAppReady || inactivityFired.current) return;
+    const last = state.lastRoutineDate;
+    if (!last) return;
+    const days = (Date.now() - new Date(`${last}T12:00:00`).getTime()) / 86400000;
+    if (days >= 4) {
+      inactivityFired.current = true;
+      fire('inactivity');
+    }
+  }, [fire, isAppReady, state.lastRoutineDate]);
+
+  useEffect(() => {
+    if (!isAppReady) return;
+    const userId = session?.user?.id ?? null;
+    let cancelled = false;
+    (async () => {
+      const guideSeen = await hasSeenDayZeroGuide(userId);
+      const prompt = resolveDayZeroPrompt({
+        hasMeasurements: lengthMetrics.hasMeasurements,
+        hasDailyRoutinePlan: !!state.routinePlans?.daily,
+        hasAnyRoutineValidation,
+        guideAlreadySeen: guideSeen,
+      });
+      if (!cancelled) {
+        setDayZeroPrompt(prompt);
+        setMeasureGuideOpen(prompt === 'measure_popin');
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    isAppReady,
+    lengthMetrics.hasMeasurements,
+    state.routinePlans?.daily,
+    hasAnyRoutineValidation,
+    session?.user?.id,
+  ]);
+
+  const dismissDayZeroGuide = useCallback(async () => {
+    await markDayZeroGuideSeen(session?.user?.id ?? null);
+    setDayZeroPrompt('none');
+    setMeasureGuideOpen(false);
+  }, [session?.user?.id]);
 
   const closeMeasureGuide = useCallback(
     async (startMeasure: boolean) => {
       await markFirstMeasureGuideSeen(session?.user?.id ?? null);
-      setMeasureGuideOpen(false);
+      await dismissDayZeroGuide();
       if (startMeasure) router.push('/hair-length' as any);
     },
-    [router, session?.user?.id],
+    [router, session?.user?.id, dismissDayZeroGuide],
   );
 
   const goalHorizonLabel = useMemo(() => {
@@ -203,6 +307,32 @@ export default function HomeScreen() {
   const milestones = useMemo(
     () => buildGrowthMilestones(lengthMetrics.currentCm, lengthMetrics.targetCm),
     [lengthMetrics.currentCm, lengthMetrics.targetCm],
+  );
+
+  const lightenHomeIntent =
+    lengthMetrics.hasMeasurements &&
+    !!state.routinePlans?.daily &&
+    hasAnyRoutineValidation;
+
+  const homeIntent = useMemo(
+    () =>
+      resolveHomeIntent({
+        hasMeasurements: lengthMetrics.hasMeasurements,
+        hasDailyPlan: !!state.routinePlans?.daily,
+        hasAnyRoutineValidation,
+        growthHistory: state.growthHistory,
+        hideBecauseComeback: showComeback,
+        hideBecauseDayZero: dayZeroPrompt !== 'none' || lightenHomeIntent,
+      }),
+    [
+      lengthMetrics.hasMeasurements,
+      state.routinePlans?.daily,
+      hasAnyRoutineValidation,
+      state.growthHistory,
+      showComeback,
+      dayZeroPrompt,
+      lightenHomeIntent,
+    ],
   );
 
   const [moments, setMoments] = useState<MomentCard[]>(FALLBACK_HOME_HIGHLIGHTS);
@@ -344,7 +474,10 @@ export default function HomeScreen() {
           }
         >
           <View style={s.hero}>
-            <HomeGreetingRow displayName={profile.name} greetingEmoji="🌸" />
+            <HomeGreetingRow
+              displayName={profile.name}
+              onAvatarPress={() => router.push('/(tabs)/profile' as any)}
+            />
             <Text
               style={s.homeTagline}
               numberOfLines={Platform.OS === 'web' ? 2 : 1}
@@ -369,12 +502,31 @@ export default function HomeScreen() {
               onEmptyPress={() => router.push('/hair-length' as any)}
             />
 
+            {healthScore != null && healthScore < HEALTH_SCORE_LOW_THRESHOLD ? (
+              <GrowthHealthActionBanner score={healthScore} compact />
+            ) : null}
+
             <HomeWeekStrip days={calDays} />
+
+            {showComeback ? (
+              <HomeComebackBanner
+                daysAway={daysAway}
+                onDismiss={async () => {
+                  await dismissComebackBanner();
+                  setShowComeback(false);
+                }}
+              />
+            ) : null}
+
+            {dayZeroPrompt === 'routine_banner' ? (
+              <HomeDayZeroRoutineBanner onDismiss={dismissDayZeroGuide} />
+            ) : null}
 
             <HomeRoutineCTA focus={homeRoutineFocus} onPress={openFocusRoutine} />
           </View>
 
         <View style={s.whiteBlock}>
+          {homeIntent ? <HomeIntentCard intent={homeIntent} /> : null}
           <HomeGrowthMilestones
             items={milestones}
             currentCm={lengthMetrics.currentCm}
@@ -384,7 +536,14 @@ export default function HomeScreen() {
             morningSteps={state.routineSteps.daily}
             eveningSteps={state.routineSteps.night}
           />
+          <View style={s.hairWeekSection}>
+            <HomeHairWeekCard
+              coinHistory={state.coinHistory}
+              plannedSoins={state.plannedSoins}
+            />
+          </View>
           <HomeMesuresCard profile={profile} growthHistory={state.growthHistory} />
+          <HomeHairAnalysisCard />
           <HomeSoinsHistoryCard
             coinHistory={state.coinHistory}
             plannedSoins={state.plannedSoins}
@@ -393,8 +552,10 @@ export default function HomeScreen() {
           <HomeRecommendedProductsCard profile={profile} />
           <HomeRecoExtras profile={profile} />
           <HomeBlackCottonRecommendations profile={profile} />
+          <HomeDiscoverShortcuts onSeeAll={() => router.push('/(tabs)/shortcuts' as any)} />
           <HomeMomentsForts
             moments={moments}
+            previewMax={1}
             onSeeAll={() => router.push('/highlights' as any)}
             onMomentPress={m => {
               if (m.route) router.push(m.route as any);
@@ -517,7 +678,7 @@ export default function HomeScreen() {
       </Modal>
 
       <FirstMeasureGuidePopin
-        visible={measureGuideOpen}
+        visible={measureGuideOpen && dayZeroPrompt === 'measure_popin'}
         onClose={() => closeMeasureGuide(false)}
         onStartMeasure={() => closeMeasureGuide(true)}
       />
@@ -549,6 +710,7 @@ const s = StyleSheet.create({
     paddingHorizontal: 8,
   },
   whiteBlock: { backgroundColor: Colors.bg, paddingTop: 4 },
+  hairWeekSection: { paddingHorizontal: 14, marginBottom: 22 },
   footer: {
     marginTop: 8,
     paddingTop: 16,

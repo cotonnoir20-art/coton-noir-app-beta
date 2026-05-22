@@ -7,9 +7,18 @@ import {
   TRIGGER_CONFIGS,
 } from '../components/blackCotton/constants';
 import type {
-  BCContextValue, BCMessage, BlackCottonMood, BlackCottonTrigger,
-  DisplayMode, FloatingMessage, TriggerContext,
+  BCActionRoute,
+  BCContextValue,
+  BCMessage,
+  BlackCottonMood,
+  BlackCottonTrigger,
+  DisplayMode,
+  FloatingMessage,
+  TriggerContext,
 } from '../components/blackCotton/types';
+import { buildCoachProfilePayload } from '../lib/coachProfile';
+import { defaultActionForTrigger } from '../lib/bcCoachActions';
+import { loadUserPrefs } from '../lib/userPrefs';
 import { getFloatingTips } from '../services/coachApi';
 import { useApp } from './AppContext';
 
@@ -38,12 +47,26 @@ export function BlackCottonProvider({ children }: { children: React.ReactNode })
 
   // ── Fetch Claude tips once on mount ──────────────────────────────────
   useEffect(() => {
-    getFloatingTips(state.profile as any)
-      .then(tips => {
-        claudeTips.current = tips.map(text => ({ text, mood: 'coaching' as const }));
-      })
-      .catch(() => {});
-  }, []);
+    let cancelled = false;
+    (async () => {
+      const prefs = await loadUserPrefs();
+      if (cancelled) return;
+      const payload = buildCoachProfilePayload(state.profile, {
+        routinePlans: state.routinePlans,
+        prefs,
+      });
+      getFloatingTips(payload)
+        .then(tips => {
+          if (!cancelled) {
+            claudeTips.current = tips.map(text => ({ text, mood: 'coaching' as const }));
+          }
+        })
+        .catch(() => {});
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [state.profile, state.routinePlans]);
 
   // ── Show next queued message ──────────────────────────────────────────
   const flushQueue = useCallback(() => {
@@ -69,7 +92,10 @@ export function BlackCottonProvider({ children }: { children: React.ReactNode })
   // ── Fire a trigger ────────────────────────────────────────────────────
   const fire = useCallback(async (trigger: BlackCottonTrigger, ctx?: TriggerContext) => {
     const config = TRIGGER_CONFIGS[trigger];
-    if (!config || config.messages.length === 0) return;
+    if (!config) return;
+    const hasVariant = config.messages.length > 0;
+    const hasCustom = Boolean(ctx?.text?.trim());
+    if (!hasVariant && !hasCustom) return;
 
     const now = Date.now();
 
@@ -95,21 +121,27 @@ export function BlackCottonProvider({ children }: { children: React.ReactNode })
       await AsyncStorage.setItem(key, '1');
     }
 
-    // Pick message variant with rotation (avoids repetition)
-    const rotIdx = (MESSAGE_ROTATION[trigger] ?? 0) % config.messages.length;
-    MESSAGE_ROTATION[trigger] = rotIdx + 1;
-    const variant = config.messages[rotIdx];
+    const variant = hasVariant
+      ? (() => {
+          const rotIdx = (MESSAGE_ROTATION[trigger] ?? 0) % config.messages.length;
+          MESSAGE_ROTATION[trigger] = rotIdx + 1;
+          return config.messages[rotIdx];
+        })()
+      : { text: '', mood: 'coaching' as const };
+
+    const defaultAction = defaultActionForTrigger(trigger);
 
     const msg: BCMessage = {
       id:          `${trigger}_${now}`,
-      text:        variant.text,
-      subtext:     variant.subtext,
+      text:        ctx?.text?.trim() || variant.text,
+      subtext:     ctx?.subtext ?? variant.subtext,
       mood:        ctx?.mood ?? variant.mood,
       trigger,
       priority:    config.priority,
       displayMode: ctx?.displayMode ?? config.displayMode,
       duration:    config.duration,
-      actionLabel: ctx?.actionLabel,
+      actionLabel: ctx?.actionLabel ?? defaultAction?.label,
+      actionRoute: ctx?.actionRoute ?? defaultAction?.route,
       onAction:    ctx?.onAction,
     };
 
@@ -132,6 +164,7 @@ export function BlackCottonProvider({ children }: { children: React.ReactNode })
     text: string,
     mood: BlackCottonMood = 'happy',
     displayMode: DisplayMode = 'toast',
+    action?: { label: string; route: BCActionRoute },
   ) => {
     const msg: BCMessage = {
       id: `manual_${Date.now()}`,
@@ -141,6 +174,8 @@ export function BlackCottonProvider({ children }: { children: React.ReactNode })
       priority:    2,
       displayMode,
       duration:    4000,
+      actionLabel: action?.label,
+      actionRoute: action?.route,
     };
     if (!isShowingRef.current) {
       isShowingRef.current = true;

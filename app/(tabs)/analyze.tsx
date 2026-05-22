@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, Image, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import * as ImageManipulator from 'expo-image-manipulator';
@@ -7,6 +7,10 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../../src/theme/colors';
 import { useApp } from '../../src/context/AppContext';
+import { usePremium } from '../../src/context/PremiumContext';
+import { FREE_ANALYSES_PER_MONTH } from '../../src/lib/premiumAccess';
+import { markPremiumFirstValue } from '../../src/lib/premiumTrial';
+import { buildPostAnalysisContext } from '../../src/lib/coachMoments';
 import { BCEmojiAvatar } from '../../src/components/blackCotton/BCEmojiAvatar';
 import { CoinIcon } from '../../src/components/CoinIcon';
 import { pickCoachProfileFields } from '../../src/lib/coachProfile';
@@ -14,9 +18,27 @@ import { devLog } from '../../src/lib/devLog';
 import { analyzeHairPhoto, saveHairAnalysis } from '../../src/services/coachApi';
 import type { HairAnalysis, HairQuestionnaire } from '../../src/services/coachApi';
 import { hapticLight, hapticMedium, hapticSelection, hapticSuccess } from '../../src/lib/haptics';
-import { CC_ANALYSIS_COMPLETE } from '../../src/lib/cotonCoins';
+import { CC_ANALYSIS_COMPLETE, PTS_ANALYSIS_COMPLETE } from '../../src/lib/cotonCoins';
 import { EmptyAnimation } from '../../src/components/animations/EmptyAnimation';
 import { PRODUCTS, type Product } from '../../src/data/products';
+import {
+  fetchHairAnalysisHistory,
+  formatAnalysisDate,
+  type HairAnalysisSummary,
+} from '../../src/lib/hairAnalysisHistory';
+import { saveAnalysisDraft } from '../../src/lib/analysisDraftStorage';
+import { matchRecipesFromTags } from '../../src/lib/matchRecipesFromTags';
+import { trackProductEvent } from '../../src/lib/productAnalytics';
+import {
+  analysisJourneyProgress,
+  loadAnalysisJourney,
+  startAnalysisJourney,
+  type AnalysisJourney,
+} from '../../src/lib/analysisJourney';
+import { scheduleAnalysisFollowUpReminder } from '../../src/lib/analysisFollowUpReminder';
+import { applyAnalysisRoutineNow } from '../../src/lib/applyRoutinePlan';
+
+const MIN_PHOTOS = 2;
 
 type Phase = 'empty' | 'questions' | 'loading' | 'results';
 type Tab   = 'problems' | 'advice' | 'routine' | 'ingredients';
@@ -190,7 +212,8 @@ function matchProducts(tags: string[] | undefined, limit = 4): Product[] {
 
 export default function AnalyzeScreen() {
   const router = useRouter();
-  const { state, grantCoinsSecure } = useApp();
+  const { state, dispatch, grantCoinsSecure, queueBcTrigger } = useApp();
+  const { hasAccess, requireAccess } = usePremium();
   const [phase, setPhase]         = useState<Phase>('empty');
   const [step, setStep]           = useState(0);
   const [tab, setTab]             = useState<Tab>('problems');
@@ -205,14 +228,49 @@ export default function AnalyzeScreen() {
   const [coinsAwarded, setCoinsAwarded] = useState(false);
 
   const [refreshing, setRefreshing] = useState(false);
-  const onRefresh = useCallback(async () => {
-    setRefreshing(true);
-    await new Promise(res => setTimeout(res, 600));
-    setRefreshing(false);
+  const [history, setHistory] = useState<HairAnalysisSummary[]>([]);
+  const [resultPhotos, setResultPhotos] = useState<(PhotoSlot | null)[]>([null, null, null]);
+  const [previousScore, setPreviousScore] = useState<number | null>(null);
+  const [journey, setJourney] = useState<AnalysisJourney | null>(null);
+  const previousScoreRef = useRef<number | null>(null);
+
+  const loadHistory = useCallback(async () => {
+    const rows = await fetchHairAnalysisHistory(8);
+    setHistory(rows);
+    return rows;
   }, []);
 
+  const loadJourney = useCallback(async () => {
+    const j = await loadAnalysisJourney();
+    setJourney(j);
+    return j;
+  }, []);
+
+  useEffect(() => {
+    void loadHistory();
+    void loadJourney();
+  }, [loadHistory, loadJourney]);
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await Promise.all([loadHistory(), loadJourney()]);
+    setRefreshing(false);
+  }, [loadHistory, loadJourney]);
+
   const filledCount = photos.filter(Boolean).length;
-  const mainPhotoUri = photos.find(Boolean)?.uri ?? null;
+  const displayPhotos = phase === 'results' ? resultPhotos : photos;
+  const mainPhotoUri = displayPhotos.find(Boolean)?.uri ?? null;
+  const journeyProg = analysisJourneyProgress(journey);
+
+  const recommendedRecipes = useMemo(
+    () => matchRecipesFromTags(analysis?.recommendedTags, 4),
+    [analysis?.recommendedTags],
+  );
+
+  const scoreDelta = useMemo(() => {
+    if (previousScore == null || !analysis) return null;
+    return analysis.score - previousScore;
+  }, [previousScore, analysis]);
 
   // ── Animation de chargement ───────────────────────────────────────────
   useEffect(() => {
@@ -275,7 +333,13 @@ export default function AnalyzeScreen() {
 
   // ── Passage à l'étape questionnaire ────────────────────────────────────
   const startQuestionnaire = () => {
-    if (filledCount === 0) return;
+    if (filledCount < MIN_PHOTOS) {
+      Alert.alert(
+        'Encore une photo',
+        `Ajoute au moins ${MIN_PHOTOS} vues (racines + longueurs recommandées) pour un diagnostic fiable.`,
+      );
+      return;
+    }
     hapticMedium();
     setQIndex(0);
     setAnswers({});
@@ -323,7 +387,13 @@ export default function AnalyzeScreen() {
 
   // ── Lancement de l'analyse ────────────────────────────────────────────
   const startAnalysis = async () => {
-    if (filledCount === 0) return;
+    if (filledCount < MIN_PHOTOS) return;
+
+    const allowed = await requireAccess('analysis_limit');
+    if (!allowed) return;
+
+    previousScoreRef.current = history[0]?.score ?? null;
+    setPreviousScore(previousScoreRef.current);
 
     const photoInputs = photos
       .map((p, i) => p ? { base64: p.base64, mediaType: p.mimeType, label: PHOTO_SLOTS[i].label } : null)
@@ -353,9 +423,31 @@ export default function AnalyzeScreen() {
       ]);
       const hairAnalysis = results[0] as HairAnalysis;
       setAnalysis(hairAnalysis);
-      setPhase('results');
+      setResultPhotos(photos.map(p => (p ? { uri: p.uri, base64: '', mimeType: 'image/jpeg' } : null)));
       setPhotos([null, null, null]);
+      setPhase('results');
       hapticSuccess();
+
+      void saveAnalysisDraft({
+        analysis: hairAnalysis,
+        resultPhotoUri: photos.find(Boolean)?.uri ?? null,
+        completedAt: new Date().toISOString(),
+      });
+
+      void trackProductEvent('analysis_completed', {
+        score: hairAnalysis.score,
+        photo_count: photoInputs.length,
+        had_previous: previousScoreRef.current != null,
+      });
+      if (hasAccess) {
+        void markPremiumFirstValue('analysis');
+        void trackProductEvent('premium_trial_first_value', { kind: 'analysis' });
+      }
+
+      const j = await startAnalysisJourney();
+      setJourney(j);
+      void scheduleAnalysisFollowUpReminder(new Date().toISOString());
+      queueBcTrigger('post_analysis', buildPostAnalysisContext(hairAnalysis));
 
       // Sauvegarde dans Supabase (alimente l'historique + algo)
       const photoMeta = photos
@@ -365,8 +457,9 @@ export default function AnalyzeScreen() {
         questionnaire: finalQuestionnaire,
         analysis: hairAnalysis,
         photoMeta,
-      }).then(res => {
+      }).then(async res => {
         if (!res.ok) devLog.warn('[saveHairAnalysis] skipped:', res.error);
+        else await loadHistory();
       });
 
       // Récompense : +CC_ANALYSIS_COMPLETE pour analyse complète (max 1× par session)
@@ -374,6 +467,7 @@ export default function AnalyzeScreen() {
         const grant = await grantCoinsSecure({
           amount: CC_ANALYSIS_COMPLETE,
           label: 'Analyse capillaire complète',
+          points: PTS_ANALYSIS_COMPLETE,
           idempotencyKey: 'hair_analysis',
         });
         if (grant.ok) setCoinsAwarded(true);
@@ -399,14 +493,37 @@ export default function AnalyzeScreen() {
     [analysis?.recommendedTags],
   );
 
+  function handleApplyRoutineNow() {
+    if (!analysis?.routine?.length) {
+      Alert.alert('Routine indisponible', 'Relance une analyse pour obtenir des étapes.');
+      return;
+    }
+    hapticSuccess();
+    const err = applyAnalysisRoutineNow(dispatch, analysis.routine, analysis.synthesis, 'daily');
+    if (err) {
+      Alert.alert('Routine incomplète', err);
+      return;
+    }
+    Alert.alert(
+      'Routine appliquée ✓',
+      'Ta routine matin est prête. Tu peux la valider maintenant pour gagner tes CotonCoins.',
+      [
+        { text: 'Voir ma routine', onPress: () => router.push('/(tabs)/routine?routine=daily' as any) },
+        { text: 'OK', style: 'cancel' },
+      ],
+    );
+  }
+
   const resetAnalysis = () => {
     setPhase('empty');
     setError(null);
     setPhotos([null, null, null]);
+    setResultPhotos([null, null, null]);
     setAnalysis(null);
     setAnswers({});
     setQIndex(0);
     setCoinsAwarded(false);
+    setPreviousScore(null);
   };
 
   return (
@@ -461,8 +578,14 @@ export default function AnalyzeScreen() {
             <View style={s.emptyCard}>
               <Text style={s.emptyTitle}>Étape 1 — Ajoute tes photos</Text>
               <Text style={s.emptyDesc}>
-                Jusqu'à 3 photos (racines, longueurs, pointes) sur cheveux propres et en lumière naturelle.
+                3 photos idéales (racines, longueurs, pointes) — minimum {MIN_PHOTOS} pour lancer l'analyse.
+                Cheveux propres, lumière naturelle.
               </Text>
+              {!hasAccess ? (
+                <Text style={s.quotaHint}>
+                  {FREE_ANALYSES_PER_MONTH} analyses gratuites / mois · illimité avec Premium
+                </Text>
+              ) : null}
 
               <View style={s.photoSlots}>
                 {PHOTO_SLOTS.map((slot, i) => (
@@ -493,15 +616,23 @@ export default function AnalyzeScreen() {
                 ))}
               </View>
 
+              {filledCount > 0 && filledCount < 3 && (
+                <Text style={s.photoHint}>
+                  {filledCount === 1
+                    ? '💡 Ajoute longueurs ou pointes pour un diagnostic plus précis.'
+                    : '💡 Une 3ᵉ photo (pointes) affine encore le score.'}
+                </Text>
+              )}
+
               <TouchableOpacity
-                style={[s.analyzeBtn, filledCount === 0 && s.analyzeBtnDisabled]}
+                style={[s.analyzeBtn, filledCount < MIN_PHOTOS && s.analyzeBtnDisabled]}
                 onPress={startQuestionnaire}
-                disabled={filledCount === 0}
+                disabled={filledCount < MIN_PHOTOS}
               >
                 <Text style={s.analyzeBtnText}>
-                  {filledCount === 0
-                    ? '📸 Ajoute au moins une photo'
-                    : `Continuer · ${filledCount} photo${filledCount > 1 ? 's' : ''}  →`}
+                  {filledCount < MIN_PHOTOS
+                    ? `📸 ${MIN_PHOTOS} photos minimum (${filledCount}/${MIN_PHOTOS})`
+                    : `Continuer · ${filledCount}/3 photo${filledCount > 1 ? 's' : ''}  →`}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -511,11 +642,30 @@ export default function AnalyzeScreen() {
             </View>
 
             <Text style={s.secTitle}>Tes dernières analyses</Text>
-            <View style={s.emptyHistory}>
-              <EmptyAnimation emoji="📊" size={92} style={{ marginBottom: 12 }} />
-              <Text style={s.emptyHistoryTitle}>Aucune analyse précédente</Text>
-              <Text style={s.emptyHistoryDesc}>Lance ta première analyse pour commencer à suivre l'évolution de ta santé capillaire.</Text>
-            </View>
+            {history.length === 0 ? (
+              <View style={s.emptyHistory}>
+                <EmptyAnimation emoji="📊" size={92} style={{ marginBottom: 12 }} />
+                <Text style={s.emptyHistoryTitle}>Aucune analyse précédente</Text>
+                <Text style={s.emptyHistoryDesc}>Lance ta première analyse pour commencer à suivre l'évolution de ta santé capillaire.</Text>
+              </View>
+            ) : (
+              <View style={s.historyList}>
+                {history.map((h, i) => (
+                  <View key={h.id} style={[s.historyRow, i < history.length - 1 && s.historyRowBorder]}>
+                    <View style={s.historyScoreBadge}>
+                      <Text style={s.historyScoreVal}>{h.score}</Text>
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={s.historyDate}>{formatAnalysisDate(h.createdAt)}</Text>
+                      <Text style={s.historyMeta} numberOfLines={1}>{h.hairType} · Porosité {h.porosity}</Text>
+                      {h.synthesis ? (
+                        <Text style={s.historySynth} numberOfLines={2}>{h.synthesis}</Text>
+                      ) : null}
+                    </View>
+                  </View>
+                ))}
+              </View>
+            )}
           </>
         )}
 
@@ -662,27 +812,67 @@ export default function AnalyzeScreen() {
               </View>
             </View>
 
-            {photos.filter(Boolean).length > 1 && (
+            {displayPhotos.filter(Boolean).length > 1 && (
               <View style={s.thumbnailRow}>
-                {photos.map((p, i) => p && i > 0 ? (
+                {displayPhotos.map((p, i) => p && i > 0 ? (
                   <Image key={i} source={{ uri: p.uri }} style={s.thumbnail} />
                 ) : null)}
               </View>
             )}
 
-            <View style={s.compareRow}>
-              <View style={[s.compareCard, { backgroundColor: Colors.sageLight, borderColor: '#A5D6A7' }]}>
-                <Text style={{ fontSize: 20 }}>📈</Text>
-                <View>
-                  <Text style={[s.compareTitle, { color: Colors.sageDark }]}>+4 pts défi depuis avril</Text>
-                  <Text style={[s.compareSub, { color: Colors.sage }]}>Score en progression</Text>
+            {journeyProg.showBanner && (
+              <View style={s.journeyBanner}>
+                <Text style={s.journeyTitle}>Valide ta routine 3 jours</Text>
+                <Text style={s.journeySub}>
+                  Ancre les habitudes recommandées — {journeyProg.daysValidated}/3 jours validés.
+                </Text>
+                <View style={s.journeyDots}>
+                  {[0, 1, 2].map(i => (
+                    <View
+                      key={i}
+                      style={[s.journeyDot, i < journeyProg.daysValidated && s.journeyDotDone]}
+                    />
+                  ))}
                 </View>
+                <TouchableOpacity
+                  style={s.journeyBtn}
+                  onPress={() => router.push('/(tabs)/routine')}
+                >
+                  <Text style={s.journeyBtnText}>Aller à ma routine →</Text>
+                </TouchableOpacity>
               </View>
+            )}
+
+            <View style={s.compareRow}>
+              {scoreDelta != null ? (
+                <View style={[s.compareCard, {
+                  backgroundColor: scoreDelta >= 0 ? Colors.sageLight : Colors.amberLight,
+                  borderColor: scoreDelta >= 0 ? '#A5D6A7' : '#FDE68A',
+                }]}>
+                  <Text style={{ fontSize: 20 }}>{scoreDelta >= 0 ? '📈' : '📉'}</Text>
+                  <View>
+                    <Text style={[s.compareTitle, { color: scoreDelta >= 0 ? Colors.sageDark : Colors.amberInk }]}>
+                      {scoreDelta >= 0 ? '+' : ''}{scoreDelta} pts vs dernière analyse
+                    </Text>
+                    <Text style={[s.compareSub, { color: scoreDelta >= 0 ? Colors.sage : Colors.amberDark }]}>
+                      Score précédent : {previousScore}/100
+                    </Text>
+                  </View>
+                </View>
+              ) : (
+                <View style={[s.compareCard, { backgroundColor: Colors.cream, borderColor: Colors.border }]}>
+                  <Text style={{ fontSize: 20 }}>✨</Text>
+                  <View>
+                    <Text style={s.compareTitle}>Première analyse</Text>
+                    <Text style={s.compareSub}>Refais une analyse dans ~2 semaines pour comparer</Text>
+                  </View>
+                </View>
+              )}
               <View style={[s.compareCard, { backgroundColor: Colors.cream, borderColor: Colors.border }]}>
                 <Text style={{ fontSize: 20 }}>🎯</Text>
                 <View>
-                  <Text style={s.compareTitle}>Objectif : 80/100</Text>
-                  <Text style={s.compareSub}>~6 semaines</Text>
+                  <Text style={s.compareTitle}>Objectif : {Math.min(100, Math.max(score + 12, 80))}/100</Text>
+                  <Text style={s.compareSub}>~6 semaines avec routine adaptée</Text>
                 </View>
               </View>
             </View>
@@ -814,8 +1004,16 @@ export default function AnalyzeScreen() {
                     </View>
                   </View>
                 ))}
-                <TouchableOpacity style={s.saveRoutineBtn} onPress={() => router.push('/(tabs)/routine')}>
-                  <Text style={s.saveRoutineBtnText}>✓ Enregistrer ma routine</Text>
+                <TouchableOpacity style={s.saveRoutineBtn} onPress={handleApplyRoutineNow}>
+                  <Text style={s.saveRoutineBtnText}>✓ Appliquer maintenant</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={s.customizeRoutineBtn}
+                  onPress={() =>
+                    router.push({ pathname: '/routine-plan', params: { kind: 'daily', source: 'analysis' } })
+                  }
+                >
+                  <Text style={s.customizeRoutineBtnText}>Personnaliser avant d&apos;appliquer</Text>
                 </TouchableOpacity>
               </View>
             )}
@@ -883,6 +1081,44 @@ export default function AnalyzeScreen() {
                       <Text style={s.recoCardBrand} numberOfLines={1}>{p.brand}</Text>
                       <Text style={s.recoCardName} numberOfLines={2}>{p.name}</Text>
                       <Text style={s.recoCardPrice}>{p.price}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
+            )}
+
+            {/* Barre d'actions : recettes + boutique */}
+            <View style={s.actionBar}>
+              <TouchableOpacity style={s.actionBarBtn} onPress={() => router.push('/recipes')}>
+                <Text style={s.actionBarEmoji}>🌿</Text>
+                <Text style={s.actionBarLabel}>Recettes</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={s.actionBarBtn} onPress={() => router.push('/shop')}>
+                <Text style={s.actionBarEmoji}>🛍️</Text>
+                <Text style={s.actionBarLabel}>Boutique</Text>
+              </TouchableOpacity>
+            </View>
+
+            {recommendedRecipes.length > 0 && (
+              <View style={s.recoSection}>
+                <View style={s.recoHeader}>
+                  <Text style={s.recoTitle}>🌿 Recettes pour ton diagnostic</Text>
+                  <TouchableOpacity onPress={() => router.push('/recipes')}>
+                    <Text style={s.recoSeeAll}>Toutes →</Text>
+                  </TouchableOpacity>
+                </View>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10, paddingVertical: 4 }}>
+                  {recommendedRecipes.map(r => (
+                    <TouchableOpacity
+                      key={r.id}
+                      style={s.recipeRecoCard}
+                      onPress={() => router.push('/recipes')}
+                      activeOpacity={0.85}
+                    >
+                      <View style={[s.recipeRecoThumb, { backgroundColor: r.thumb_bg }]}>
+                        <Text style={{ fontSize: 28 }}>{r.thumb_emoji}</Text>
+                      </View>
+                      <Text style={s.recipeRecoName} numberOfLines={2}>{r.name}</Text>
                     </TouchableOpacity>
                   ))}
                 </ScrollView>
@@ -972,7 +1208,14 @@ const s = StyleSheet.create({
     padding: 20, alignItems: 'center', marginTop: 14,
   },
   emptyTitle: { fontSize: 20, fontFamily: 'Poppins_700Bold', color: Colors.ink, marginBottom: 6, textAlign: 'center' },
-  emptyDesc:  { fontSize: 13, fontFamily: 'DMSans_400Regular', color: Colors.warmGray, textAlign: 'center', lineHeight: 20, marginBottom: 18, maxWidth: 300 },
+  emptyDesc:  { fontSize: 13, fontFamily: 'DMSans_400Regular', color: Colors.warmGray, textAlign: 'center', lineHeight: 20, marginBottom: 10, maxWidth: 300 },
+  quotaHint: {
+    fontSize: 12,
+    fontFamily: 'DMSans_600SemiBold',
+    color: Colors.amberDark,
+    textAlign: 'center',
+    marginBottom: 14,
+  },
 
   /* Photo slots */
   photoSlots:      { flexDirection: 'row', gap: 10, width: '100%', marginBottom: 16 },
@@ -1010,6 +1253,35 @@ const s = StyleSheet.create({
   emptyHistory:       { backgroundColor: Colors.cream, borderRadius: 18, padding: 28, alignItems: 'center' },
   emptyHistoryTitle:  { fontSize: 15, fontFamily: 'DMSans_700Bold', color: Colors.ink, marginBottom: 6, textAlign: 'center' },
   emptyHistoryDesc:   { fontSize: 13, fontFamily: 'DMSans_400Regular', color: Colors.warmGray, textAlign: 'center', lineHeight: 20 },
+
+  photoHint: { fontSize: 12, fontFamily: 'DMSans_500Medium', color: Colors.amberDark, textAlign: 'center', marginBottom: 10, lineHeight: 18 },
+
+  historyList:       { backgroundColor: Colors.cream, borderRadius: 18, borderWidth: 1, borderColor: Colors.border, overflow: 'hidden' },
+  historyRow:        { flexDirection: 'row', alignItems: 'flex-start', gap: 12, padding: 14 },
+  historyRowBorder:  { borderBottomWidth: 1, borderBottomColor: Colors.border },
+  historyScoreBadge: { width: 44, height: 44, borderRadius: 12, backgroundColor: Colors.ink, alignItems: 'center', justifyContent: 'center' },
+  historyScoreVal:   { fontSize: 16, fontFamily: 'DMSans_700Bold', color: Colors.amber },
+  historyDate:       { fontSize: 13, fontFamily: 'DMSans_700Bold', color: Colors.ink, marginBottom: 2 },
+  historyMeta:       { fontSize: 11, fontFamily: 'DMSans_500Medium', color: Colors.warmGray },
+  historySynth:      { fontSize: 11, fontFamily: 'DMSans_400Regular', color: Colors.warmGray, marginTop: 4, lineHeight: 16 },
+
+  journeyBanner: { backgroundColor: Colors.amberLight, borderRadius: 16, borderWidth: 1, borderColor: '#FDE68A', padding: 14, marginBottom: 14 },
+  journeyTitle:  { fontSize: 15, fontFamily: 'DMSans_700Bold', color: Colors.ink, marginBottom: 4 },
+  journeySub:    { fontSize: 12, fontFamily: 'DMSans_400Regular', color: Colors.amberInk, lineHeight: 18, marginBottom: 10 },
+  journeyDots:   { flexDirection: 'row', gap: 8, marginBottom: 12 },
+  journeyDot:    { width: 28, height: 8, borderRadius: 4, backgroundColor: 'rgba(0,0,0,0.12)' },
+  journeyDotDone:{ backgroundColor: Colors.sage },
+  journeyBtn:    { alignSelf: 'flex-start', backgroundColor: Colors.ink, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 8 },
+  journeyBtnText:{ fontSize: 12, fontFamily: 'DMSans_700Bold', color: '#fff' },
+
+  actionBar:     { flexDirection: 'row', gap: 10, marginTop: 8 },
+  actionBarBtn:  { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: Colors.cream, borderWidth: 1, borderColor: Colors.border, borderRadius: 14, paddingVertical: 12 },
+  actionBarEmoji:{ fontSize: 18 },
+  actionBarLabel:{ fontSize: 13, fontFamily: 'DMSans_700Bold', color: Colors.ink },
+
+  recipeRecoCard:  { width: 120 },
+  recipeRecoThumb: { width: 120, height: 88, borderRadius: 12, alignItems: 'center', justifyContent: 'center', marginBottom: 6 },
+  recipeRecoName:  { fontSize: 11, fontFamily: 'DMSans_600SemiBold', color: Colors.ink, lineHeight: 15 },
 
   /* Questions */
   qProgressRow:   { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 18, marginBottom: 6 },
@@ -1144,6 +1416,16 @@ const s = StyleSheet.create({
   routineDesc:      { fontSize: 12, fontFamily: 'DMSans_400Regular', color: Colors.warmGray, lineHeight: 18 },
   saveRoutineBtn:   { backgroundColor: Colors.ink, borderRadius: 14, paddingVertical: 14, alignItems: 'center', marginTop: 8 },
   saveRoutineBtnText:{ fontSize: 15, fontFamily: 'DMSans_700Bold', color: '#fff' },
+  customizeRoutineBtn: {
+    marginTop: 10,
+    paddingVertical: 12,
+    alignItems: 'center',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    backgroundColor: Colors.surface,
+  },
+  customizeRoutineBtnText: { fontSize: 13, fontFamily: 'DMSans_600SemiBold', color: Colors.ink },
 
   ingDot:        { width: 8, height: 8, borderRadius: 4 },
   ingLegendText: { fontSize: 11, fontFamily: 'DMSans_400Regular', color: Colors.warmGray },

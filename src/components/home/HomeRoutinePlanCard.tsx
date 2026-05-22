@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { AppIconBox } from '../AppIconBox';
 import { Colors } from '../../theme/colors';
-import { FontDisplay } from '../../theme/typography';
+import { Type } from '../../theme/typography';
 import type { RoutineStep } from '../../data/routines';
 import { getPeriodIcon, getRoutineStepIcon } from '../../lib/routineStepVisual';
 
@@ -185,8 +185,7 @@ const s = StyleSheet.create({
     elevation: 4,
   },
   cardTitle: {
-    fontSize: 18,
-    fontFamily: FontDisplay,
+    ...Type.cardTitle,
     color: Colors.ink,
     paddingHorizontal: 16,
     paddingTop: 16,

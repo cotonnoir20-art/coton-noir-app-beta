@@ -20,6 +20,7 @@ import { Colors } from '../src/theme/colors';
 import { AppHeader } from '../src/components/AppHeader';
 import { supabase } from '../src/lib/supabase';
 import { useApp } from '../src/context/AppContext';
+import { useAchievements } from '../src/context/AchievementsContext';
 import { EmptyAnimation } from '../src/components/animations/EmptyAnimation';
 import {
   CATALOG_RECIPES,
@@ -168,12 +169,14 @@ export default function RecipesScreen() {
     return list.filter(r => r.category === category);
   }, [allRecipes, category, featured?.id]);
 
+  const { refreshExtras } = useAchievements();
+
   function toggleLike(id: string) {
     setLikedIds(prev => {
       const next = { ...prev };
       if (next[id]) delete next[id];
       else next[id] = true;
-      AsyncStorage.setItem(LIKES_KEY, JSON.stringify(next));
+      AsyncStorage.setItem(LIKES_KEY, JSON.stringify(next)).then(() => refreshExtras());
       return next;
     });
   }
@@ -392,6 +395,20 @@ export default function RecipesScreen() {
                     ))}
                   </View>
                 ) : null}
+
+                <TouchableOpacity
+                  style={S.routineCta}
+                  onPress={() => {
+                    setSelected(null);
+                    router.push({
+                      pathname: '/routine-plan',
+                      params: { kind: 'washday', source: 'recipe', recipeId: selected.id },
+                    } as any);
+                  }}
+                  activeOpacity={0.88}
+                >
+                  <Text style={S.routineCtaText}>🧴 Noter dans ma routine</Text>
+                </TouchableOpacity>
 
                 {selected.steps.length > 0 ? (
                   <View style={S.block}>
@@ -988,6 +1005,18 @@ const S = StyleSheet.create({
   },
   reviewSubmitOff: { backgroundColor: Colors.warmGray, opacity: 0.6 },
   reviewSubmitText: { fontSize: 13, fontFamily: 'DMSans_700Bold', color: '#fff' },
+  routineCta: {
+    backgroundColor: Colors.ink,
+    borderRadius: 14,
+    paddingVertical: 14,
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  routineCtaText: {
+    fontSize: 14,
+    fontFamily: 'DMSans_700Bold',
+    color: '#fff',
+  },
   reviewCard: {
     backgroundColor: Colors.surface,
     borderRadius: 12,

@@ -1,7 +1,7 @@
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { HIGHLIGHTS_PTS_LEGEND } from '../../constants/productPitch';
 import { Colors } from '../../theme/colors';
-import { FontDisplay } from '../../theme/typography';
+import { Type } from '../../theme/typography';
 import type { MomentCard } from '../../data/homeHighlights';
 import { FALLBACK_HOME_HIGHLIGHTS } from '../../data/homeHighlights';
 import { HighlightCard } from './HighlightCard';
@@ -64,7 +64,7 @@ export function HomeMomentsForts({
 const s = StyleSheet.create({
   section: { marginBottom: 22 },
   head: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, marginBottom: 12 },
-  title: { fontSize: 18, fontFamily: FontDisplay, color: Colors.ink },
+  title: { ...Type.cardTitle, color: Colors.ink },
   seeAll: { fontSize: 13, fontFamily: 'DMSans_600SemiBold', color: Colors.amberDark },
   legend: {
     fontSize: 10,

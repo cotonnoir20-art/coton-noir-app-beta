@@ -1,11 +1,14 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Colors } from '../../src/theme/colors';
 import { useApp } from '../../src/context/AppContext';
+import { usePremium } from '../../src/context/PremiumContext';
 import { ROUTINE_TYPES, RoutineType } from '../../src/data/routines';
+import { loadUserPrefs } from '../../src/lib/userPrefs';
+import { getProtectiveNightGuide } from '../../src/lib/protectiveRoutine';
 import { BCEmojiAvatar } from '../../src/components/blackCotton/BCEmojiAvatar';
 import { CoinIcon } from '../../src/components/CoinIcon';
 import { AppIconBox, type IonName } from '../../src/components/AppIconBox';
@@ -18,6 +21,8 @@ import {
   PTS_ROUTINE_WASHDAY,
   formatDualEarnReward,
 } from '../../src/lib/cotonCoins';
+import { buildHairWeekAgenda, type WeekAgendaItem } from '../../src/lib/hairWeekPlan';
+import { HairWeekAgenda } from '../../src/components/workflows/HairWeekAgenda';
 
 const TABS: {
   key: RoutineType;
@@ -79,15 +84,40 @@ const PERIODS: { key: Period; label: string }[] = [
 
 export default function RoutineScreen() {
   const { state, dispatch, validateRoutineSecure } = useApp();
-  const params = useLocalSearchParams<{ routine?: string | string[] }>();
+  const params = useLocalSearchParams<{ routine?: string | string[]; period?: string | string[] }>();
   const [type,   setType]   = useState<RoutineType>('daily');
   const [period, setPeriod] = useState<Period>('today');
+  const [isProtective, setIsProtective] = useState(false);
+  const [protectiveType, setProtectiveType] = useState('');
+
+  useEffect(() => {
+    const rawP = params.period;
+    const p = Array.isArray(rawP) ? rawP[0] : rawP;
+    if (p === 'today' || p === 'week' || p === 'month') setPeriod(p);
+  }, [params.period]);
 
   useEffect(() => {
     const raw = params.routine;
     const r = Array.isArray(raw) ? raw[0] : raw;
-    if (r === 'daily' || r === 'night' || r === 'washday') setType(r);
+    if (r === 'daily' || r === 'night' || r === 'washday') {
+      setType(r);
+      return;
+    }
+    loadUserPrefs().then(p => {
+      if (p.isProtective) setType('night');
+      setIsProtective(!!p.isProtective);
+      setProtectiveType(p.protectiveType ?? '');
+    });
   }, [params.routine]);
+
+  useEffect(() => {
+    loadUserPrefs().then(p => {
+      setIsProtective(!!p.isProtective);
+      setProtectiveType(p.protectiveType ?? '');
+    });
+  }, []);
+
+  const protectiveGuide = getProtectiveNightGuide(protectiveType);
 
   const [refreshing, setRefreshing] = useState(false);
   const [completionOpen, setCompletionOpen] = useState(false);
@@ -150,6 +180,23 @@ export default function RoutineScreen() {
   const monthStart = todayStr.slice(0, 7);
 
   const weekEntries  = state.coinHistory.filter(e => e.amount > 0 && e.date >= weekStart);
+
+  const weekAgenda = useMemo(
+    () => buildHairWeekAgenda({ coinHistory: state.coinHistory, plannedSoins: state.plannedSoins }),
+    [state.coinHistory, state.plannedSoins],
+  );
+
+  const onWeekSlotPress = useCallback(
+    (item: WeekAgendaItem) => {
+      if (item.kind === 'washday' && item.detail === 'À planifier') {
+        router.push({ pathname: '/add-washday', params: { date: item.dateIso } } as any);
+        return;
+      }
+      setType(item.routineType);
+      if (item.dateIso === todayStr) setPeriod('today');
+    },
+    [router, todayStr],
+  );
   const monthEntries = state.coinHistory.filter(e => e.date.startsWith(monthStart));
   const monthSoins   = state.plannedSoins.filter(s => s.date.startsWith(monthStart));
 
@@ -211,6 +258,26 @@ export default function RoutineScreen() {
             <Text style={S.streakJours}>JOURS</Text>
           </View>
         </View>
+
+        {isProtective && type === 'night' ? (
+          <View style={S.protectBanner}>
+            <BCEmojiAvatar size={40} mood="coaching" />
+            <View style={S.protectBannerBody}>
+              <Text style={S.protectBannerTitle}>{protectiveGuide.title}</Text>
+              <Text style={S.protectBannerSub}>{protectiveGuide.focus}</Text>
+              {protectiveGuide.steps.map((step, i) => (
+                <Text key={i} style={S.protectStep}>• {step}</Text>
+              ))}
+              <Text style={S.protectTip}>{protectiveGuide.scalpTip}</Text>
+              <TouchableOpacity
+                style={S.protectProfileLink}
+                onPress={() => router.push('/(tabs)/profile' as any)}
+              >
+                <Text style={S.protectProfileLinkText}>Modifier coiffure →</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        ) : null}
 
         {/* ── Type selector ── */}
         <View style={S.typeRow}>
@@ -362,7 +429,8 @@ export default function RoutineScreen() {
               hapticSuccess();
               setCompletionVariant(type === 'washday' ? 'strong' : 'light');
               setCompletionOpen(true);
-              await validateRoutineSecure(type);
+              const res = await validateRoutineSecure(type);
+              if (res.ok) void maybeShowMoment('routine_insight');
             }}
           >
             <View style={S.validateRow}>
@@ -433,8 +501,10 @@ export default function RoutineScreen() {
 
         {/* ══ CETTE SEMAINE ══ */}
         {period === 'week' && (
+          <>
+          <HairWeekAgenda items={weekAgenda} onPressSlot={onWeekSlotPress} />
           <View style={S.historySection}>
-            <Text style={S.historySectionTitle}>Routines · Cette semaine</Text>
+            <Text style={S.historySectionTitle}>Validations · Cette semaine</Text>
             {weekEntries.length === 0 ? (
               <View style={S.emptyState}>
                 <AppIconBox name="file-tray-outline" backgroundColor={Colors.cream} color={Colors.warmGray} size={56} iconSize={26} borderRadius={16} />
@@ -454,6 +524,7 @@ export default function RoutineScreen() {
               </View>
             ))}
           </View>
+          </>
         )}
 
         {/* ══ CE MOIS ══ */}
@@ -506,7 +577,11 @@ export default function RoutineScreen() {
         visible={completionOpen}
         variant={completionVariant}
         onClose={() => setCompletionOpen(false)}
-        caption={type === 'washday' ? 'Wash day validé !' : 'Routine validée !'}
+        caption={
+          type === 'washday'
+            ? `Wash day validé ! ${validationRewardLabel}`
+            : `Routine validée ! ${validationRewardLabel}`
+        }
       />
     </SafeAreaView>
   );
@@ -590,6 +665,52 @@ const S = StyleSheet.create({
   typeLabel:       { fontSize: 11, fontFamily: 'DMSans_500Medium', color: Colors.warmGray },
   typeLabelActive: { fontFamily: 'DMSans_700Bold', color: Colors.amber },
 
+  protectBanner: {
+    marginHorizontal: 20,
+    marginBottom: 14,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+    backgroundColor: Colors.growthLight,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: Colors.growth,
+    padding: 14,
+  },
+  protectBannerBody: { flex: 1 },
+  protectBannerTitle: {
+    fontSize: 14,
+    fontFamily: 'DMSans_700Bold',
+    color: Colors.ink,
+    marginBottom: 4,
+  },
+  protectBannerSub: {
+    fontSize: 12,
+    fontFamily: 'DMSans_400Regular',
+    color: Colors.warmGray,
+    lineHeight: 17,
+  },
+  protectStep: {
+    fontSize: 11,
+    fontFamily: 'DMSans_500Medium',
+    color: Colors.ink,
+    lineHeight: 16,
+    marginTop: 4,
+  },
+  protectTip: {
+    fontSize: 10,
+    fontFamily: 'DMSans_400Regular',
+    color: Colors.warmGray,
+    fontStyle: 'italic',
+    marginTop: 6,
+    lineHeight: 14,
+  },
+  protectProfileLink: { marginTop: 8, alignSelf: 'flex-start' },
+  protectProfileLinkText: {
+    fontSize: 11,
+    fontFamily: 'DMSans_700Bold',
+    color: Colors.growth,
+  },
   planCard: {
     marginHorizontal: 20,
     marginBottom: 12,

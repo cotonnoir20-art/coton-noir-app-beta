@@ -1,7 +1,16 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
-  Modal, RefreshControl, ScrollView, StyleSheet, Text, TextInput,
-  TouchableOpacity, View, KeyboardAvoidingView, Platform,
+  Alert,
+  Modal,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+  KeyboardAvoidingView,
+  Platform,
   useWindowDimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -9,6 +18,9 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../src/theme/colors';
 import { useApp, GrowthEntry } from '../src/context/AppContext';
+import { usePremium } from '../src/context/PremiumContext';
+import { FREE_GROWTH_HISTORY_MONTHS } from '../src/lib/premiumAccess';
+import { markPremiumFirstValue } from '../src/lib/premiumTrial';
 import { MiniCalendar, formatFull } from '../src/components/MiniCalendar';
 import { BCEmojiAvatar } from '../src/components/blackCotton/BCEmojiAvatar';
 import { CoinIcon } from '../src/components/CoinIcon';
@@ -18,6 +30,15 @@ import {
   parseCmFromText,
   toLocalISODate,
 } from '../src/lib/homeGrowth';
+import { GrowthHealthActionBanner } from '../src/components/growth/GrowthHealthActionBanner';
+import { trackMeasurementSaved } from '../src/lib/growthAnalytics';
+import { trackProductEvent } from '../src/lib/productAnalytics';
+import {
+  avgLatestGrowthCm,
+  buildPostMeasurementContext,
+} from '../src/lib/coachMoments';
+import { resolveBlackCottonBilanSynthesis } from '../src/lib/monthlyBilanSynthesis';
+import { exportBilanPdf } from '../src/lib/bilanPdfExport';
 
 const TODAY_DATE = new Date();
 const TODAY      = toLocalISODate(TODAY_DATE);
@@ -158,7 +179,8 @@ function MiniLineChart({ chartWidth, months, growth, scores }: {
 
 export default function GrowthScreen() {
   const router = useRouter();
-  const { state, dispatch } = useApp();
+  const { state, dispatch, queueBcTrigger } = useApp();
+  const { hasAccess, requireAccess, maybeShowMoment, openPremium } = usePremium();
   const { width } = useWindowDimensions();
 
   const history = state.growthHistory as Entry[];
@@ -171,6 +193,8 @@ export default function GrowthScreen() {
   const [objDate, setObjDate]             = useState<Date | null>(null);
   const [showObjCal, setShowObjCal]       = useState(false);
   const [showAnalyse, setShowAnalyse]     = useState(false);
+  const [bcSynthesis, setBcSynthesis]   = useState('');
+  const [bcScore, setBcScore]           = useState<number | null>(null);
 
   const [refreshing, setRefreshing] = useState(false);
   const onRefresh = useCallback(async () => {
@@ -191,7 +215,7 @@ export default function GrowthScreen() {
   const avgCurrentCm = averageLatestCmByZone(history);
 
   const totalPousse = growth3m ?? 0;
-  const scoreHealth = 68;
+  const scoreHealth = computeHairHealthScore(state);
   const suivi = (() => {
     if (history.length === 0) return 0;
     const sorted = [...history].sort((a, b) => a.date.localeCompare(b.date));
@@ -200,6 +224,23 @@ export default function GrowthScreen() {
       + (TODAY_DATE.getMonth() - firstDate.getMonth());
     return Math.max(1, months);
   })();
+
+  useEffect(() => {
+    if (suivi > FREE_GROWTH_HISTORY_MONTHS) void maybeShowMoment('growth_history');
+  }, [suivi, maybeShowMoment]);
+
+  useEffect(() => {
+    let cancelled = false;
+    void resolveBlackCottonBilanSynthesis(state).then(res => {
+      if (!cancelled) {
+        setBcSynthesis(res.text);
+        setBcScore(res.score ?? null);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [state.growthHistory, state.coinHistory, state.profile, state.validated]);
 
   // Chart data from real measurements
   const SHORT_M = ['Jan','Fév','Mar','Avr','Mai','Jun','Jul','Aoû','Sep','Oct','Nov','Déc'];
@@ -260,7 +301,26 @@ export default function GrowthScreen() {
     ].filter(e => !isNaN(e.cm) && e.cm >= 1 && e.cm <= 200);
 
     if (entries.length === 0) { setFormError('Entre au moins une mesure valide (1–200 cm).'); return; }
+    const wasFirst = history.length === 0;
+    const beforeAvg = avgLatestGrowthCm(history);
     entries.forEach(e => dispatch({ type: 'addGrowthEntry', entry: { date: TODAY, zone: e.zone, cm: e.cm } }));
+    const afterHistory: GrowthEntry[] = [
+      ...history,
+      ...entries.map(e => ({ date: TODAY, zone: e.zone, cm: e.cm })),
+    ];
+    const afterAvg = avgLatestGrowthCm(afterHistory);
+    const deltaCm =
+      beforeAvg != null && afterAvg != null ? +(afterAvg - beforeAvg).toFixed(1) : null;
+    queueBcTrigger('post_measurement', buildPostMeasurementContext({
+      streak: state.streak,
+      deltaCm: wasFirst ? null : deltaCm,
+      currentCm: afterAvg,
+    }));
+    void trackMeasurementSaved({
+      source: 'growth_modal',
+      zonesCount: entries.length,
+      wasFirst,
+    });
     setShowModal(false);
     setFlashSaved(true);
     setTimeout(() => setFlashSaved(false), 2500);
@@ -296,6 +356,10 @@ export default function GrowthScreen() {
           />
         }
       >
+
+        {scoreHealth != null && scoreHealth < 30 ? (
+          <GrowthHealthActionBanner score={scoreHealth} />
+        ) : null}
 
         {/* ── Stats 2×2 ── */}
         <View style={S.statsGrid}>
@@ -362,11 +426,15 @@ export default function GrowthScreen() {
               </View>
             ))}
           </View>
-          {history.length > 0 && growthThisMonth !== null && growthThisMonth > 0 && (
-            <View style={S.bilanMsg}>
-              <Text style={S.bilanMsgText}>🏆 Belle progression ce mois-ci — continue comme ça.</Text>
-            </View>
-          )}
+          <View style={S.bilanMsg}>
+            <Text style={S.bilanMsgLabel}>Black Cotton</Text>
+            {bcScore != null ? (
+              <Text style={S.bilanMsgScore}>Score diagnostic · {bcScore}/100</Text>
+            ) : null}
+            <Text style={S.bilanMsgText}>
+              {bcSynthesis || 'Fais une analyse photo pour une synthèse personnalisée ce mois-ci.'}
+            </Text>
+          </View>
         </View>
 
         {/* ── Hair length shortcut ── */}
@@ -538,6 +606,21 @@ export default function GrowthScreen() {
           </TouchableOpacity>
         </View>
 
+        <TouchableOpacity
+          style={S.quarterlyCta}
+          onPress={() => router.push('/quarterly-bilan' as any)}
+          activeOpacity={0.88}
+        >
+          <Text style={S.quarterlyEmoji}>📋</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={S.quarterlyTitle}>Bilan trimestriel (90 jours)</Text>
+            <Text style={S.quarterlySub}>
+              Mesures · routines validées · synthèse BC — pour ton RDV coiffeuse ou trichologue
+            </Text>
+          </View>
+          <Ionicons name="chevron-forward" size={18} color={Colors.warmGray} />
+        </TouchableOpacity>
+
         {/* ── Export bilan ── */}
         <View style={S.exportCard}>
           <View style={S.exportLeft}>
@@ -548,10 +631,37 @@ export default function GrowthScreen() {
             </View>
           </View>
           <View style={S.exportBtns}>
-            <TouchableOpacity style={[S.exportBtn, { backgroundColor: Colors.ink }]}>
+            <TouchableOpacity
+              style={[S.exportBtn, { backgroundColor: Colors.ink }]}
+              onPress={async () => {
+                const ok = await requireAccess('growth_export');
+                if (!ok) return;
+                if (hasAccess) {
+                  void markPremiumFirstValue('export');
+                  void trackProductEvent('premium_trial_first_value', { kind: 'export' });
+                }
+                const exported = await exportBilanPdf(state, {
+                  title: 'Bilan capillaire mensuel',
+                  periodDays: 30,
+                });
+                if (exported && hasAccess) {
+                  void trackProductEvent('premium_trial_first_value', { kind: 'export' });
+                }
+              }}
+            >
               <Text style={S.exportBtnText}>📊 Exporter en PDF</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={[S.exportBtn, { backgroundColor: Colors.surface, borderWidth: 1, borderColor: Colors.border }]}>
+            <TouchableOpacity
+              style={[S.exportBtn, { backgroundColor: Colors.surface, borderWidth: 1, borderColor: Colors.border }]}
+              onPress={async () => {
+                const ok = await requireAccess('growth_export');
+                if (!ok) return;
+                await exportBilanPdf(state, {
+                  title: 'Bilan capillaire mensuel',
+                  periodDays: 30,
+                });
+              }}
+            >
               <Text style={[S.exportBtnText, { color: Colors.ink }]}>🖼️ Image</Text>
             </TouchableOpacity>
           </View>
@@ -702,6 +812,10 @@ export default function GrowthScreen() {
                         objectiveTargetDate: toLocalISODate(objDate),
                       },
                     });
+                    void trackProductEvent('growth_goal_set', {
+                      target_cm: objForm.longueur.trim(),
+                      target_date: toLocalISODate(objDate),
+                    });
                     setShowObjectif(false);
                     setShowObjCal(false);
                   }}
@@ -797,6 +911,8 @@ const S = StyleSheet.create({
   bilanStatVal: { fontSize: 15, fontFamily: 'DMSans_700Bold', color: '#fff' },
   bilanStatSub: { fontSize: 9, fontFamily: 'DMSans_400Regular', color: 'rgba(255,255,255,0.55)', textAlign: 'center' },
   bilanMsg: { backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 12, padding: 10 },
+  bilanMsgLabel: { fontSize: 10, fontFamily: 'DMSans_700Bold', color: Colors.amber, letterSpacing: 0.8, marginBottom: 4 },
+  bilanMsgScore: { fontSize: 11, fontFamily: 'DMSans_600SemiBold', color: 'rgba(255,255,255,0.65)', marginBottom: 6 },
   bilanMsgText: { fontSize: 12, fontFamily: 'DMSans_400Regular', color: 'rgba(255,255,255,0.8)', lineHeight: 18 },
 
   // Section rows
@@ -927,6 +1043,33 @@ const S = StyleSheet.create({
   objectifBtnText: { fontSize: 12, fontFamily: 'DMSans_600SemiBold', color: Colors.warmGray },
 
   // Export
+  premiumUpsell: {
+    marginHorizontal: 20,
+    marginBottom: 14,
+    backgroundColor: Colors.amberLight,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: Colors.amber,
+    padding: 14,
+  },
+  premiumUpsellTitle: { fontSize: 14, fontFamily: 'DMSans_700Bold', color: Colors.ink, marginBottom: 4 },
+  premiumUpsellSub: { fontSize: 12, fontFamily: 'DMSans_400Regular', color: Colors.warmGray, lineHeight: 17 },
+  premiumUpsellCta: { marginTop: 8, fontSize: 12, fontFamily: 'DMSans_700Bold', color: Colors.amberDark },
+
+  quarterlyCta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: Colors.surface,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    padding: 14,
+    marginBottom: 14,
+  },
+  quarterlyEmoji: { fontSize: 28 },
+  quarterlyTitle: { fontSize: 14, fontFamily: 'DMSans_700Bold', color: Colors.ink, marginBottom: 2 },
+  quarterlySub: { fontSize: 11, fontFamily: 'DMSans_400Regular', color: Colors.warmGray, lineHeight: 16 },
   exportCard: {
     backgroundColor: Colors.surface, borderRadius: 18,
     borderWidth: 1, borderColor: Colors.border, padding: 16, marginBottom: 20,

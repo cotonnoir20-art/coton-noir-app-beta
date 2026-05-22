@@ -1,13 +1,19 @@
 import { useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../src/theme/colors';
 import { useApp } from '../src/context/AppContext';
 import { AppHeader } from '../src/components/AppHeader';
 import { DatePickerSheet } from '../src/components/DatePickerSheet';
 import { toLocalISODate } from '../src/lib/homeGrowth';
+import { trackProductEvent } from '../src/lib/productAnalytics';
+import {
+  getWashdayReminderTime,
+  parseReminderTime,
+  scheduleWashdayReminder,
+} from '../src/lib/washdayReminder';
 
 const WASH_TYPES = [
   'Shampoing classique',
@@ -50,21 +56,65 @@ function Dropdown({
   );
 }
 
+function parseInitialDate(raw: string | string[] | undefined): Date {
+  const s = Array.isArray(raw) ? raw[0] : raw;
+  if (s && /^\d{4}-\d{2}-\d{2}$/.test(s)) {
+    const d = new Date(`${s}T12:00:00`);
+    if (!Number.isNaN(d.getTime())) return d;
+  }
+  return new Date();
+}
+
 export default function AddWashDayScreen() {
   const router = useRouter();
-  const { dispatch } = useApp();
+  const params = useLocalSearchParams<{ date?: string | string[] }>();
+  const { dispatch, state, queueBcTrigger } = useApp();
 
   const [washType, setWashType]       = useState(WASH_TYPES[0]);
   const [products, setProducts]       = useState('');
   const [hairState, setHairState]     = useState(HAIR_STATES[0]);
   const [notes, setNotes]             = useState('');
   const [saved, setSaved]             = useState(false);
-  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [selectedDate, setSelectedDate] = useState(() => parseInitialDate(params.date));
   const [showPicker, setShowPicker]   = useState(false);
 
-  function handleSave() {
+  async function handleSave() {
     const iso = toLocalISODate(selectedDate);
-    dispatch({ type: 'planSoin', soin: { soinType: washType, date: iso } });
+    const timeStr = await getWashdayReminderTime();
+    const { hour, minute } = parseReminderTime(timeStr);
+    dispatch({
+      type: 'planSoin',
+      soin: {
+        soinType: washType,
+        date: iso,
+        products: products.trim() || undefined,
+        notes: notes.trim() || undefined,
+        hairState,
+        reminderHour: hour,
+        reminderMinute: minute,
+      },
+    });
+    void trackProductEvent('washday_planned', {
+      soin_type: washType,
+      planned_date: iso,
+      has_products: !!products.trim(),
+      has_notes: !!notes.trim(),
+    });
+    const nextPlanned = [
+      ...state.plannedSoins,
+      {
+        id: Date.now(),
+        soinType: washType,
+        date: iso,
+        products: products.trim() || undefined,
+        notes: notes.trim() || undefined,
+        hairState,
+        reminderHour: hour,
+        reminderMinute: minute,
+      },
+    ];
+    await scheduleWashdayReminder(nextPlanned, timeStr);
+    queueBcTrigger('washday_added');
     setSaved(true);
     setTimeout(() => router.back(), 800);
   }
@@ -138,6 +188,16 @@ export default function AddWashDayScreen() {
             numberOfLines={4}
             textAlignVertical="top"
           />
+
+          <TouchableOpacity
+            style={S.linkSoin}
+            onPress={() => router.push('/plan-soin' as any)}
+            activeOpacity={0.85}
+          >
+            <Ionicons name="calendar-outline" size={18} color={Colors.amber} />
+            <Text style={S.linkSoinText}>Planifier un autre soin (masque, hydratation…)</Text>
+            <Ionicons name="chevron-forward" size={16} color={Colors.warmGray} />
+          </TouchableOpacity>
 
           <View style={{ height: 100 }} />
         </ScrollView>
@@ -231,4 +291,22 @@ const S = StyleSheet.create({
   ctaSaved: { backgroundColor: Colors.sage },
   ctaText: { fontSize: 15, fontFamily: 'DMSans_700Bold', color: '#fff' },
 
+  linkSoin: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingVertical: 14,
+    paddingHorizontal: 14,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    backgroundColor: Colors.surface,
+    marginBottom: 8,
+  },
+  linkSoinText: {
+    flex: 1,
+    fontSize: 13,
+    fontFamily: 'DMSans_600SemiBold',
+    color: Colors.ink,
+  },
 });

@@ -1,5 +1,11 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { CC_REFERRAL_SIGNUP } from './cotonCoins';
+import {
+  CC_REFERRAL_SIGNUP,
+  REFERRAL_MAX_CC_EARNED,
+  REFERRAL_MAX_REFEREES,
+} from './cotonCoins';
+
+export { REFERRAL_MAX_CC_EARNED, REFERRAL_MAX_REFEREES };
 import {
   fetchReferralDashboardStats,
   fetchReferrerUsedCode,

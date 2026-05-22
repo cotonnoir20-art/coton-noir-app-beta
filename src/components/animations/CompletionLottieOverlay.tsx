@@ -15,18 +15,32 @@ const SOURCE = require('../../../assets/animations/completion-confetti.json');
 
 export type CompletionLottieVariant = 'light' | 'strong';
 
+export type CompletionAction = {
+  label: string;
+  onPress: () => void;
+  primary?: boolean;
+};
+
 type Props = {
   visible: boolean;
   variant: CompletionLottieVariant;
   onClose: () => void;
   caption?: string;
+  /** Si présent, pas de fermeture auto — l’utilisateur choisit une action. */
+  actions?: CompletionAction[];
 };
 
 /**
  * Confetti Lottie plein écran (ou fallback « Réduire les animations »).
  * `light` = routine matin/soir ; `strong` = wash day ou gros soin.
  */
-export function CompletionLottieOverlay({ visible, variant, onClose, caption }: Props) {
+export function CompletionLottieOverlay({
+  visible,
+  variant,
+  onClose,
+  caption,
+  actions,
+}: Props) {
   const [reduceMotion, setReduceMotion] = useState(false);
   const lottieRef = useRef<LottieView>(null);
   const closedRef = useRef(false);
@@ -58,6 +72,10 @@ export function CompletionLottieOverlay({ visible, variant, onClose, caption }: 
       return undefined;
     }
 
+    if (actions?.length) {
+      return undefined;
+    }
+
     if (reduceMotion) {
       safetyTimer.current = setTimeout(finish, 1100);
       return () => {
@@ -74,7 +92,7 @@ export function CompletionLottieOverlay({ visible, variant, onClose, caption }: 
       cancelAnimationFrame(t);
       if (safetyTimer.current) clearTimeout(safetyTimer.current);
     };
-  }, [visible, reduceMotion, finish]);
+  }, [visible, reduceMotion, finish, actions?.length]);
 
   const onLottieFinish = useCallback(() => {
     if (reduceMotion) return;
@@ -95,6 +113,21 @@ export function CompletionLottieOverlay({ visible, variant, onClose, caption }: 
               </View>
               <Text style={styles.reduceTitle}>Bravo !</Text>
               {caption ? <Text style={styles.caption}>{caption}</Text> : null}
+              {actions?.length ? (
+                <View style={styles.actions}>
+                  {actions.map(a => (
+                    <Pressable
+                      key={a.label}
+                      style={[styles.actionBtn, a.primary && styles.actionBtnPrimary]}
+                      onPress={a.onPress}
+                    >
+                      <Text style={[styles.actionText, a.primary && styles.actionTextPrimary]}>
+                        {a.label}
+                      </Text>
+                    </Pressable>
+                  ))}
+                </View>
+              ) : null}
             </>
           ) : (
             <>
@@ -104,9 +137,24 @@ export function CompletionLottieOverlay({ visible, variant, onClose, caption }: 
                 style={{ width: size, height: size }}
                 speed={speed}
                 loop={false}
-                onAnimationFinish={onLottieFinish}
+                onAnimationFinish={actions?.length ? undefined : onLottieFinish}
               />
               {caption ? <Text style={styles.caption}>{caption}</Text> : null}
+              {actions?.length ? (
+                <View style={styles.actions}>
+                  {actions.map(a => (
+                    <Pressable
+                      key={a.label}
+                      style={[styles.actionBtn, a.primary && styles.actionBtnPrimary]}
+                      onPress={a.onPress}
+                    >
+                      <Text style={[styles.actionText, a.primary && styles.actionTextPrimary]}>
+                        {a.label}
+                      </Text>
+                    </Pressable>
+                  ))}
+                </View>
+              ) : null}
             </>
           )}
         </Pressable>
@@ -149,5 +197,30 @@ const styles = StyleSheet.create({
     color: 'rgba(255,255,255,0.92)',
     textAlign: 'center',
     lineHeight: 22,
+  },
+  actions: {
+    marginTop: 16,
+    width: '100%',
+    gap: 10,
+  },
+  actionBtn: {
+    paddingVertical: 12,
+    paddingHorizontal: 18,
+    borderRadius: 14,
+    borderWidth: 1.5,
+    borderColor: 'rgba(255,255,255,0.35)',
+    alignItems: 'center',
+  },
+  actionBtnPrimary: {
+    backgroundColor: Colors.amber,
+    borderColor: Colors.amber,
+  },
+  actionText: {
+    fontSize: 14,
+    fontFamily: 'DMSans_700Bold',
+    color: 'rgba(255,255,255,0.95)',
+  },
+  actionTextPrimary: {
+    color: Colors.ink,
   },
 });

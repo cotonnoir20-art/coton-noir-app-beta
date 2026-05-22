@@ -3,7 +3,7 @@ import { Fragment } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { GROWTH_MILESTONES_LEGEND } from '../../constants/productPitch';
 import { Colors } from '../../theme/colors';
-import { FontDisplay } from '../../theme/typography';
+import { Type } from '../../theme/typography';
 import type { MilestoneItem } from '../../lib/homeGrowth';
 
 type Props = {
@@ -69,7 +69,7 @@ export function HomeGrowthMilestones({ items, currentCm, targetCm }: Props) {
 const s = StyleSheet.create({
   section: { marginTop: 8, marginBottom: 20 },
   head: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', paddingHorizontal: 20, marginBottom: 14, gap: 12 },
-  title: { fontSize: 18, fontFamily: FontDisplay, color: Colors.ink, flexShrink: 0 },
+  title: { ...Type.cardTitle, color: Colors.ink, flexShrink: 0 },
   meta: { fontSize: 11, fontFamily: 'DMSans_500Medium', color: Colors.warmGray, flex: 1, textAlign: 'right' },
   scroll: { paddingHorizontal: 16 },
   track: { flexDirection: 'row', alignItems: 'flex-start' },

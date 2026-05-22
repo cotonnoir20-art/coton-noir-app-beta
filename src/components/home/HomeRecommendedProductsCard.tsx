@@ -4,7 +4,7 @@ import { useRouter } from 'expo-router';
 import { AppIconBox } from '../AppIconBox';
 import type { HairProfile } from '../../context/AppContext';
 import { Colors } from '../../theme/colors';
-import { FontDisplay } from '../../theme/typography';
+import { Type } from '../../theme/typography';
 import {
   buildHomeProductRecommendations,
   type HomeProblemItem,
@@ -129,8 +129,7 @@ const s = StyleSheet.create({
     elevation: 4,
   },
   cardTitle: {
-    fontSize: 18,
-    fontFamily: FontDisplay,
+    ...Type.cardTitle,
     color: Colors.ink,
     paddingHorizontal: 16,
     paddingTop: 16,

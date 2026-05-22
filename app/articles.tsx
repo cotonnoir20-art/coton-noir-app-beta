@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   Modal,
   ScrollView,
+  Share,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -12,13 +14,15 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Colors } from '../src/theme/colors';
+import { Type } from '../src/theme/typography';
 import { AppHeader } from '../src/components/AppHeader';
 import { supabase } from '../src/lib/supabase';
 import { EmptyAnimation } from '../src/components/animations/EmptyAnimation';
 import { openSafeMailto, openSafeUrl } from '../src/lib/safeLinking';
+import { isArticleFavorite, toggleArticleFavorite } from '../src/lib/contentFavorites';
 import {
   ARTICLE_CATEGORIES,
   ARTICLE_EXPERTS,
@@ -91,6 +95,7 @@ function renderBody(body: string): string[] {
 
 export default function ArticlesScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams<{ openId?: string | string[] }>();
 
   const [remoteArticles, setRemoteArticles] = useState<Article[]>([]);
   const [loading, setLoading] = useState(true);
@@ -98,6 +103,7 @@ export default function ArticlesScreen() {
   const [category, setCategory] = useState<'Tout' | ArticleCategory>('Tout');
   const [selected, setSelected] = useState<Article | null>(null);
   const [likedIds, setLikedIds] = useState<Record<string, boolean>>({});
+  const [favIds, setFavIds] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     supabase
@@ -151,6 +157,13 @@ export default function ArticlesScreen() {
 
   const totalCount = allArticles.length;
 
+  useEffect(() => {
+    const openId = Array.isArray(params.openId) ? params.openId[0] : params.openId;
+    if (!openId || loading) return;
+    const found = allArticles.find(a => a.id === openId);
+    if (found) setSelected(found);
+  }, [params.openId, allArticles, loading]);
+
   function toggleLike(id: string) {
     setLikedIds(prev => {
       const next = { ...prev };
@@ -159,6 +172,38 @@ export default function ArticlesScreen() {
       AsyncStorage.setItem(LIKES_KEY, JSON.stringify(next));
       return next;
     });
+  }
+
+  async function toggleFavorite(article: Article) {
+    const on = await toggleArticleFavorite({
+      id: article.id,
+      title: article.title,
+      category: article.category,
+    });
+    setFavIds(prev => {
+      const next = { ...prev };
+      if (on) next[article.id] = true;
+      else delete next[article.id];
+      return next;
+    });
+  }
+
+  useEffect(() => {
+    if (!selected) return;
+    void isArticleFavorite(selected.id).then(on => {
+      setFavIds(prev => ({ ...prev, [selected.id]: on }));
+    });
+  }, [selected?.id]);
+
+  async function shareArticle(article: Article) {
+    try {
+      await Share.share({
+        message: `${article.title}\n\n${article.subtitle}\n\n— Partagé depuis Coton Noir`,
+        title: article.title,
+      });
+    } catch {
+      Alert.alert('Partage', 'Impossible d’ouvrir le partage pour le moment.');
+    }
   }
 
   function likeCount(a: Article): number {
@@ -374,20 +419,40 @@ export default function ArticlesScreen() {
                   ))}
                 </View>
 
-                <TouchableOpacity
-                  style={[S.likeBtnBig, likedIds[selected.id] && S.likeBtnBigActive]}
-                  onPress={() => toggleLike(selected.id)}
-                  activeOpacity={0.85}
-                >
-                  <Ionicons
-                    name={likedIds[selected.id] ? 'heart' : 'heart-outline'}
-                    size={16}
-                    color={likedIds[selected.id] ? '#fff' : Colors.rose}
-                  />
-                  <Text style={[S.likeBtnBigText, likedIds[selected.id] && { color: '#fff' }]}>
-                    {likedIds[selected.id] ? 'Aimé' : "J'aime"} · {likeCount(selected)}
-                  </Text>
-                </TouchableOpacity>
+                <View style={S.articleActionsRow}>
+                  <TouchableOpacity
+                    style={[S.likeBtnBig, likedIds[selected.id] && S.likeBtnBigActive]}
+                    onPress={() => toggleLike(selected.id)}
+                    activeOpacity={0.85}
+                  >
+                    <Ionicons
+                      name={likedIds[selected.id] ? 'heart' : 'heart-outline'}
+                      size={16}
+                      color={likedIds[selected.id] ? '#fff' : Colors.rose}
+                    />
+                    <Text style={[S.likeBtnBigText, likedIds[selected.id] && { color: '#fff' }]}>
+                      {likedIds[selected.id] ? 'Aimé' : "J'aime"} · {likeCount(selected)}
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[S.secondaryActionBtn, favIds[selected.id] && S.secondaryActionBtnActive]}
+                    onPress={() => void toggleFavorite(selected)}
+                  >
+                    <Ionicons
+                      name={favIds[selected.id] ? 'bookmark' : 'bookmark-outline'}
+                      size={18}
+                      color={favIds[selected.id] ? Colors.ink : Colors.warmGray}
+                    />
+                    <Text style={S.secondaryActionText}>Favori</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={S.secondaryActionBtn}
+                    onPress={() => void shareArticle(selected)}
+                  >
+                    <Ionicons name="share-outline" size={18} color={Colors.ink} />
+                    <Text style={S.secondaryActionText}>Partager</Text>
+                  </TouchableOpacity>
+                </View>
 
                 <View style={{ height: 28 }} />
               </View>
@@ -505,9 +570,7 @@ const S = StyleSheet.create({
   scroll: { paddingBottom: 8 },
 
   heroTitle: {
-    fontSize: 28,
-    lineHeight: 36,
-    fontFamily: 'Poppins_700Bold',
+    ...Type.editorialHero,
     color: Colors.ink,
     paddingHorizontal: 20,
     marginBottom: 10,
@@ -910,10 +973,8 @@ const S = StyleSheet.create({
     color: Colors.warmGray,
   },
   modalTitle: {
-    fontSize: 24,
-    fontFamily: 'Poppins_700Bold',
+    ...Type.editorialArticle,
     color: Colors.ink,
-    lineHeight: 31,
     marginBottom: 8,
   },
   modalSub: {
@@ -990,5 +1051,31 @@ const S = StyleSheet.create({
     fontSize: 13,
     fontFamily: 'DMSans_700Bold',
     color: Colors.rose,
+  },
+  articleActionsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    alignItems: 'center',
+  },
+  secondaryActionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    backgroundColor: Colors.cream,
+  },
+  secondaryActionBtnActive: {
+    borderColor: Colors.ink,
+    backgroundColor: Colors.amberLight,
+  },
+  secondaryActionText: {
+    fontSize: 12,
+    fontFamily: 'DMSans_600SemiBold',
+    color: Colors.ink,
   },
 });

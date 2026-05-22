@@ -6,7 +6,7 @@ import { BCEmojiAvatar } from '../blackCotton/BCEmojiAvatar';
 import { AppIconBox } from '../AppIconBox';
 import type { HairProfile } from '../../context/AppContext';
 import { Colors } from '../../theme/colors';
-import { FontDisplay } from '../../theme/typography';
+import { Type } from '../../theme/typography';
 import { buildBlackCottonHomeRecommendations } from '../../lib/blackCottonRecommendations';
 
 type Props = {
@@ -143,8 +143,7 @@ export function HomeBlackCottonRecommendations({ profile }: Props) {
 const s = StyleSheet.create({
   section: { marginBottom: 22, paddingHorizontal: 20 },
   sectionTitle: {
-    fontSize: 18,
-    fontFamily: FontDisplay,
+    ...Type.cardTitle,
     color: Colors.ink,
     marginBottom: 10,
   },

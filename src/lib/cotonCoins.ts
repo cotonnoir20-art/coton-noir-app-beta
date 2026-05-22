@@ -36,8 +36,14 @@ export const CC_STREAK_BONUS_7 = 30;
 export const CC_STREAK_BONUS_30 = 50;
 /** Analyse capillaire complète (1× logique côté UX) */
 export const CC_ANALYSIS_COMPLETE = 10;
+/** Points cumulés — analyse complète. */
+export const PTS_ANALYSIS_COMPLETE = 10;
 /** Filleule qui active un code parrain + marraine */
 export const CC_REFERRAL_SIGNUP = 50;
+/** Nombre max de filleules rémunérées pour une marraine (plafond CC). */
+export const REFERRAL_MAX_REFEREES = 10;
+/** Plafond CC parrainage marraine (= REFERRAL_MAX_REFEREES × CC_REFERRAL_SIGNUP). */
+export const REFERRAL_MAX_CC_EARNED = REFERRAL_MAX_REFEREES * CC_REFERRAL_SIGNUP;
 /** Crédit d’accueil à l’inscription */
 export const CC_ONBOARDING_GIFT = 50;
 export const ONBOARDING_GIFT_LABEL = 'Bienvenue sur Coton Noir 🎉';

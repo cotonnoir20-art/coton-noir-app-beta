@@ -7,6 +7,10 @@ import {
   isWashdayCalendarToday,
 } from '../../lib/washdayHistory';
 import { toLocalISODate } from '../../lib/homeGrowth';
+import {
+  calendarCellStyle,
+  getCalendarGridMetrics,
+} from '../../lib/calendarGridLayout';
 
 const WEEK_LABELS = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
 const MONTH_NAMES = [
@@ -43,8 +47,7 @@ export function HomeWashdayCalendar({ plannedSoins, coinHistory }: Props) {
   const daysInMonth = new Date(calMonth.year, calMonth.month + 1, 0).getDate();
   const firstOffset = (new Date(calMonth.year, calMonth.month, 1).getDay() + 6) % 7;
 
-  const calInnerW = width - 60;
-  const cellSize = Math.floor((calInnerW - 7 * 6) / 7);
+  const { cellSize, gridWidth, cellMargin } = getCalendarGridMetrics(width - 60);
 
   function prevMonth() {
     setCalMonth(d =>
@@ -87,17 +90,23 @@ export function HomeWashdayCalendar({ plannedSoins, coinHistory }: Props) {
         </View>
       </View>
 
-      <View style={s.weekRow}>
+      <View style={[s.weekRow, { width: gridWidth }]}>
         {WEEK_LABELS.map((label, i) => (
-          <View key={i} style={[s.weekCell, { width: cellSize, margin: 3 }]}>
+          <View
+            key={i}
+            style={[s.weekCell, calendarCellStyle, { width: cellSize, margin: cellMargin }]}
+          >
             <Text style={s.weekLabel}>{label}</Text>
           </View>
         ))}
       </View>
 
-      <View style={s.daysGrid}>
+      <View style={[s.daysGrid, { width: gridWidth }]}>
         {Array.from({ length: firstOffset }).map((_, i) => (
-          <View key={`e-${i}`} style={{ width: cellSize, height: cellSize, margin: 3 }} />
+          <View
+            key={`e-${i}`}
+            style={[calendarCellStyle, { width: cellSize, height: cellSize, margin: cellMargin }]}
+          />
         ))}
         {Array.from({ length: daysInMonth }, (_, i) => i + 1).map(dayNum => {
           const isToday = isWashdayCalendarToday(calMonth.year, calMonth.month, dayNum, todayStr);
@@ -110,7 +119,8 @@ export function HomeWashdayCalendar({ plannedSoins, coinHistory }: Props) {
               key={dayNum}
               style={[
                 s.dayCell,
-                { width: cellSize, height: cellSize, borderRadius: cellSize / 2 },
+                calendarCellStyle,
+                { width: cellSize, height: cellSize, margin: cellMargin, borderRadius: cellSize / 2 },
                 isToday && s.dayToday,
                 isCompleted && s.dayCompleted,
                 isPlanned && !isCompleted && s.dayPlanned,
@@ -186,16 +196,15 @@ const s = StyleSheet.create({
     fontFamily: 'DMSans_400Regular',
     color: Colors.warmGray,
   },
-  weekRow: { flexDirection: 'row', justifyContent: 'center' },
+  weekRow: { flexDirection: 'row', flexWrap: 'nowrap', alignSelf: 'center' },
   weekCell: { alignItems: 'center', justifyContent: 'center' },
   weekLabel: {
     fontSize: 10,
     fontFamily: 'DMSans_600SemiBold',
     color: Colors.warmGray,
   },
-  daysGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center' },
+  daysGrid: { flexDirection: 'row', flexWrap: 'wrap', alignSelf: 'center' },
   dayCell: {
-    margin: 3,
     alignItems: 'center',
     justifyContent: 'center',
   },

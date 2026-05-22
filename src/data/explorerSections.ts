@@ -10,40 +10,57 @@ export type ExplorerItem = {
   premium?: boolean;
 };
 
+/** Hub Découvrir — navigation v2 par intention (matrice entrée → objectif). */
 export const EXPLORER_SECTIONS: { id: string; label: string; items: ExplorerItem[] }[] = [
   {
-    id: 'tools',
-    label: 'Mes outils',
+    id: 'care',
+    label: 'Prendre soin',
     items: [
-      { ion: 'camera-outline',         ionBg: Colors.cream,      ionColor: Colors.ink,     label: 'Analyse IA',  route: '/(tabs)/analyze' },
-      { ion: 'leaf-outline',           ionBg: Colors.sageLight,  ionColor: Colors.sage,     label: 'Ma Routine',  route: '/(tabs)/routine' },
-      { ion: 'water-outline',          ionBg: '#DBEAFE',        ionColor: '#2563EB',      label: 'Washday tracker', route: '/washday' },
-      { ion: 'stats-chart-outline',    ionBg: Colors.cream,      ionColor: Colors.ink,     label: 'Progression', route: '/growth' },
-      { ion: 'flask-outline',          ionBg: Colors.amberLight, ionColor: Colors.amberDark, label: 'Recettes',    route: '/recipes' },
-      { ion: 'trophy-outline',         ionBg: Colors.amberLight, ionColor: Colors.amberDark, label: 'Niveaux',     route: '/rewards' },
-      { ion: 'heart-outline',          ionBg: Colors.blush,      ionColor: Colors.rose,     label: 'Favoris',     route: '/favorites' },
+      { ion: 'leaf-outline', ionBg: Colors.sageLight, ionColor: Colors.sage, label: 'Ma routine', route: '/(tabs)/routine' },
+      { ion: 'water-outline', ionBg: '#DBEAFE', ionColor: '#2563EB', label: 'Wash day', route: '/washday' },
+      { ion: 'camera-outline', ionBg: Colors.cream, ionColor: Colors.ink, label: 'Analyse IA', route: '/(tabs)/analyze' },
+      { ion: 'person-circle-outline', ionBg: Colors.blush, ionColor: Colors.rose, label: 'Profil capillaire', route: '/hair-profile' },
+      { ion: 'settings-outline', ionBg: Colors.cream, ionColor: Colors.ink, label: 'Paramètres', route: '/(tabs)/profile' },
     ],
   },
   {
-    id: 'discover',
-    label: 'Découvrir',
+    id: 'progress',
+    label: 'Progresser',
     items: [
-      { ion: 'bag-handle-outline',     ionBg: Colors.cream,      ionColor: Colors.ink,     label: 'Produits',    route: '/shop' },
-      { ion: 'newspaper-outline',      ionBg: Colors.cream,      ionColor: Colors.ink,     label: 'Articles',    route: '/articles' },
-      { ion: 'cut-outline',            ionBg: Colors.blush,      ionColor: Colors.rose,     label: 'Coiffures',   route: '/coiffures' },
-      { ion: 'play-circle-outline',    ionBg: Colors.amberLight, ionColor: Colors.amberDark, label: 'Tutos',       route: '/tutorials' },
-      { ion: 'people-outline',         ionBg: Colors.sageLight,  ionColor: Colors.sage,     label: 'Partenaires', route: '/partners' },
-      { ion: 'pricetag-outline',       ionBg: Colors.amberLight, ionColor: Colors.amberDark, label: 'Codes',       route: '/codes' },
-      { ion: 'cube-outline',           ionBg: Colors.cream,      ionColor: Colors.ink,     label: 'Box',         route: '/box' },
-      { ion: 'diamond-outline',        ionBg: Colors.amberLight, ionColor: Colors.amberDark, label: 'Premium',     route: '/premium', premium: true },
+      { ion: 'stats-chart-outline', ionBg: Colors.growthLight, ionColor: Colors.growth, label: 'Ma progression', route: '/growth' },
+      { ion: 'document-text-outline', ionBg: Colors.cream, ionColor: Colors.ink, label: 'Bilan trimestriel', route: '/quarterly-bilan' },
+      { ion: 'calculator-outline', ionBg: Colors.growthLight, ionColor: Colors.growth, label: 'Calculateur pousse', route: '/growth-calculator' },
+      { ion: 'heart-outline', ionBg: Colors.blush, ionColor: Colors.rose, label: 'Favoris', route: '/favorites' },
     ],
   },
   {
-    id: 'community',
-    label: 'Communauté',
+    id: 'save_buy',
+    label: 'Économiser & acheter',
     items: [
-      { ion: 'chatbubbles-outline',    ionBg: Colors.sageLight,  ionColor: Colors.sage,     label: 'Communauté', route: '/community' },
-      { ion: 'gift-outline',           ionBg: Colors.blush,      ionColor: Colors.rose,     label: 'Inviter',    route: '/invite' },
+      { ion: 'flask-outline', ionBg: Colors.sageLight, ionColor: Colors.sage, label: 'Recettes', route: '/recipes' },
+      { ion: 'pricetag-outline', ionBg: Colors.amberLight, ionColor: Colors.amberDark, label: 'Codes promo', route: '/codes' },
+      { ion: 'bag-handle-outline', ionBg: Colors.cream, ionColor: Colors.ink, label: 'Boutique', route: '/shop' },
+      { ion: 'people-outline', ionBg: Colors.sageLight, ionColor: Colors.sage, label: 'Partenaires', route: '/partners' },
+      { ion: 'cube-outline', ionBg: Colors.cream, ionColor: Colors.ink, label: 'Box', route: '/box' },
+    ],
+  },
+  {
+    id: 'learn_style',
+    label: 'Comprendre & se coiffer',
+    items: [
+      { ion: 'newspaper-outline', ionBg: Colors.cream, ionColor: Colors.ink, label: 'Articles', route: '/articles' },
+      { ion: 'play-circle-outline', ionBg: Colors.amberLight, ionColor: Colors.amberDark, label: 'Tutos', route: '/tutorials' },
+      { ion: 'cut-outline', ionBg: Colors.blush, ionColor: Colors.rose, label: 'Coiffures', route: '/coiffures' },
+    ],
+  },
+  {
+    id: 'motivation',
+    label: 'Motivation & communauté',
+    items: [
+      { ion: 'trophy-outline', ionBg: Colors.amberLight, ionColor: Colors.amberDark, label: 'Niveaux & CC', route: '/rewards' },
+      { ion: 'chatbubbles-outline', ionBg: Colors.sageLight, ionColor: Colors.sage, label: 'Communauté', route: '/community' },
+      { ion: 'gift-outline', ionBg: Colors.blush, ionColor: Colors.rose, label: 'Inviter', route: '/invite' },
+      { ion: 'diamond-outline', ionBg: Colors.amberLight, ionColor: Colors.amberDark, label: 'Premium', route: '/premium', premium: true },
     ],
   },
 ];

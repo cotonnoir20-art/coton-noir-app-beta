@@ -1,9 +1,9 @@
 import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useFocusEffect, useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Colors } from '../src/theme/colors';
 import { useApp } from '../src/context/AppContext';
 import { supabase } from '../src/lib/supabase';
@@ -11,6 +11,12 @@ import { AppHeader, CoinsBadge } from '../src/components/AppHeader';
 import { getDemoProductById } from '../src/data/demoUsers';
 import { isDemoModeAvailable } from '../src/lib/demoMode';
 import { normalizeHttpUrl, openSafeUrl } from '../src/lib/safeLinking';
+import { isProductFavorite, toggleProductFavorite } from '../src/lib/contentFavorites';
+import {
+  loadCompletedProductTest,
+  startProductTestedWorkflow,
+} from '../src/lib/productTestedWorkflow';
+import { SimilarProfilesRecoCard } from '../src/components/discover/SimilarProfilesRecoCard';
 
 type Review = {
   id:         string;
@@ -44,6 +50,17 @@ export default function ProductScreen() {
   const [productUrl, setProductUrl]   = useState<string | null>(null);
   const [reviews, setReviews]         = useState<Review[]>([]);
   const [loading, setLoading]         = useState<boolean>(!!params.id);
+  const [showSimilarReco, setShowSimilarReco] = useState(false);
+
+  const productKey = params.id ?? `${params.brand}-${params.name}`;
+
+  useFocusEffect(
+    useCallback(() => {
+      void loadCompletedProductTest().then(t => {
+        setShowSimilarReco(!!t && t.productId === productKey);
+      });
+    }, [productKey]),
+  );
 
   useEffect(() => {
     if (!params.id) return;
@@ -93,6 +110,39 @@ export default function ProductScreen() {
     });
   }, [params.id]);
 
+  useEffect(() => {
+    const pid = params.id ?? `${params.brand}-${params.name}`;
+    if (!pid) return;
+    void isProductFavorite(pid).then(setFav);
+  }, [params.id, params.brand, params.name]);
+
+  async function handleToggleFav() {
+    const pid = params.id ?? `${params.brand}-${params.name}`;
+    const on = await toggleProductFavorite({
+      id: pid,
+      brand: params.brand ?? '',
+      name: params.name ?? '',
+    });
+    setFav(on);
+  }
+
+  function handleAddToRoutine() {
+    void startProductTestedWorkflow({
+      productId: productKey,
+      brand: params.brand ?? '',
+      name: params.name ?? '',
+    });
+    router.push({
+      pathname: '/routine-plan',
+      params: {
+        kind: 'daily',
+        source: 'product',
+        productBrand: params.brand ?? '',
+        productName: params.name ?? '',
+      },
+    } as any);
+  }
+
   async function handleBuy() {
     if (!productUrl) {
       Alert.alert('Acheter', "Aucun lien d'achat n'est renseigné pour ce produit.");
@@ -104,6 +154,14 @@ export default function ProductScreen() {
       return;
     }
     await openSafeUrl(u, 'product', { alertTitle: 'Acheter' });
+    Alert.alert(
+      'Produit acheté ?',
+      'Ajoute-le à ta routine pour suivre son effet sur tes cheveux.',
+      [
+        { text: 'Plus tard', style: 'cancel' },
+        { text: 'Ajouter à ma routine', onPress: handleAddToRoutine },
+      ],
+    );
   }
 
   const rating    = parseFloat(params.rating  ?? '4.8');
@@ -125,7 +183,7 @@ export default function ProductScreen() {
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
             <TouchableOpacity
               style={S.iconBtn}
-              onPress={() => setFav(f => !f)}
+              onPress={() => void handleToggleFav()}
               accessibilityRole="button"
               accessibilityLabel={fav ? 'Retirer des favoris' : 'Ajouter aux favoris'}
             >
@@ -190,6 +248,15 @@ export default function ProductScreen() {
             )}
           </View>
         </View>
+
+        {showSimilarReco ? (
+          <View style={{ paddingHorizontal: 20, marginBottom: 8 }}>
+            <SimilarProfilesRecoCard
+              profile={state.profile}
+              testedProduct={{ brand: params.brand ?? '', name: params.name ?? '' }}
+            />
+          </View>
+        ) : null}
 
         {/* ── Description ── */}
         <View style={S.section}>
@@ -291,13 +358,23 @@ export default function ProductScreen() {
           )}
         </View>
 
+        <TouchableOpacity style={S.codesLink} onPress={() => router.push('/codes')}>
+          <Ionicons name="pricetag-outline" size={18} color={Colors.amberDark} />
+          <Text style={S.codesLinkText}>Voir les codes partenaires</Text>
+          <Ionicons name="chevron-forward" size={16} color={Colors.warmGray} />
+        </TouchableOpacity>
+
+        <TouchableOpacity style={S.testedBtn} onPress={handleAddToRoutine} activeOpacity={0.88}>
+          <Text style={S.testedBtnText}>✓ J’ai testé — ajouter à ma routine</Text>
+        </TouchableOpacity>
+
         <View style={{ height: 100 }} />
       </ScrollView>
 
       {/* ── Sticky CTA ── */}
       <View style={S.cta}>
-        <TouchableOpacity style={S.ctaBtn} onPress={() => setFav(f => !f)}>
-          <Ionicons name={fav ? 'heart' : 'heart-outline'} size={20} color={Colors.ink} />
+        <TouchableOpacity style={S.ctaBtn} onPress={() => void handleToggleFav()}>
+          <Ionicons name={fav ? 'heart' : 'heart-outline'} size={20} color={fav ? Colors.rose : Colors.ink} />
         </TouchableOpacity>
         <TouchableOpacity
           style={[S.ctaMainBtn, !productUrl && { opacity: 0.6 }]}
@@ -477,4 +554,36 @@ const S = StyleSheet.create({
     backgroundColor: Colors.ink, alignItems: 'center', justifyContent: 'center',
   },
   ctaMainText: { fontSize: 15, fontFamily: 'DMSans_700Bold', color: '#fff' },
+  codesLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginHorizontal: 20,
+    marginTop: 8,
+    padding: 14,
+    backgroundColor: Colors.amberLight,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+  },
+  codesLinkText: {
+    flex: 1,
+    fontSize: 13,
+    fontFamily: 'DMSans_600SemiBold',
+    color: Colors.ink,
+  },
+  testedBtn: {
+    marginHorizontal: 20,
+    marginTop: 12,
+    paddingVertical: 14,
+    borderRadius: 14,
+    borderWidth: 1.5,
+    borderColor: Colors.ink,
+    alignItems: 'center',
+  },
+  testedBtnText: {
+    fontSize: 14,
+    fontFamily: 'DMSans_700Bold',
+    color: Colors.ink,
+  },
 });

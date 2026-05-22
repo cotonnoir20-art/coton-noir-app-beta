@@ -8,9 +8,14 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../src/theme/colors';
-import { useApp } from '../src/context/AppContext';
+import { useApp, type GrowthEntry } from '../src/context/AppContext';
+import {
+  avgLatestGrowthCm,
+  buildPostMeasurementContext,
+} from '../src/lib/coachMoments';
 import { AppHeader } from '../src/components/AppHeader';
 import { toLocalISODate } from '../src/lib/homeGrowth';
+import { trackMeasurementSaved } from '../src/lib/growthAnalytics';
 
 const ZONES = [
   { key: 'devant',     label: 'Devant',       zone: 'Devant',       img: require('../assets/images/zone-devant.png')   },
@@ -23,7 +28,7 @@ type ZoneKey = typeof ZONES[number]['key'];
 
 export default function HairLengthScreen() {
   const router = useRouter();
-  const { state, dispatch } = useApp();
+  const { state, dispatch, queueBcTrigger } = useApp();
   const { growthHistory } = state;
 
   const TODAY = toLocalISODate(new Date());
@@ -52,6 +57,7 @@ export default function HairLengthScreen() {
     : 0;
 
   function handleSave() {
+    const wasEmpty = growthHistory.length === 0;
     let saved = false;
     ZONES.forEach(z => {
       const cm = parseFloat(values[z.key]);
@@ -60,7 +66,31 @@ export default function HairLengthScreen() {
         saved = true;
       }
     });
-    if (saved) router.back();
+    if (saved) {
+      const zonesCount = ZONES.filter(z => {
+        const cm = parseFloat(values[z.key]);
+        return !isNaN(cm) && cm > 0;
+      }).length;
+      const beforeAvg = avgLatestGrowthCm(growthHistory);
+      const added: GrowthEntry[] = ZONES.flatMap(z => {
+        const cm = parseFloat(values[z.key]);
+        return !isNaN(cm) && cm > 0 ? [{ date: TODAY, zone: z.zone, cm }] : [];
+      });
+      const afterAvg = avgLatestGrowthCm([...growthHistory, ...added]);
+      const deltaCm =
+        beforeAvg != null && afterAvg != null ? +(afterAvg - beforeAvg).toFixed(1) : null;
+      queueBcTrigger('post_measurement', buildPostMeasurementContext({
+        streak: state.streak,
+        deltaCm: wasEmpty ? null : deltaCm,
+        currentCm: afterAvg,
+      }));
+      void trackMeasurementSaved({
+        source: 'hair_length',
+        zonesCount,
+        wasFirst: wasEmpty,
+      });
+      router.back();
+    }
   }
 
   const anyFilled = ZONES.some(z => parseFloat(values[z.key]) > 0);

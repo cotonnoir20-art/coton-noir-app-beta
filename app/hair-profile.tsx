@@ -8,6 +8,8 @@ import { useApp } from '../src/context/AppContext';
 import { AppHeader } from '../src/components/AppHeader';
 import { HAIR_OBJECTIVES, normalizeObjectiveId } from '../src/constants/hairObjectives';
 import { CARE_STYLES } from '../src/constants/careStyles';
+import { ProfileCompletionCard } from '../src/components/profile/ProfileCompletionCard';
+import { getProfileCompletion } from '../src/lib/profileCompleteness';
 
 type OptionGroup = { key: string; label: string; options: string[] };
 
@@ -32,6 +34,7 @@ export default function HairProfileScreen() {
     objective: normalizeObjectiveId(profile.objective ?? ''),
   }));
   const [saved, setSaved] = useState(false);
+  const completion = getProfileCompletion(localProfile);
 
   function setValue(key: string, value: string) {
     setLocalProfile(prev => ({ ...prev, [key]: value }));
@@ -69,6 +72,15 @@ export default function HairProfileScreen() {
       />
 
       <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false}>
+        <ProfileCompletionCard
+          completion={completion}
+          onPress={() => {}}
+          compact
+        />
+        <Text style={styles.intro}>
+          Plus ton profil est précis, plus les recos (Black Cotton, recettes, produits) sont adaptées.
+        </Text>
+
         {/* Name + length */}
         <View style={styles.fieldCard}>
           <Text style={styles.fieldLabel}>Ton prénom</Text>
@@ -213,6 +225,14 @@ export default function HairProfileScreen() {
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: Colors.bg },
   scroll: { flex: 1 },
+  intro: {
+    marginHorizontal: 20,
+    marginBottom: 12,
+    fontSize: 13,
+    fontFamily: 'DMSans_400Regular',
+    color: Colors.warmGray,
+    lineHeight: 18,
+  },
 
   header: {
     flexDirection: 'row',

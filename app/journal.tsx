@@ -1,10 +1,16 @@
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
+import { useFocusEffect } from 'expo-router';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../src/theme/colors';
 import { AppHeader } from '../src/components/AppHeader';
+import {
+  loadJournalEntries,
+  storedToDisplay,
+  type JournalDisplayEntry,
+} from '../src/lib/journalStorage';
 
 type JournalEntry = {
   id: number;
@@ -70,10 +76,27 @@ function groupByMonthYear(entries: JournalEntry[]) {
 export default function JournalScreen() {
   const router = useRouter();
   const [filter, setFilter] = useState<FilterType>('tous');
+  const [userEntries, setUserEntries] = useState<JournalDisplayEntry[]>([]);
+
+  const reload = useCallback(() => {
+    void loadJournalEntries().then(list => {
+      setUserEntries(list.map(storedToDisplay));
+    });
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      reload();
+    }, [reload]),
+  );
+
+  const allEntries: JournalEntry[] = userEntries.length > 0
+    ? userEntries
+    : ALL_ENTRIES;
 
   const filtered = filter === 'tous'
-    ? ALL_ENTRIES
-    : ALL_ENTRIES.filter(e => e.type === filter);
+    ? allEntries
+    : allEntries.filter(e => e.type === filter);
 
   const groups = groupByMonthYear(filtered);
 
@@ -83,7 +106,11 @@ export default function JournalScreen() {
       {/* Header */}
       <AppHeader
         title="Journal de soins"
-        subtitle={`${ALL_ENTRIES.length} entrées · 2 ans`}
+        subtitle={
+          userEntries.length > 0
+            ? `${userEntries.length} entrée${userEntries.length > 1 ? 's' : ''}`
+            : `${ALL_ENTRIES.length} entrées · démo`
+        }
         rightAction="custom"
         rightSlot={
           <TouchableOpacity

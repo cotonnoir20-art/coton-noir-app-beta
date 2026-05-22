@@ -10,6 +10,7 @@ import { useNotifications, ICON_MAP, type Notif } from '../src/context/Notificat
 import { AppHeader } from '../src/components/AppHeader';
 import { EmptyAnimation } from '../src/components/animations/EmptyAnimation';
 import { BCEmojiAvatar } from '../src/components/blackCotton/BCEmojiAvatar';
+import { RoutineReminderSettings } from '../src/components/profile/RoutineReminderSettings';
 
 export default function NotificationsScreen() {
   const router = useRouter();
@@ -51,6 +52,11 @@ export default function NotificationsScreen() {
       />
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={S.content}>
+
+        <RoutineReminderSettings variant="card" />
+        <Text style={S.prefsHint}>
+          Centre de notifications — historique des alertes CotonCoins, routines et offres.
+        </Text>
 
         {notifs.length === 0 && (
           <View style={S.emptyBox}>
@@ -176,6 +182,14 @@ const S = StyleSheet.create({
   emptyBox:  { alignItems: 'center', paddingTop: 80, paddingHorizontal: 32 },
   emptyTitle:{ fontSize: 18, fontFamily: 'Poppins_600SemiBold', color: Colors.ink, marginBottom: 8 },
   emptyBody: { fontSize: 14, fontFamily: 'DMSans_400Regular', color: Colors.warmGray, textAlign: 'center', lineHeight: 21 },
+
+  prefsHint: {
+    fontSize: 12,
+    fontFamily: 'DMSans_400Regular',
+    color: Colors.warmGray,
+    lineHeight: 17,
+    marginBottom: 8,
+  },
 
   sectionLabel: {
     fontSize: 12, fontFamily: 'DMSans_700Bold', color: Colors.warmGray,

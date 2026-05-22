@@ -1,48 +1,37 @@
-import { useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
-  Modal, ScrollView, StyleSheet, Text, TextInput,
-  TouchableOpacity, View, KeyboardAvoidingView, Platform,
+  Alert,
+  Linking,
+  Modal,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+  KeyboardAvoidingView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../src/theme/colors';
 import { AppHeader } from '../src/components/AppHeader';
 import { EmptyAnimation } from '../src/components/animations/EmptyAnimation';
-
-type Avis = {
-  id: number;
-  produit: string;
-  marque: string;
-  categorie: string;
-  note: number;
-  commentaire: string;
-  date: string;
-  emoji: string;
-};
-
-const INITIAL_AVIS: Avis[] = [
-  {
-    id: 1, produit: 'Curl & Style Milk', marque: 'Shea Moisture',
-    categorie: 'Crème coiffante', note: 5, emoji: '🥛',
-    commentaire: 'Définition parfaite, pas d\'effet résidu. Je rachète.',
-    date: '12 avril 2026',
-  },
-  {
-    id: 2, produit: 'Jamaican Black Castor Oil', marque: 'Tropic Isle Living',
-    categorie: 'Huile', note: 4, emoji: '🥥',
-    commentaire: 'Excellente pour la croissance, odeur forte mais efficace.',
-    date: '3 mars 2026',
-  },
-  {
-    id: 3, produit: 'Deep Treatment Masque', marque: 'Camille Rose',
-    categorie: 'Masque', note: 4, emoji: '🧴',
-    commentaire: 'Cheveux très doux après utilisation, bonne hydratation.',
-    date: '18 févr. 2026',
-  },
-];
+import {
+  addUserProductReview,
+  averageReviewNote,
+  loadUserProductReviews,
+  type UserProductReview,
+} from '../src/lib/userProductReviews';
+import { trackProductEvent } from '../src/lib/productAnalytics';
 
 const CATEGORIES = ['Shampoing', 'Après-shampoing', 'Masque', 'Huile', 'Crème coiffante', 'Sérum', 'Spray', 'Autre'];
+
+const STORE_URL = Platform.select({
+  ios: 'https://apps.apple.com/app/id0000000000?action=write-review',
+  android: 'market://details?id=com.cotonnoir.app',
+  default: 'https://cotonnoir.app',
+});
 
 function Stars({ note, onSelect }: { note: number; onSelect?: (n: number) => void }) {
   return (
@@ -61,43 +50,61 @@ function Stars({ note, onSelect }: { note: number; onSelect?: (n: number) => voi
 }
 
 export default function AvisScreen() {
-  const router = useRouter();
-  const [avisList, setAvisList] = useState<Avis[]>(INITIAL_AVIS);
+  const [avisList, setAvisList] = useState<UserProductReview[]>([]);
+  const [hydrated, setHydrated] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [form, setForm] = useState({
     produit: '', marque: '', categorie: '', note: 0, commentaire: '',
   });
+
+  const reload = useCallback(async () => {
+    const list = await loadUserProductReviews();
+    setAvisList(list);
+    setHydrated(true);
+  }, []);
+
+  useEffect(() => {
+    void reload();
+  }, [reload]);
 
   function openModal() {
     setForm({ produit: '', marque: '', categorie: '', note: 0, commentaire: '' });
     setShowModal(true);
   }
 
-  function submitAvis() {
+  async function submitAvis() {
     if (!form.produit || !form.note) return;
-    const today = new Date();
-    const label = today.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
-    setAvisList(prev => [{
-      id: Date.now(),
+    const next = await addUserProductReview({
       produit: form.produit,
       marque: form.marque,
-      categorie: form.categorie || 'Autre',
+      categorie: form.categorie,
       note: form.note,
       commentaire: form.commentaire,
-      date: label,
-      emoji: '⭐',
-    }, ...prev]);
+    });
+    setAvisList(next);
     setShowModal(false);
+    void trackProductEvent('product_review_saved', {
+      note: form.note,
+      categorie: form.categorie || 'Autre',
+    });
   }
 
-  const avgNote = avisList.length
-    ? +(avisList.reduce((s, a) => s + a.note, 0) / avisList.length).toFixed(1)
-    : 0;
+  async function openStoreReview() {
+    if (!STORE_URL) return;
+    try {
+      const can = await Linking.canOpenURL(STORE_URL);
+      if (can) await Linking.openURL(STORE_URL);
+      else Alert.alert('Bientôt disponible', 'Le lien App Store / Play Store sera activé à la publication.');
+    } catch {
+      Alert.alert('Impossible d\'ouvrir la boutique', 'Réessaie plus tard.');
+    }
+  }
+
+  const avgNote = averageReviewNote(avisList);
 
   return (
     <SafeAreaView style={S.safe} edges={['top']}>
 
-      {/* Header */}
       <AppHeader
         title="Mes Avis"
         rightAction="custom"
@@ -115,33 +122,44 @@ export default function AvisScreen() {
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={S.content}>
 
-        {/* Résumé */}
-        <View style={S.summaryCard}>
-          <View style={S.summaryLeft}>
-            <Text style={S.summaryScore}>{avgNote}</Text>
-            <Stars note={Math.round(avgNote)} />
-            <Text style={S.summaryCount}>{avisList.length} avis</Text>
-          </View>
-          <View style={S.summaryDivider} />
-          <View style={S.summaryRight}>
-            {[5, 4, 3, 2, 1].map(n => {
-              const count = avisList.filter(a => a.note === n).length;
-              const pct   = avisList.length ? (count / avisList.length) * 100 : 0;
-              return (
-                <View key={n} style={S.barRow}>
-                  <Text style={S.barLabel}>{n}</Text>
-                  <Ionicons name="star" size={10} color={Colors.amber} />
-                  <View style={S.barBg}>
-                    <View style={[S.barFill, { width: `${pct}%` }]} />
-                  </View>
-                  <Text style={S.barCount}>{count}</Text>
-                </View>
-              );
-            })}
-          </View>
+        <View style={S.storeCard}>
+          <Text style={S.storeTitle}>Aider la communauté sur les stores</Text>
+          <Text style={S.storeSub}>
+            Tes avis produits restent privés dans l&apos;app. Pour la confiance sur App Store / Play Store, laisse une note publique quand tu es prête.
+          </Text>
+          <TouchableOpacity style={S.storeBtn} onPress={() => void openStoreReview()}>
+            <Ionicons name="star" size={16} color={Colors.ink} />
+            <Text style={S.storeBtnText}>Noter Coton Noir sur le store</Text>
+          </TouchableOpacity>
         </View>
 
-        {/* Liste */}
+        {hydrated && avisList.length > 0 ? (
+          <View style={S.summaryCard}>
+            <View style={S.summaryLeft}>
+              <Text style={S.summaryScore}>{avgNote}</Text>
+              <Stars note={Math.round(avgNote)} />
+              <Text style={S.summaryCount}>{avisList.length} avis enregistrés</Text>
+            </View>
+            <View style={S.summaryDivider} />
+            <View style={S.summaryRight}>
+              {[5, 4, 3, 2, 1].map(n => {
+                const count = avisList.filter(a => a.note === n).length;
+                const pct   = avisList.length ? (count / avisList.length) * 100 : 0;
+                return (
+                  <View key={n} style={S.barRow}>
+                    <Text style={S.barLabel}>{n}</Text>
+                    <Ionicons name="star" size={10} color={Colors.amber} />
+                    <View style={S.barBg}>
+                      <View style={[S.barFill, { width: `${pct}%` }]} />
+                    </View>
+                    <Text style={S.barCount}>{count}</Text>
+                  </View>
+                );
+              })}
+            </View>
+          </View>
+        ) : null}
+
         <Text style={S.secTitle}>Tous les avis</Text>
         {avisList.map(a => (
           <View key={a.id} style={S.card}>
@@ -156,16 +174,16 @@ export default function AvisScreen() {
               <Stars note={a.note} />
             </View>
             {!!a.commentaire && (
-              <Text style={S.cardComment}>"{a.commentaire}"</Text>
+              <Text style={S.cardComment}>&quot;{a.commentaire}&quot;</Text>
             )}
             <Text style={S.cardDate}>{a.date}</Text>
           </View>
         ))}
 
-        {avisList.length === 0 && (
+        {hydrated && avisList.length === 0 && (
           <View style={S.emptyBox}>
             <EmptyAnimation emoji="⭐" size={92} style={{ marginBottom: 12 }} />
-            <Text style={S.emptyTitle}>Aucun avis pour l'instant</Text>
+            <Text style={S.emptyTitle}>Aucun avis pour l&apos;instant</Text>
             <Text style={S.emptyBody}>Note les produits que tu utilises pour suivre ce qui fonctionne vraiment pour tes cheveux.</Text>
             <TouchableOpacity style={S.emptyBtn} onPress={openModal}>
               <Text style={S.emptyBtnText}>Ajouter un avis</Text>
@@ -176,7 +194,6 @@ export default function AvisScreen() {
         <View style={{ height: 24 }} />
       </ScrollView>
 
-      {/* Modal Nouvel avis */}
       <Modal visible={showModal} transparent animationType="slide" onRequestClose={() => setShowModal(false)}>
         <View style={S.modalOverlay}>
           <TouchableOpacity style={S.modalBackdrop} activeOpacity={1} onPress={() => setShowModal(false)} />
@@ -193,13 +210,11 @@ export default function AvisScreen() {
 
               <ScrollView showsVerticalScrollIndicator={false}>
 
-                {/* Note */}
                 <Text style={S.fieldLabel}>Note *</Text>
                 <View style={{ marginBottom: 20 }}>
                   <Stars note={form.note} onSelect={n => setForm(f => ({ ...f, note: n }))} />
                 </View>
 
-                {/* Produit */}
                 <Text style={S.fieldLabel}>Nom du produit *</Text>
                 <TextInput
                   style={S.input}
@@ -209,7 +224,6 @@ export default function AvisScreen() {
                   placeholderTextColor={Colors.border}
                 />
 
-                {/* Marque */}
                 <Text style={S.fieldLabel}>Marque</Text>
                 <TextInput
                   style={S.input}
@@ -219,7 +233,6 @@ export default function AvisScreen() {
                   placeholderTextColor={Colors.border}
                 />
 
-                {/* Catégorie */}
                 <Text style={S.fieldLabel}>Catégorie</Text>
                 <View style={S.pillsRow}>
                   {CATEGORIES.map(c => (
@@ -233,7 +246,6 @@ export default function AvisScreen() {
                   ))}
                 </View>
 
-                {/* Commentaire */}
                 <Text style={S.fieldLabel}>Commentaire</Text>
                 <TextInput
                   style={[S.input, S.inputMulti]}
@@ -246,10 +258,10 @@ export default function AvisScreen() {
 
                 <TouchableOpacity
                   style={[S.submitBtn, (!form.produit || !form.note) && S.submitBtnDisabled]}
-                  onPress={submitAvis}
+                  onPress={() => void submitAvis()}
                   disabled={!form.produit || !form.note}
                 >
-                  <Text style={S.submitBtnText}>Publier l'avis</Text>
+                  <Text style={S.submitBtnText}>Enregistrer l&apos;avis</Text>
                 </TouchableOpacity>
 
                 <View style={{ height: 16 }} />
@@ -267,22 +279,42 @@ const S = StyleSheet.create({
   safe:    { flex: 1, backgroundColor: Colors.bg },
   content: { paddingHorizontal: 20, paddingTop: 8 },
 
-  header: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: 16, paddingVertical: 12,
-  },
-  backBtn: {
-    width: 36, height: 36, borderRadius: 18,
-    backgroundColor: Colors.surface, borderWidth: 1, borderColor: Colors.border,
-    alignItems: 'center', justifyContent: 'center',
-  },
-  headerTitle: { fontSize: 20, fontFamily: 'Poppins_700Bold', color: Colors.ink },
   addBtn: {
     width: 36, height: 36, borderRadius: 18,
     backgroundColor: Colors.ink, alignItems: 'center', justifyContent: 'center',
   },
 
-  // Summary card
+  storeCard: {
+    backgroundColor: Colors.ink,
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 20,
+  },
+  storeTitle: {
+    fontSize: 15,
+    fontFamily: 'DMSans_700Bold',
+    color: '#fff',
+    marginBottom: 6,
+  },
+  storeSub: {
+    fontSize: 12,
+    fontFamily: 'DMSans_400Regular',
+    color: 'rgba(255,255,255,0.65)',
+    lineHeight: 18,
+    marginBottom: 12,
+  },
+  storeBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    alignSelf: 'flex-start',
+    backgroundColor: Colors.amber,
+    borderRadius: 999,
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+  },
+  storeBtnText: { fontSize: 13, fontFamily: 'DMSans_700Bold', color: Colors.ink },
+
   summaryCard: {
     backgroundColor: Colors.surface, borderRadius: 18, borderWidth: 1, borderColor: Colors.border,
     padding: 18, flexDirection: 'row', alignItems: 'center', gap: 16, marginBottom: 24,
@@ -300,7 +332,6 @@ const S = StyleSheet.create({
 
   secTitle: { fontSize: 17, fontFamily: 'Poppins_600SemiBold', color: Colors.ink, marginBottom: 12 },
 
-  // Avis card
   card: {
     backgroundColor: Colors.surface, borderRadius: 16, borderWidth: 1, borderColor: Colors.border,
     padding: 16, marginBottom: 12,
@@ -312,14 +343,12 @@ const S = StyleSheet.create({
   cardComment:{ fontSize: 13, fontFamily: 'DMSans_400Regular', color: Colors.ink, lineHeight: 20, fontStyle: 'italic', marginBottom: 8 },
   cardDate:   { fontSize: 11, fontFamily: 'DMSans_400Regular', color: Colors.warmGray },
 
-  // Empty
   emptyBox:    { alignItems: 'center', paddingTop: 48, paddingHorizontal: 32 },
   emptyTitle:  { fontSize: 17, fontFamily: 'Poppins_600SemiBold', color: Colors.ink, marginBottom: 8 },
   emptyBody:   { fontSize: 13, fontFamily: 'DMSans_400Regular', color: Colors.warmGray, textAlign: 'center', lineHeight: 20, marginBottom: 20 },
   emptyBtn:    { backgroundColor: Colors.ink, borderRadius: 14, paddingHorizontal: 24, paddingVertical: 13 },
   emptyBtnText:{ fontSize: 14, fontFamily: 'DMSans_700Bold', color: '#fff' },
 
-  // Modal
   modalOverlay:  { flex: 1, justifyContent: 'flex-end' },
   modalBackdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.4)' },
   modalWrap:     { justifyContent: 'flex-end' },

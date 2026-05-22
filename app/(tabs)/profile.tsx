@@ -1,14 +1,18 @@
-import { useCallback, useEffect, useState } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { ActivityIndicator, Alert, Image, Modal, RefreshControl, ScrollView, StyleSheet, Switch, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { ActivityIndicator, Alert, Image, Modal, RefreshControl, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { supabase } from '../../src/lib/supabase';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { Colors } from '../../src/theme/colors';
 import { useApp } from '../../src/context/AppContext';
+import { scheduleRoutineReminder } from '../../src/lib/routineReminder';
+import { getProfileCompletion } from '../../src/lib/profileCompleteness';
+import { ProfileCompletionCard } from '../../src/components/profile/ProfileCompletionCard';
+import { RoutineReminderSettings } from '../../src/components/profile/RoutineReminderSettings';
+import { loadUserPrefs, saveUserPrefs } from '../../src/lib/userPrefs';
 import { useAuth } from '../../src/context/AuthContext';
 import { useBlackCotton } from '../../src/components/blackCotton';
 import { CoinIcon } from '../../src/components/CoinIcon';
@@ -21,12 +25,16 @@ import { openSafeMailto } from '../../src/lib/safeLinking';
 const AVATAR_EMOJIS = ['👩🏾‍🦱', '👩🏿‍🦱', '👩🏽‍🦱', '🌸', '🌿', '🦋', '🌺', '✨', '🌙', '💎', '🪄', '🔥'];
 const AVATAR_COLORS = ['#B45309', '#4C1D95', '#1A4731', '#3D2B1F', '#164E63', '#831843', '#374151', '#3B0764'];
 
-const PREOCCUPATIONS = [
-  { label: 'Sécheresse', color: Colors.blush,    text: Colors.rose  },
-  { label: 'Pointes',    color: Colors.amberLight, text: Colors.amberDark },
-  { label: 'Casse',      color: Colors.cream,      text: Colors.warmGray  },
-  { label: 'Volume',     color: Colors.sageLight,  text: Colors.sage      },
-];
+const PREOCCUPATION_STYLE: Record<string, { color: string; text: string }> = {
+  Sécheresse: { color: Colors.blush, text: Colors.rose },
+  Pointes: { color: Colors.amberLight, text: Colors.amberDark },
+  Casse: { color: Colors.cream, text: Colors.warmGray },
+  Volume: { color: Colors.sageLight, text: Colors.sage },
+  'Fourches': { color: Colors.blush, text: Colors.rose },
+  'Nœuds': { color: Colors.cream, text: Colors.warmGray },
+  Pellicules: { color: Colors.sageLight, text: Colors.sage },
+  Rétraction: { color: Colors.amberLight, text: Colors.amberDark },
+};
 
 const CONSEILS = [
   { icon: '🧡', title: 'Profil à jour',      desc: 'Un profil complet = des recommandations plus précises. Mets-le à jour après chaque changement capillaire.' },
@@ -76,7 +84,7 @@ export default function ProfileScreen() {
   const { signOut, session } = useAuth();
   const { fire } = useBlackCotton();
   const { achievements, unlockedCount, totalCount } = useAchievements();
-  const [notifEnabled, setNotifEnabled]   = useState(true);
+  const [notifEnabled, setNotifEnabled] = useState(true);
   const [avatarEmoji, setAvatarEmoji]     = useState('👩🏾‍🦱');
   const [avatarBg, setAvatarBg]           = useState('#3A1A0A');
   const [avatarPhoto, setAvatarPhoto]     = useState<string | null>(null);
@@ -118,7 +126,7 @@ export default function ProfileScreen() {
   const [showProtectiveModal, setShowProtectiveModal] = useState(false);
   const [rappelHour, setRappelHour]     = useState(21);
   const [rappelMin, setRappelMin]       = useState(0);
-  const [showRappel, setShowRappel]     = useState(false);
+  const [rappelRoutine, setRappelRoutine] = useState<'daily' | 'night'>('night');
   const [langue, setLangue]             = useState<'fr' | 'en'>('fr');
   const [showLangue, setShowLangue]     = useState(false);
 
@@ -173,43 +181,91 @@ export default function ProfileScreen() {
     }
   }
 
-  const rappelLabel = `${String(rappelHour).padStart(2, '0')}:${String(rappelMin).padStart(2, '0')}`;
+  const profileCompletion = useMemo(() => getProfileCompletion(profile), [profile]);
 
-  const PREFS_KEY = '@coton_noir_prefs';
+  const userPreoccupations = profile.problematics?.length
+    ? profile.problematics
+    : [];
 
-  useEffect(() => {
-    AsyncStorage.getItem(PREFS_KEY).then(raw => {
-      if (raw) {
-        try {
-          const p = JSON.parse(raw);
-          if (p.avatarEmoji)                setAvatarEmoji(p.avatarEmoji);
-          if (p.avatarBg)                   setAvatarBg(p.avatarBg);
-          if (p.avatarPhoto)                setAvatarPhoto(p.avatarPhoto);
-          if (p.isProtective !== undefined) setIsProtective(p.isProtective);
-          if (p.protectiveType)             setProtectiveType(p.protectiveType);
-          if (p.rappelHour !== undefined)   setRappelHour(p.rappelHour);
-          if (p.rappelMin  !== undefined)   setRappelMin(p.rappelMin);
-          if (p.notifEnabled !== undefined) setNotifEnabled(p.notifEnabled);
-          if (p.langue)                     setLangue(p.langue);
-        } catch {}
-      }
-      setPrefsLoaded(true);
-    });
+  const applyPrefs = useCallback((p: Awaited<ReturnType<typeof loadUserPrefs>>) => {
+    if (p.avatarEmoji) setAvatarEmoji(p.avatarEmoji);
+    if (p.avatarBg) setAvatarBg(p.avatarBg);
+    if (p.avatarPhoto) setAvatarPhoto(p.avatarPhoto);
+    if (p.isProtective !== undefined) setIsProtective(p.isProtective);
+    if (p.protectiveType) setProtectiveType(p.protectiveType);
+    if (p.rappelHour !== undefined) setRappelHour(p.rappelHour);
+    if (p.rappelMin !== undefined) setRappelMin(p.rappelMin);
+    if (p.rappelRoutine === 'daily' || p.rappelRoutine === 'night') {
+      setRappelRoutine(p.rappelRoutine);
+    }
+    if (p.notifEnabled !== undefined) setNotifEnabled(p.notifEnabled);
+    if (p.langue === 'en' || p.langue === 'fr') setLangue(p.langue);
   }, []);
 
   useEffect(() => {
-    if (!prefsLoaded) return; // évite d'écraser les prefs avant le 1er load
-    AsyncStorage.setItem(PREFS_KEY, JSON.stringify({
-      avatarEmoji, avatarBg, avatarPhoto,
-      isProtective, protectiveType,
-      rappelHour, rappelMin,
-      notifEnabled, langue,
-    }));
-  }, [prefsLoaded, avatarEmoji, avatarBg, avatarPhoto, isProtective, protectiveType, rappelHour, rappelMin, notifEnabled, langue]);
+    void loadUserPrefs().then(p => {
+      applyPrefs(p);
+      setPrefsLoaded(true);
+    });
+  }, [applyPrefs]);
 
-  const level     = getCurrentLevel(coins);
-  const nextLevel = getNextLevel(coins);
-  const progress  = getLevelProgress(coins);
+  useFocusEffect(
+    useCallback(() => {
+      if (!prefsLoaded) return;
+      void loadUserPrefs().then(applyPrefs);
+    }, [prefsLoaded, applyPrefs]),
+  );
+
+  useEffect(() => {
+    if (!prefsLoaded) return;
+    void (async () => {
+      const payload = {
+        avatarEmoji,
+        avatarBg,
+        avatarPhoto,
+        isProtective,
+        protectiveType,
+        rappelHour,
+        rappelMin,
+        rappelRoutine,
+        notifEnabled,
+        langue,
+      };
+      await saveUserPrefs(payload);
+      await scheduleRoutineReminder(payload);
+    })();
+  }, [
+    prefsLoaded,
+    avatarEmoji,
+    avatarBg,
+    avatarPhoto,
+    isProtective,
+    protectiveType,
+    rappelHour,
+    rappelMin,
+    rappelRoutine,
+    notifEnabled,
+    langue,
+  ]);
+
+  function handleDeleteAccount() {
+    Alert.alert(
+      'Supprimer le compte',
+      'Cette action est irréversible. Écris-nous à support@coton-noir.com avec l’email de ton compte pour demander la suppression de tes données.',
+      [
+        { text: 'Annuler', style: 'cancel' },
+        {
+          text: 'Contacter le support',
+          onPress: () => openSafeMailto('support@coton-noir.com?subject=Suppression%20compte%20Coton%20Noir'),
+        },
+      ],
+    );
+  }
+
+  const { totalEarned } = state;
+  const level     = getCurrentLevel(totalEarned);
+  const nextLevel = getNextLevel(totalEarned);
+  const progress  = getLevelProgress(totalEarned);
 
   const recentHistory = coinHistory.slice(0, 3);
 
@@ -287,10 +343,10 @@ export default function ProfileScreen() {
           </View>
 
           <View style={S.levelFooter}>
-            <Text style={S.levelCC}>{coins} CC</Text>
+            <Text style={S.levelCC}>{totalEarned} pts cumulés</Text>
             {nextLevel && (
               <Text style={S.levelNext}>
-                Prochain : {nextLevel.name} à {nextLevel.min} CC · {progress}%
+                Prochain : {nextLevel.name} à {nextLevel.min} pts · {progress}%
               </Text>
             )}
           </View>
@@ -328,9 +384,14 @@ export default function ProfileScreen() {
           )}
         </View>
 
+        <ProfileCompletionCard
+          completion={profileCompletion}
+          onPress={() => router.push('/hair-profile')}
+        />
+
         {/* ── Profil capillaire ── */}
         <View style={S.sectionHeader}>
-          <Text style={S.secTitle}>Mon profil capillaire</Text>
+          <Text style={S.secTitle}>Affiner le profil capillaire</Text>
           <TouchableOpacity style={S.modifierBtn} onPress={() => router.push('/hair-profile')}>
             <Ionicons name="pencil-outline" size={13} color={Colors.amber} />
             <Text style={S.modifierText}>Modifier</Text>
@@ -391,28 +452,21 @@ export default function ProfileScreen() {
           </TouchableOpacity>
         )}
 
-        {/* ── Bannière compléter profil ── */}
-        <TouchableOpacity style={S.profileBanner} onPress={() => router.push('/hair-profile')}>
-          <View style={S.profileBannerIcon}>
-            <Text style={{ fontSize: 20 }}>🏆</Text>
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={S.profileBannerTitle}>Compléter mon profil capillaire</Text>
-            <Text style={S.profileBannerSub}>Reçois des conseils et coiffures personnalisés</Text>
-          </View>
-          <Ionicons name="chevron-forward" size={18} color={Colors.warmGray} />
-        </TouchableOpacity>
-
-        {/* ── Préoccupations ── */}
+        {/* ── Préoccupations (profil capillaire) ── */}
         <Text style={S.secTitle}>Préoccupations</Text>
         <View style={S.preoccRow}>
-          {PREOCCUPATIONS.map((p, i) => (
-            <View key={i} style={[S.preoccPill, { backgroundColor: p.color }]}>
-              <Text style={[S.preoccText, { color: p.text }]}>{p.label}</Text>
-            </View>
-          ))}
-          <TouchableOpacity style={S.preoccAdd}>
-            <Text style={S.preoccAddText}>+ Ajouter</Text>
+          {userPreoccupations.map(label => {
+            const style = PREOCCUPATION_STYLE[label] ?? { color: Colors.cream, text: Colors.ink };
+            return (
+              <View key={label} style={[S.preoccPill, { backgroundColor: style.color }]}>
+                <Text style={[S.preoccText, { color: style.text }]}>{label}</Text>
+              </View>
+            );
+          })}
+          <TouchableOpacity style={S.preoccAdd} onPress={() => router.push('/hair-profile')}>
+            <Text style={S.preoccAddText}>
+              {userPreoccupations.length ? '+ Modifier' : '+ Ajouter'}
+            </Text>
           </TouchableOpacity>
         </View>
 
@@ -448,7 +502,12 @@ export default function ProfileScreen() {
             })
             .slice(0, 6)
             .map(a => (
-              <View key={a.def.id} style={[S.badgeCard, !a.unlocked && S.badgeLocked]}>
+              <TouchableOpacity
+                key={a.def.id}
+                style={[S.badgeCard, !a.unlocked && S.badgeLocked]}
+                onPress={() => router.push('/achievements' as any)}
+                activeOpacity={0.85}
+              >
                 <Text style={[S.badgeEmoji, !a.unlocked && { opacity: 0.4 }]}>{a.def.emoji}</Text>
                 <Text style={S.badgeName} numberOfLines={1}>{a.def.name}</Text>
                 <Text style={S.badgeDesc} numberOfLines={2}>{a.def.desc}</Text>
@@ -456,7 +515,7 @@ export default function ProfileScreen() {
                   ? <Text style={S.badgeDate}>{a.unlockedAt ? formatBadgeDate(a.unlockedAt) : 'Débloqué'}</Text>
                   : <Text style={S.badgeLockLabel}>{a.progress > 0 ? `${Math.round(a.progress * 100)}%` : 'Verrouillé'}</Text>
                 }
-              </View>
+              </TouchableOpacity>
             ))}
         </View>
 
@@ -475,8 +534,65 @@ export default function ProfileScreen() {
           ))}
         </View>
 
-        {/* ── Paramètres ── */}
-        <Text style={S.secTitle}>Paramètres</Text>
+        {/* ── Communauté & viralité ── */}
+        <Text style={S.secTitle}>Communauté & viralité</Text>
+        <View style={S.settingsCard}>
+          <TouchableOpacity style={S.settingsRow} onPress={() => router.push('/community' as any)}>
+            <View style={S.settingsLeft}>
+              <View style={S.settingsIconBox}>
+                <Ionicons name="chatbubbles-outline" size={18} color={Colors.sage} />
+              </View>
+              <Text style={S.settingsLabel}>Communauté</Text>
+            </View>
+            <View style={S.settingsRight}>
+              <Text style={S.settingsValue}>Posts & avant/après</Text>
+              <Ionicons name="chevron-forward" size={15} color={Colors.border} />
+            </View>
+          </TouchableOpacity>
+          <TouchableOpacity style={[S.settingsRow, S.settingsBorder]} onPress={() => router.push('/hydra-challenge' as any)}>
+            <View style={S.settingsLeft}>
+              <View style={S.settingsIconBox}>
+                <Ionicons name="water-outline" size={18} color={Colors.amberDark} />
+              </View>
+              <Text style={S.settingsLabel}>Hydra Challenge 30</Text>
+            </View>
+            <View style={S.settingsRight}>
+              <Text style={S.settingsValue}>Classement</Text>
+              <Ionicons name="chevron-forward" size={15} color={Colors.border} />
+            </View>
+          </TouchableOpacity>
+          <TouchableOpacity style={[S.settingsRow, S.settingsBorder]} onPress={() => router.push('/highlights' as any)}>
+            <View style={S.settingsLeft}>
+              <View style={S.settingsIconBox}>
+                <Ionicons name="flash-outline" size={18} color={Colors.amberDark} />
+              </View>
+              <Text style={S.settingsLabel}>Moments forts</Text>
+            </View>
+            <View style={S.settingsRight}>
+              <Text style={S.settingsValue}>Défis & actus</Text>
+              <Ionicons name="chevron-forward" size={15} color={Colors.border} />
+            </View>
+          </TouchableOpacity>
+          <TouchableOpacity style={[S.settingsRow, S.settingsBorder]} onPress={() => router.push('/invite' as any)}>
+            <View style={S.settingsLeft}>
+              <View style={S.settingsIconBox}>
+                <Ionicons name="gift-outline" size={18} color={Colors.rose} />
+              </View>
+              <Text style={S.settingsLabel}>Inviter une amie</Text>
+            </View>
+            <View style={S.settingsRight}>
+              <Text style={S.settingsValue}>CotonCoins</Text>
+              <Ionicons name="chevron-forward" size={15} color={Colors.border} />
+            </View>
+          </TouchableOpacity>
+        </View>
+
+        {/* ── Rappels ── */}
+        <Text style={S.secTitle}>Rappels & notifications</Text>
+        <RoutineReminderSettings variant="card" />
+
+        {/* ── Compte & légal ── */}
+        <Text style={S.secTitle}>Compte & sérénité</Text>
         <View style={S.settingsCard}>
 
           {/* Email */}
@@ -507,34 +623,16 @@ export default function ProfileScreen() {
             </View>
           </TouchableOpacity>
 
-          {/* Notifications */}
+          {/* Centre notifications */}
           <TouchableOpacity style={[S.settingsRow, S.settingsBorder]} onPress={() => router.push('/notifications')}>
             <View style={S.settingsLeft}>
               <View style={S.settingsIconBox}>
                 <Ionicons name="notifications-outline" size={18} color={Colors.warmGray} />
               </View>
-              <Text style={S.settingsLabel}>Notifications</Text>
+              <Text style={S.settingsLabel}>Centre notifications</Text>
             </View>
             <View style={S.settingsRight}>
-              <Switch
-                value={notifEnabled}
-                onValueChange={setNotifEnabled}
-                trackColor={{ false: Colors.border, true: Colors.sage }}
-                thumbColor="#fff"
-              />
-            </View>
-          </TouchableOpacity>
-
-          {/* Rappels du soir */}
-          <TouchableOpacity style={[S.settingsRow, S.settingsBorder]} onPress={() => setShowRappel(true)}>
-            <View style={S.settingsLeft}>
-              <View style={S.settingsIconBox}>
-                <Ionicons name="moon-outline" size={18} color={Colors.warmGray} />
-              </View>
-              <Text style={S.settingsLabel}>Rappels du soir</Text>
-            </View>
-            <View style={S.settingsRight}>
-              <Text style={S.settingsValue}>{rappelLabel}</Text>
+              <Text style={S.settingsValue}>Historique</Text>
               <Ionicons name="chevron-forward" size={15} color={Colors.border} />
             </View>
           </TouchableOpacity>
@@ -616,20 +714,21 @@ export default function ProfileScreen() {
             </View>
           ))}
         </ScrollView>
-        <View style={S.aboutMeta}>
-          <Text style={S.aboutMetaName}>🪡 Coton Noir</Text>
-          <Text style={S.aboutMetaRights}>© 2026 Coton Noir · Tous droits réservés</Text>
-          <Text style={S.aboutMetaVersion}>V 1.0.0-beta</Text>
-        </View>
 
         {/* ── Actions compte ── */}
         <TouchableOpacity style={S.logoutBtn} onPress={signOut}>
           <Text style={S.logoutText}>Se déconnecter</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={S.deleteBtn}>
+        <TouchableOpacity style={S.deleteBtn} onPress={handleDeleteAccount}>
           <Text style={S.deleteText}>Supprimer le compte</Text>
           <Text style={S.deleteHint}>Irréversible</Text>
         </TouchableOpacity>
+
+        <View style={S.aboutMeta}>
+          <Text style={S.aboutMetaName}>🪡 Coton Noir</Text>
+          <Text style={S.aboutMetaRights}>© 2026 Coton Noir · Tous droits réservés</Text>
+          <Text style={S.aboutMetaVersion}>V 1.0.0-beta</Text>
+        </View>
 
         <View style={{ height: 32 }} />
       </ScrollView>
@@ -658,9 +757,15 @@ export default function ProfileScreen() {
             <TouchableOpacity
               style={[S.protectiveConfirmBtn, !protectiveType && { opacity: 0.4 }]}
               disabled={!protectiveType}
-              onPress={() => { setIsProtective(true); setShowProtectiveModal(false); fire('protective_mode_on'); }}
+              onPress={() => {
+                setIsProtective(true);
+                setRappelRoutine('night');
+                setShowProtectiveModal(false);
+                fire('protective_mode_on');
+                router.push('/(tabs)/routine?routine=night' as any);
+              }}
             >
-              <Text style={S.protectiveConfirmText}>Activer le mode</Text>
+              <Text style={S.protectiveConfirmText}>Activer · Voir routine soir</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -730,51 +835,6 @@ export default function ProfileScreen() {
             </TouchableOpacity>
           </View>
         </View>
-      </Modal>
-
-      {/* ── Modal Rappels du soir ── */}
-      <Modal visible={showRappel} transparent animationType="fade" onRequestClose={() => setShowRappel(false)}>
-        <TouchableOpacity style={S.modalOverlay} activeOpacity={1} onPress={() => setShowRappel(false)}>
-          <TouchableOpacity activeOpacity={1} style={S.modalSheet}>
-            <View style={S.modalHeader}>
-              <Text style={S.modalTitle}>Rappels du soir</Text>
-              <TouchableOpacity onPress={() => setShowRappel(false)} style={S.modalClose}>
-                <Ionicons name="close" size={18} color={Colors.ink} />
-              </TouchableOpacity>
-            </View>
-            <Text style={S.modalSub}>Choisir l'heure du rappel quotidien</Text>
-
-            <View style={S.timeRow}>
-              {/* Heures */}
-              <View style={S.timeCol}>
-                <TouchableOpacity style={S.timeBtn} onPress={() => setRappelHour(h => (h + 1) % 24)}>
-                  <Ionicons name="chevron-up" size={22} color={Colors.ink} />
-                </TouchableOpacity>
-                <Text style={S.timeVal}>{String(rappelHour).padStart(2, '0')}</Text>
-                <TouchableOpacity style={S.timeBtn} onPress={() => setRappelHour(h => (h + 23) % 24)}>
-                  <Ionicons name="chevron-down" size={22} color={Colors.ink} />
-                </TouchableOpacity>
-              </View>
-
-              <Text style={S.timeSep}>:</Text>
-
-              {/* Minutes */}
-              <View style={S.timeCol}>
-                <TouchableOpacity style={S.timeBtn} onPress={() => setRappelMin(m => (m + 5) % 60)}>
-                  <Ionicons name="chevron-up" size={22} color={Colors.ink} />
-                </TouchableOpacity>
-                <Text style={S.timeVal}>{String(rappelMin).padStart(2, '0')}</Text>
-                <TouchableOpacity style={S.timeBtn} onPress={() => setRappelMin(m => (m + 55) % 60)}>
-                  <Ionicons name="chevron-down" size={22} color={Colors.ink} />
-                </TouchableOpacity>
-              </View>
-            </View>
-
-            <TouchableOpacity style={S.modalBtn} onPress={() => setShowRappel(false)}>
-              <Text style={S.modalBtnText}>Confirmer · {rappelLabel}</Text>
-            </TouchableOpacity>
-          </TouchableOpacity>
-        </TouchableOpacity>
       </Modal>
 
       {/* ── Modal Email ── */}
@@ -1195,9 +1255,14 @@ const S = StyleSheet.create({
   aboutCardTitle: { fontSize: 13, fontFamily: 'DMSans_700Bold', color: Colors.ink, marginBottom: 4 },
   aboutCardDesc:  { fontSize: 11, fontFamily: 'DMSans_400Regular', color: Colors.warmGray, lineHeight: 16 },
   aboutMeta: {
-    alignItems: 'center', paddingTop: 16, paddingBottom: 18,
-    marginHorizontal: 20, marginTop: 4, marginBottom: 12,
-    borderTopWidth: 1, borderTopColor: Colors.border,
+    alignItems: 'center',
+    paddingTop: 16,
+    paddingBottom: 18,
+    marginHorizontal: 20,
+    marginTop: 8,
+    marginBottom: 12,
+    borderTopWidth: 1,
+    borderTopColor: Colors.border,
   },
   aboutMetaName:    { fontSize: 13, fontFamily: 'DMSans_700Bold', color: Colors.ink, marginBottom: 4 },
   aboutMetaRights:  { fontSize: 11, fontFamily: 'DMSans_400Regular', color: Colors.warmGray, marginBottom: 3 },
@@ -1205,8 +1270,13 @@ const S = StyleSheet.create({
 
   // ── Account actions ──
   logoutBtn: {
-    marginHorizontal: 20, borderRadius: 14, paddingVertical: 14,
-    alignItems: 'center', borderWidth: 1.5, borderColor: Colors.amber,
+    marginHorizontal: 20,
+    marginTop: 12,
+    borderRadius: 14,
+    paddingVertical: 14,
+    alignItems: 'center',
+    borderWidth: 1.5,
+    borderColor: Colors.amber,
     marginBottom: 10,
   },
   logoutText:  { fontSize: 14, fontFamily: 'DMSans_700Bold', color: Colors.amber },
@@ -1230,6 +1300,34 @@ const S = StyleSheet.create({
   modalTitle:  { fontSize: 17, fontFamily: 'DMSans_700Bold', color: Colors.ink },
   modalClose:  { width: 30, height: 30, borderRadius: 15, backgroundColor: Colors.cream, alignItems: 'center', justifyContent: 'center' },
   modalSub:    { fontSize: 12, fontFamily: 'DMSans_400Regular', color: Colors.warmGray, marginBottom: 24 },
+
+  rappelKindRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginBottom: 20,
+  },
+  rappelKindChip: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: Colors.border,
+    backgroundColor: Colors.surface,
+    alignItems: 'center',
+  },
+  rappelKindChipActive: {
+    borderColor: Colors.amber,
+    backgroundColor: Colors.amberLight,
+  },
+  rappelKindText: {
+    fontSize: 14,
+    fontFamily: 'DMSans_600SemiBold',
+    color: Colors.warmGray,
+  },
+  rappelKindTextActive: {
+    color: Colors.ink,
+    fontFamily: 'DMSans_700Bold',
+  },
 
   // Time picker
   timeRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 24 },

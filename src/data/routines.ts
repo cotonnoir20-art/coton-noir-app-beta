@@ -22,7 +22,7 @@ export const ROUTINE_TYPES: Record<RoutineType, { label: string; emoji: string; 
     ],
   },
   daily: {
-    label: 'Quotidienne',
+    label: 'Matin',
     emoji: '🌤️',
     steps: [
       { id: 1, title: 'Humidification', duration: '3 min',  desc: "Vaporise de l'eau ou un spray sur les longueurs.",          products: ['Spray eau florale'] },
@@ -42,3 +42,10 @@ export const ROUTINE_TYPES: Record<RoutineType, { label: string; emoji: string; 
     ],
   },
 };
+
+/** Libellé accueil / CTA (« Routine matin », « Routine soir »). */
+export function getRoutineHomeLabel(type: RoutineType): string {
+  if (type === 'daily') return 'Routine matin';
+  if (type === 'night') return 'Routine soir';
+  return `Routine ${ROUTINE_TYPES[type].label}`;
+}

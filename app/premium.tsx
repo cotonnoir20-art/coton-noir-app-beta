@@ -1,4 +1,5 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import { useLocalSearchParams } from 'expo-router';
 import { ActivityIndicator, Alert, ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -10,6 +11,9 @@ import { useAuth } from '../src/context/AuthContext';
 import { getDemoPopinContent, isDemoEmail } from '../src/data/demoUsers';
 import { startPremiumCheckout } from '../src/lib/premiumPurchase';
 import type { PremiumPlanId } from '../src/lib/premiumIap';
+import { usePremium } from '../src/context/PremiumContext';
+import { PREMIUM_MOMENTS, type PremiumMomentId } from '../src/data/premiumMoments';
+import { getPremiumFirstValues, markPremiumFirstValue, TRIAL_DAYS } from '../src/lib/premiumTrial';
 
 type Feature = {
   title: string;
@@ -131,6 +135,14 @@ const FAQ = [
 
 export default function PremiumScreen() {
   const { session } = useAuth();
+  const { hasAccess, trialDaysLeft, startTrial, refreshPremium } = usePremium();
+  const params = useLocalSearchParams<{ moment?: string; trial?: string }>();
+  const momentParam = typeof params.moment === 'string' ? params.moment : undefined;
+  const momentConfig =
+    momentParam && momentParam in PREMIUM_MOMENTS
+      ? PREMIUM_MOMENTS[momentParam as PremiumMomentId]
+      : null;
+
   const userEmail = session?.user?.email ?? null;
   const isDemo = isDemoEmail(userEmail);
   const demoPopin = userEmail ? getDemoPopinContent(userEmail, 'premium') : null;
@@ -140,6 +152,12 @@ export default function PremiumScreen() {
   const [freeTrial, setFreeTrial] = useState(true);
   const [demoPopinOpen, setDemoPopinOpen] = useState(false);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
+  const [firstValues, setFirstValues] = useState<string[]>([]);
+
+  useEffect(() => {
+    void getPremiumFirstValues().then(v => setFirstValues(v));
+    void refreshPremium();
+  }, [refreshPremium]);
 
   const onSubscribe = useCallback(async () => {
     if (isDemo && demoPopin) {
@@ -161,6 +179,33 @@ export default function PremiumScreen() {
       <AppHeader title="Premium" />
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={S.content}>
+
+        {momentConfig ? (
+          <View style={S.contextCard}>
+            <Text style={S.contextLabel}>POUR TOI MAINTENANT</Text>
+            <Text style={S.contextTitle}>{momentConfig.title}</Text>
+            <Text style={S.contextSub}>{momentConfig.subtitle}</Text>
+          </View>
+        ) : null}
+
+        {hasAccess && trialDaysLeft > 0 ? (
+          <View style={S.trialActiveCard}>
+            <Text style={S.trialActiveTitle}>Essai Premium actif</Text>
+            <Text style={S.trialActiveSub}>
+              {trialDaysLeft} jour{trialDaysLeft > 1 ? 's' : ''} restant{trialDaysLeft > 1 ? 's' : ''} — profite d’une 1ère valeur (analyse, box ou export) puis renouvelle si tu adores.
+            </Text>
+            <View style={S.workflowRow}>
+              {['Essai 7j', '1ère valeur', 'Renouvellement'].map((step, i) => (
+                <View key={step} style={S.workflowStep}>
+                  <View style={[S.workflowDot, i <= firstValues.length && S.workflowDotOn]}>
+                    <Text style={S.workflowDotText}>{i + 1}</Text>
+                  </View>
+                  <Text style={S.workflowLabel}>{step}</Text>
+                </View>
+              ))}
+            </View>
+          </View>
+        ) : null}
 
         {/* ── Hero card ── */}
         <LinearGradient
@@ -185,14 +230,22 @@ export default function PremiumScreen() {
 
           <TouchableOpacity
             style={[S.heroBtn, checkoutLoading && S.btnDisabled]}
-            onPress={onSubscribe}
+            onPress={() => {
+              if (!hasAccess && freeTrial) {
+                void startTrial();
+              } else {
+                void onSubscribe();
+              }
+            }}
             activeOpacity={0.85}
             disabled={checkoutLoading}
           >
             {checkoutLoading ? (
               <ActivityIndicator color={Colors.ink} />
             ) : (
-              <Text style={S.heroBtnText}>✨ Commencer l'essai gratuit</Text>
+              <Text style={S.heroBtnText}>
+                {hasAccess ? '✨ Gérer mon abonnement' : `✨ Commencer l'essai ${TRIAL_DAYS} jours`}
+              </Text>
             )}
           </TouchableOpacity>
           <Text style={S.heroLegal}>Sans engagement · Rappel 24h avant facturation</Text>
@@ -386,6 +439,51 @@ export default function PremiumScreen() {
 const S = StyleSheet.create({
   safe:    { flex: 1, backgroundColor: Colors.bg },
   content: { paddingHorizontal: 20, paddingBottom: 16 },
+
+  contextCard: {
+    backgroundColor: Colors.amberLight,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: Colors.amber,
+    padding: 14,
+    marginBottom: 14,
+  },
+  contextLabel: {
+    fontSize: 10,
+    fontFamily: 'DMSans_700Bold',
+    color: Colors.amberDark,
+    letterSpacing: 0.6,
+    marginBottom: 6,
+  },
+  contextTitle: { fontSize: 16, fontFamily: 'Poppins_600SemiBold', color: Colors.ink, marginBottom: 4 },
+  contextSub: { fontSize: 13, fontFamily: 'DMSans_400Regular', color: Colors.warmGray, lineHeight: 18 },
+
+  trialActiveCard: {
+    backgroundColor: Colors.sageLight,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: Colors.sage,
+    padding: 14,
+    marginBottom: 14,
+  },
+  trialActiveTitle: { fontSize: 14, fontFamily: 'DMSans_700Bold', color: Colors.ink, marginBottom: 4 },
+  trialActiveSub: { fontSize: 12, fontFamily: 'DMSans_400Regular', color: Colors.warmGray, lineHeight: 17, marginBottom: 12 },
+  workflowRow: { flexDirection: 'row', justifyContent: 'space-between' },
+  workflowStep: { alignItems: 'center', flex: 1 },
+  workflowDot: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: Colors.cream,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 4,
+  },
+  workflowDotOn: { backgroundColor: Colors.sage, borderColor: Colors.sage },
+  workflowDotText: { fontSize: 12, fontFamily: 'DMSans_700Bold', color: Colors.ink },
+  workflowLabel: { fontSize: 9, fontFamily: 'DMSans_500Medium', color: Colors.warmGray, textAlign: 'center' },
 
   // ── Header ──
   header: {

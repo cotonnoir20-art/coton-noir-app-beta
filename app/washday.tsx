@@ -1,7 +1,7 @@
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { Modal, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../src/theme/colors';
 import { useApp } from '../src/context/AppContext';
@@ -23,6 +23,27 @@ import {
   isWashdayCalendarToday,
 } from '../src/lib/washdayHistory';
 import { toLocalISODate } from '../src/lib/homeGrowth';
+import { trackProductEvent } from '../src/lib/productAnalytics';
+import { appendJournalEntry } from '../src/lib/journalStorage';
+import {
+  formatWashdayReminderSub,
+  getWashdayReminderTime,
+  scheduleWashdayReminder,
+  setWashdayReminderTime,
+} from '../src/lib/washdayReminder';
+import type { PlannedSoin } from '../src/context/AppContext';
+import {
+  dismissCompletedProductTest,
+  loadCompletedProductTest,
+  loadProductTestedPending,
+  type CompletedProductTest,
+  type ProductTestedPending,
+} from '../src/lib/productTestedWorkflow';
+import { SimilarProfilesRecoCard } from '../src/components/discover/SimilarProfilesRecoCard';
+import {
+  calendarCellStyle,
+  getCalendarGridMetrics,
+} from '../src/lib/calendarGridLayout';
 
 const WASH_TYPES = [
   'Shampoing classique',
@@ -63,9 +84,17 @@ function fmt(s: number) {
 export default function WashDayScreen() {
   const router = useRouter();
   const { state, dispatch, validateRoutineSecure } = useApp();
+  const [productTestedPending, setProductTestedPending] = useState<ProductTestedPending | null>(null);
+  const [completedProductTest, setCompletedProductTest] = useState<CompletedProductTest | null>(null);
   const { width } = useWindowDimensions();
-  const calWidth  = width - 40 - 32;
-  const cellSize  = Math.floor((calWidth - 7 * 6) / 7);
+
+  useFocusEffect(
+    useCallback(() => {
+      void loadProductTestedPending().then(setProductTestedPending);
+      void loadCompletedProductTest().then(setCompletedProductTest);
+    }, []),
+  );
+  const { cellSize, gridWidth, cellMargin } = getCalendarGridMetrics(width - 40 - 32);
 
   /* ── Compte à rebours prochain wash day (aligné accueil / routine) ── */
   const nextPlannedWd = getNextPlannedWashday(state.plannedSoins);
@@ -191,10 +220,19 @@ export default function WashDayScreen() {
     ? Math.round((doneCount / washSteps.length) * 100)
     : 0;
 
-  /* ── Rappel ── */
-  const [reminderTime, setReminderTime]     = useState('09:00');
+  /* ── Rappel J-1 ── */
+  const [reminderTime, setReminderTime]       = useState('09:00');
   const [editingReminder, setEditingReminder] = useState(false);
-  const [reminderSaved, setReminderSaved]   = useState(false);
+  const [reminderSaved, setReminderSaved]     = useState(false);
+
+  useEffect(() => {
+    void getWashdayReminderTime().then(t => {
+      setReminderTime(t);
+      setReminderSaved(!!getNextPlannedWashday(state.plannedSoins));
+    });
+  }, []);
+
+  const reminderSub = formatWashdayReminderSub(state.plannedSoins, reminderTime);
 
   /* ── Soins planifiés ── */
   const todayStrWd = toLocalISODate(todayReal);
@@ -224,10 +262,17 @@ export default function WashDayScreen() {
 
   function handleEditSave() {
     if (!editingSoinId) return;
+    const existing = state.plannedSoins.find(s => s.id === editingSoinId);
+    if (!existing) return;
+    const { id: _id, ...base } = existing;
     dispatch({
       type: 'updatePlannedSoin',
       id: editingSoinId,
-      soin: { soinType: editType, date: editDate.toISOString().slice(0, 10) },
+      soin: {
+        ...base,
+        soinType: editType,
+        date: editDate.toISOString().slice(0, 10),
+      },
     });
     setShowEdit(false);
   }
@@ -243,6 +288,65 @@ export default function WashDayScreen() {
   const [ratingNote, setRatingNote] = useState('');
   const [ratingDone, setRatingDone] = useState(false);
 
+  const todayPlannedSoin = useMemo(
+    () => state.plannedSoins.find(s => s.date === todayStrWd) ?? null,
+    [state.plannedSoins, todayStrWd],
+  );
+
+  useEffect(() => {
+    const src = todayPlannedSoin ?? nextSoin;
+    if (src?.ratingStars) {
+      setStars(src.ratingStars);
+      setRatingNote(src.ratingNote ?? '');
+      setRatingDone(true);
+    }
+  }, [todayPlannedSoin?.id, todayPlannedSoin?.ratingStars, nextSoin?.id, nextSoin?.ratingStars]);
+
+  const avgRating = useMemo(() => {
+    const rated = state.plannedSoins.filter(s => s.ratingStars && s.ratingStars > 0);
+    if (rated.length === 0) return null;
+    const sum = rated.reduce((a, s) => a + (s.ratingStars ?? 0), 0);
+    return Math.round((sum / rated.length) * 10) / 10;
+  }, [state.plannedSoins]);
+
+  function soinPayloadWithoutId(s: PlannedSoin): Omit<PlannedSoin, 'id'> {
+    const { id: _id, ...rest } = s;
+    return rest;
+  }
+
+  const persistWashdayRating = useCallback(async () => {
+    if (stars < 1) return;
+    const target = todayPlannedSoin ?? nextSoin;
+    if (target) {
+      dispatch({
+        type: 'updatePlannedSoin',
+        id: target.id,
+        soin: {
+          ...soinPayloadWithoutId(target),
+          ratingStars: stars,
+          ratingNote: ratingNote.trim() || undefined,
+        },
+      });
+    }
+    await appendJournalEntry({
+      entryDate: todayStrWd,
+      title: target?.soinType ?? 'Wash day',
+      notes: ratingNote.trim() || target?.notes || '',
+      kind: 'soin',
+      stars,
+      tags: target?.products ? [target.products.slice(0, 40)] : [],
+    });
+    setRatingDone(true);
+    setShowRating(false);
+  }, [
+    stars,
+    ratingNote,
+    todayPlannedSoin,
+    nextSoin,
+    todayStrWd,
+    dispatch,
+  ]);
+
   /* ── Récompense wash day (1× / jour) ── */
   const isWashdayValidated = state.validated.washday;
   const [completionOpen, setCompletionOpen] = useState(false);
@@ -251,10 +355,35 @@ export default function WashDayScreen() {
   async function completeWashday(): Promise<boolean> {
     if (state.validated.washday) return false;
     hapticSuccess();
+    void trackProductEvent('washday_checklist_pct', {
+      pct: checkPct,
+      steps_done: doneCount,
+      steps_total: washSteps.length,
+    });
     const result = await validateRoutineSecure('washday');
     if (!result.ok) return false;
     setCompletionOpen(true);
     return true;
+  }
+
+  async function saveReminder() {
+    await setWashdayReminderTime(reminderTime);
+    const res = await scheduleWashdayReminder(state.plannedSoins, reminderTime);
+    setReminderSaved(res.status === 'scheduled');
+    setEditingReminder(false);
+  }
+
+  function openJournalAfterWashday() {
+    setCompletionOpen(false);
+    const title = nextSoin?.soinType ?? todayPlannedSoin?.soinType ?? 'Wash day';
+    const notes = ratingNote.trim()
+      || todayPlannedSoin?.notes
+      || nextSoin?.notes
+      || '';
+    router.push({
+      pathname: '/add-entry',
+      params: { type: 'soin', title, notes },
+    } as any);
   }
 
   return (
@@ -285,6 +414,45 @@ export default function WashDayScreen() {
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={S.content}>
+
+        {completedProductTest ? (
+          <SimilarProfilesRecoCard
+            profile={state.profile}
+            testedProduct={{
+              brand: completedProductTest.brand,
+              name: completedProductTest.name,
+            }}
+            onDismiss={() => {
+              void dismissCompletedProductTest();
+              setCompletedProductTest(null);
+            }}
+          />
+        ) : null}
+
+        {productTestedPending && !washPlan?.evolutionComment?.trim() ? (
+          <TouchableOpacity
+            style={S.productTestBanner}
+            onPress={() =>
+              router.push({
+                pathname: '/routine-plan',
+                params: {
+                  kind: 'washday',
+                  source: 'product',
+                  focus: 'evolution',
+                  productName: productTestedPending.name,
+                  productBrand: productTestedPending.brand,
+                },
+              } as any)
+            }
+            activeOpacity={0.88}
+          >
+            <Text style={S.productTestTitle}>Nouveau produit testé 🧴</Text>
+            <Text style={S.productTestSub}>
+              Après ton wash day, note l’évolution de {productTestedPending.name} dans ta routine.
+            </Text>
+            <Text style={S.productTestLink}>Ajouter mon commentaire →</Text>
+          </TouchableOpacity>
+        ) : null}
 
         <TouchableOpacity
           style={S.planCard}
@@ -369,18 +537,24 @@ export default function WashDayScreen() {
           </View>
 
           {/* Jours de la semaine */}
-          <View style={S.weekRow}>
+          <View style={[S.weekRow, { width: gridWidth }]}>
             {WEEK.map((d, i) => (
-              <View key={i} style={[S.weekCell, { width: cellSize, margin: 3 }]}>
+              <View
+                key={i}
+                style={[S.weekCell, calendarCellStyle, { width: cellSize, margin: cellMargin }]}
+              >
                 <Text style={S.weekLabel}>{d}</Text>
               </View>
             ))}
           </View>
 
           {/* Grille des jours */}
-          <View style={S.daysGrid}>
+          <View style={[S.daysGrid, { width: gridWidth }]}>
             {Array.from({ length: firstOffsetWd }).map((_, i) => (
-              <View key={'e' + i} style={{ width: cellSize, height: cellSize, margin: 3 }} />
+              <View
+                key={'e' + i}
+                style={[calendarCellStyle, { width: cellSize, height: cellSize, margin: cellMargin }]}
+              />
             ))}
             {Array.from({ length: daysInMonthWd }, (_, i) => i + 1).map(d => {
               const isToday = isWashdayCalendarToday(
@@ -397,7 +571,8 @@ export default function WashDayScreen() {
                   key={d}
                   style={[
                     S.dayCell,
-                    { width: cellSize, height: cellSize, borderRadius: cellSize / 2 },
+                    calendarCellStyle,
+                    { width: cellSize, height: cellSize, margin: cellMargin, borderRadius: cellSize / 2 },
                     isToday && S.dayCellToday,
                     isWash && S.dayCellWash,
                     isPlanned && !isWash && S.dayCellPlanned,
@@ -533,10 +708,10 @@ export default function WashDayScreen() {
               <View style={S.reminderIcon}><Text style={{ fontSize: 20 }}>🔔</Text></View>
               <View>
                 <Text style={S.reminderTitle}>
-                  {reminderSaved ? `Rappel · ${reminderTime}` : 'Prochain rappel dans 2 jours'}
+                  {reminderSaved ? `Rappel J-1 · ${reminderTime}` : 'Rappel la veille du wash day'}
                 </Text>
                 <Text style={S.reminderSub}>
-                  {reminderSaved ? 'Rappel enregistré ✓' : 'Vendredi 30 avr. · 09:00'}
+                  {reminderSaved ? 'Notification programmée ✓' : reminderSub}
                 </Text>
               </View>
             </View>
@@ -564,8 +739,8 @@ export default function WashDayScreen() {
                   </TouchableOpacity>
                 ))}
               </View>
-              <TouchableOpacity style={S.reminderSaveBtn} onPress={() => { setReminderSaved(true); setEditingReminder(false); }}>
-                <Text style={S.reminderSaveBtnText}>🔔 Enregistrer le rappel</Text>
+              <TouchableOpacity style={S.reminderSaveBtn} onPress={() => void saveReminder()}>
+                <Text style={S.reminderSaveBtnText}>🔔 Enregistrer le rappel J-1</Text>
               </TouchableOpacity>
             </View>
           )}
@@ -693,9 +868,12 @@ export default function WashDayScreen() {
             <Text style={{ fontSize: 22, textAlign: 'center', marginBottom: 6 }}>✓</Text>
             <Text style={S.ratingDoneTitle}>Évaluation enregistrée !</Text>
             <Text style={S.ratingDoneSub}>
-              {'★'.repeat(stars)} · Ajouté à l'historique
+              {'★'.repeat(stars)} · Journal & plan wash day mis à jour
               {isWashdayValidated ? ` · ${earnLabel}` : ''}
             </Text>
+            <TouchableOpacity style={S.emptyBtn} onPress={() => router.push('/journal')}>
+              <Text style={S.emptyBtnText}>Voir mon journal</Text>
+            </TouchableOpacity>
           </View>
         ) : !showRating ? (
           <TouchableOpacity style={S.ratingOpenBtn} onPress={() => setShowRating(true)}>
@@ -728,7 +906,8 @@ export default function WashDayScreen() {
               </TouchableOpacity>
               <TouchableOpacity
                 style={[S.ratingSaveBtn, !stars && S.ratingSaveBtnDisabled]}
-                onPress={() => { if (stars > 0) { setRatingDone(true); setShowRating(false); } }}
+                onPress={() => void persistWashdayRating()}
+                disabled={!stars}
               >
                 <Text style={S.ratingSaveText}>Enregistrer l'évaluation</Text>
               </TouchableOpacity>
@@ -813,9 +992,11 @@ export default function WashDayScreen() {
             </View>
             <View style={S.statCard}>
               <Text style={{ fontSize: 22, marginBottom: 6 }}>⭐</Text>
-              <Text style={S.statVal}>—</Text>
+              <Text style={S.statVal}>{avgRating != null ? String(avgRating).replace('.', ',') : '—'}</Text>
               <Text style={S.statLabel}>Note moyenne</Text>
-              <Text style={S.statSub}>Évalue ton prochain wash day</Text>
+              <Text style={S.statSub}>
+                {avgRating != null ? 'Sur tes wash days notés' : 'Évalue ton prochain wash day'}
+              </Text>
             </View>
           </View>
         )}
@@ -947,6 +1128,17 @@ export default function WashDayScreen() {
         variant="strong"
         onClose={() => setCompletionOpen(false)}
         caption={`Wash day effectué ! ${earnLabel}`}
+        actions={[
+          {
+            label: 'Noter dans mon journal',
+            primary: true,
+            onPress: openJournalAfterWashday,
+          },
+          {
+            label: 'Fermer',
+            onPress: () => setCompletionOpen(false),
+          },
+        ]}
       />
     </SafeAreaView>
   );
@@ -956,6 +1148,32 @@ const S = StyleSheet.create({
   safe:    { flex: 1, backgroundColor: Colors.bg },
   content: { paddingHorizontal: 20, paddingBottom: 20 },
 
+  productTestBanner: {
+    backgroundColor: Colors.amberLight,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+    padding: 14,
+    marginBottom: 14,
+  },
+  productTestTitle: {
+    fontSize: 14,
+    fontFamily: 'DMSans_700Bold',
+    color: Colors.ink,
+    marginBottom: 4,
+  },
+  productTestSub: {
+    fontSize: 12,
+    fontFamily: 'DMSans_400Regular',
+    color: Colors.amberInk,
+    lineHeight: 18,
+    marginBottom: 8,
+  },
+  productTestLink: {
+    fontSize: 12,
+    fontFamily: 'DMSans_700Bold',
+    color: Colors.amberDark,
+  },
   planCard: {
     marginTop: 12,
     marginBottom: 8,
@@ -1015,11 +1233,11 @@ const S = StyleSheet.create({
   calNavBtn:  { width: 32, height: 32, borderRadius: 16, backgroundColor: Colors.surface, borderWidth: 1, borderColor: Colors.border, alignItems: 'center', justifyContent: 'center' },
   calNavArrow:{ fontSize: 18, color: Colors.ink, fontFamily: 'DMSans_600SemiBold' },
   calMonth:   { fontSize: 18, fontFamily: 'Poppins_700Bold', color: Colors.ink },
-  weekRow:    { flexDirection: 'row', marginBottom: 8 },
+  weekRow:    { flexDirection: 'row', flexWrap: 'nowrap', marginBottom: 8, alignSelf: 'center' },
   weekCell:   { alignItems: 'center' },
   weekLabel:  { fontSize: 10, fontFamily: 'DMSans_500Medium', color: Colors.warmGray },
-  daysGrid:   { flexDirection: 'row', flexWrap: 'wrap' },
-  dayCell:    { margin: 3, alignItems: 'center', justifyContent: 'center' },
+  daysGrid:   { flexDirection: 'row', flexWrap: 'wrap', alignSelf: 'center' },
+  dayCell:    { alignItems: 'center', justifyContent: 'center' },
   dayCellToday:   { backgroundColor: Colors.ink },
   dayCellWash:    { backgroundColor: Colors.rose },
   dayCellPlanned: { borderWidth: 2, borderColor: Colors.amber },

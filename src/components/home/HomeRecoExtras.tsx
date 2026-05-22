@@ -4,6 +4,7 @@ import { useRouter } from 'expo-router';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { AppIconBox, type IonName } from '../AppIconBox';
 import { Colors } from '../../theme/colors';
+import { Type } from '../../theme/typography';
 import type { HairProfile } from '../../context/AppContext';
 import {
   buildOnboardingRecommendations,
@@ -290,16 +291,13 @@ const s = StyleSheet.create({
     paddingBottom: 4,
   },
   kicker: {
-    fontSize: 10,
-    fontFamily: 'DMSans_700Bold',
+    ...Type.kicker,
     color: Colors.amberDark,
-    letterSpacing: 1,
     marginBottom: 4,
     textTransform: 'uppercase',
   },
   cardTitle: {
-    fontSize: 18,
-    fontFamily: 'Poppins_700Bold',
+    ...Type.cardTitle,
     color: Colors.ink,
     paddingBottom: 12,
   },

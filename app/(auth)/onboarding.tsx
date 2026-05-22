@@ -22,6 +22,10 @@ import {
   recoStepsToRoutineSteps,
 } from '../../src/lib/onboardingRecommendations';
 import { ONBOARDING_HAIR_TYPES } from '../../src/constants/onboardingHairTypes';
+import { markOnboardingDoneLocal } from '../../src/lib/onboardingGate';
+import { trackProductEvent } from '../../src/lib/productAnalytics';
+import { MiniCalendar, formatFull } from '../../src/components/MiniCalendar';
+import { toLocalISODate } from '../../src/lib/homeGrowth';
 import { canAttemptAuth, recordAuthAttempt } from '../../src/lib/authThrottle';
 import {
   mapSupabaseAuthError,
@@ -30,7 +34,13 @@ import {
 } from '../../src/lib/passwordPolicy';
 
 const ONBOARDING_STORAGE_KEY = '@coton_noir_onboarding';
-const OPTIONAL_STEPS = new Set<number>([4, 5]);
+const OPTIONAL_STEPS = new Set<number>([4, 5, 6]);
+
+function defaultGoalDate(): Date {
+  const d = new Date();
+  d.setMonth(d.getMonth() + 6);
+  return d;
+}
 
 const POROSITY = [
   { id: 'Faible',  label: "L'eau perle",         desc: "Le cheveu repousse l'eau",        emoji: '💧' },
@@ -81,6 +91,9 @@ export default function OnboardingScreen() {
   const [porosity, setPorosity]   = useState('');
   const [density, setDensity]     = useState('');
   const [objective, setObjective] = useState('');
+  const [targetLength, setTargetLength] = useState('');
+  const [goalDate, setGoalDate]         = useState<Date>(defaultGoalDate);
+  const [showGoalCal, setShowGoalCal]   = useState(false);
   const [region, setRegion]       = useState('');
   const [budget, setBudget]       = useState('');
   const [careStyle, setCareStyle] = useState<CareStyleId | ''>('');
@@ -90,7 +103,7 @@ export default function OnboardingScreen() {
   const [loading, setLoading]     = useState(false);
   const [error, setError]         = useState('');
 
-  const TOTAL = 9;
+  const TOTAL = 10;
 
   // ── Restaure l'onboarding (lastStep + champs) au démarrage ──
   useEffect(() => {
@@ -99,7 +112,8 @@ export default function OnboardingScreen() {
         try {
           const p = JSON.parse(raw) as Partial<{
             step: number; hairType: string; porosity: string; density: string;
-            objective: string; region: string; budget: string; careStyle: CareStyleId;
+            objective: string; targetLength: string; goalDateIso: string;
+            region: string; budget: string; careStyle: CareStyleId;
             name: string; email: string;
           }>;
           // Ne reprend pas sur l'étape "Créer mon compte" si email/nom ont été effacés
@@ -108,6 +122,10 @@ export default function OnboardingScreen() {
           if (p.porosity)  setPorosity(p.porosity);
           if (p.density)   setDensity(p.density);
           if (p.objective) setObjective(normalizeObjectiveId(p.objective));
+          if (p.targetLength) setTargetLength(p.targetLength);
+          if (p.goalDateIso && /^\d{4}-\d{2}-\d{2}$/.test(p.goalDateIso)) {
+            setGoalDate(new Date(`${p.goalDateIso}T12:00:00`));
+          }
           if (p.region)    setRegion(p.region);
           if (p.budget)    setBudget(p.budget);
           if (p.careStyle) setCareStyle(p.careStyle);
@@ -120,7 +138,7 @@ export default function OnboardingScreen() {
   }, []);
 
   useEffect(() => {
-    if (hydrated && signup === '1') setStep(8);
+    if (hydrated && signup === '1') setStep(9);
   }, [hydrated, signup]);
 
   // ── Sauvegarde à chaque changement (jamais le mot de passe) ──
@@ -128,9 +146,12 @@ export default function OnboardingScreen() {
     if (!hydrated) return;
     AsyncStorage.setItem(
       ONBOARDING_STORAGE_KEY,
-      JSON.stringify({ step, hairType, porosity, density, objective, region, budget, careStyle, name, email }),
+      JSON.stringify({
+        step, hairType, porosity, density, objective, targetLength,
+        goalDateIso: toLocalISODate(goalDate), region, budget, careStyle, name, email,
+      }),
     );
-  }, [hydrated, step, hairType, porosity, density, objective, region, budget, careStyle, name, email]);
+  }, [hydrated, step, hairType, porosity, density, objective, targetLength, goalDate, region, budget, careStyle, name, email]);
 
   function next() { setStep(s => Math.min(s + 1, TOTAL - 1)); }
   function skip() { next(); }
@@ -191,10 +212,13 @@ export default function OnboardingScreen() {
       porosity:     porosity  || 'Moyenne',
       density:      density   || 'Moyenne',
       objective:    normalizeObjectiveId(objective) || '',
+      target_length: targetLength.trim() || null,
+      target_goal_date: targetLength.trim() ? toLocalISODate(goalDate) : null,
       region:       selectedRegion?.label   || '',
       climate:      selectedRegion?.climate || '',
       budget:       selectedBudget?.range   || '',
       care_style:   careStyle               || '',
+      onboarding_done: true,
     };
 
     const { error: profileError } = await supabase.from('profiles').upsert(profileRow);
@@ -211,6 +235,8 @@ export default function OnboardingScreen() {
         porosity:     profileRow.porosity,
         density:      profileRow.density,
         objective:    profileRow.objective,
+        targetLength: profileRow.target_length ?? '',
+        objectiveTargetDate: profileRow.target_goal_date ?? '',
         region:       profileRow.region,
         climate:      profileRow.climate,
         budget:       profileRow.budget,
@@ -234,6 +260,18 @@ export default function OnboardingScreen() {
     });
 
     await AsyncStorage.removeItem(ONBOARDING_STORAGE_KEY);
+    await markOnboardingDoneLocal(data.user.id);
+    void trackProductEvent('onboarding_completed', {
+      hair_type: profileRow.hair_type,
+      care_style: profileRow.care_style,
+    });
+    if (profileRow.target_length) {
+      void trackProductEvent('growth_goal_set', {
+        source: 'onboarding',
+        target_cm: profileRow.target_length,
+        target_date: profileRow.target_goal_date ?? '',
+      });
+    }
 
     setLoading(false);
     router.replace('/(tabs)');
@@ -246,9 +284,10 @@ export default function OnboardingScreen() {
     (step === 1 && !!porosity)  ||
     (step === 2 && !!density)   ||
     (step === 3 && !!objective) ||
-    step === 4 ||                 // région : optionnel
-    step === 5 ||                 // budget : optionnel
-    (step === 6 && !!careStyle)
+    step === 4 ||                 // objectif longueur : optionnel
+    step === 5 ||                 // région : optionnel
+    step === 6 ||                 // budget : optionnel
+    (step === 7 && !!careStyle)
   );
 
   return (
@@ -399,8 +438,49 @@ export default function OnboardingScreen() {
             </>
           )}
 
-          {/* ── ÉTAPE 4 : Localisation ── */}
+          {/* ── ÉTAPE 4 : Objectif longueur (optionnel) ── */}
           {step === 4 && (
+            <>
+              <Text style={S.stepTitle}>Objectif de longueur</Text>
+              <Text style={S.stepSub}>
+                Pour alimenter ton anneau sur l&apos;accueil — tu pourras ajuster plus tard.
+              </Text>
+              <View style={S.inputGroup}>
+                <Text style={S.inputLabel}>Longueur cible (cm)</Text>
+                <TextInput
+                  style={S.input}
+                  placeholder="ex. 40"
+                  placeholderTextColor={Colors.warmGray}
+                  value={targetLength}
+                  onChangeText={setTargetLength}
+                  keyboardType="decimal-pad"
+                />
+              </View>
+              <View style={S.inputGroup}>
+                <Text style={S.inputLabel}>Date cible</Text>
+                <TouchableOpacity
+                  style={[S.input, S.dateRow]}
+                  onPress={() => setShowGoalCal(v => !v)}
+                >
+                  <Text style={S.dateRowText}>{formatFull(goalDate)}</Text>
+                  <Ionicons name="calendar-outline" size={18} color={Colors.amber} />
+                </TouchableOpacity>
+                {showGoalCal && (
+                  <MiniCalendar
+                    selectedDate={goalDate}
+                    onSelect={d => { setGoalDate(d); setShowGoalCal(false); }}
+                    horizontalOffset={24}
+                  />
+                )}
+              </View>
+              <TouchableOpacity onPress={skip} style={S.skipLink}>
+                <Text style={S.skipText}>Passer cette étape</Text>
+              </TouchableOpacity>
+            </>
+          )}
+
+          {/* ── ÉTAPE 5 : Localisation ── */}
+          {step === 5 && (
             <>
               <Text style={S.stepTitle}>Tu te trouves où dans le monde ?</Text>
               <Text style={S.stepSub}>On adapte les produits disponibles et ta routine à ton climat.</Text>
@@ -432,8 +512,8 @@ export default function OnboardingScreen() {
             </>
           )}
 
-          {/* ── ÉTAPE 5 : Budget ── */}
-          {step === 5 && (
+          {/* ── ÉTAPE 6 : Budget ── */}
+          {step === 6 && (
             <>
               <Text style={S.stepTitle}>Quel est ton budget capillaire ?</Text>
               <Text style={S.stepSub}>On te recommande des produits dans ta fourchette de prix.</Text>
@@ -457,8 +537,8 @@ export default function OnboardingScreen() {
             </>
           )}
 
-          {/* ── ÉTAPE 6 : Préférence de soin ── */}
-          {step === 6 && (
+          {/* ── ÉTAPE 7 : Préférence de soin ── */}
+          {step === 7 && (
             <>
               <Text style={S.stepTitle}>
                 Plutôt produit du commerce, recette DIY ou un mixte des deux ?
@@ -485,8 +565,8 @@ export default function OnboardingScreen() {
             </>
           )}
 
-          {/* ── ÉTAPE 8 : Créer le compte (après page recommandations) ── */}
-          {step === 8 && (
+          {/* ── ÉTAPE 9 : Créer le compte (après page recommandations) ── */}
+          {step === 9 && (
             <>
               <Text style={S.stepTitle}>Sauvegarde tes recommandations</Text>
               <Text style={S.stepSub}>
@@ -559,15 +639,15 @@ export default function OnboardingScreen() {
       </KeyboardAvoidingView>
 
       {/* ── Bouton Suivant (sauf étape 8 qui a son propre CTA) ── */}
-      {step < 8 && (
+      {step < 9 && (
         <View style={S.footer}>
           <TouchableOpacity
             style={[S.nextBtn, !canNext && S.nextBtnDisabled]}
-            onPress={step === 6 ? goToRecommendations : next}
+            onPress={step === 7 ? goToRecommendations : next}
             disabled={!canNext}
           >
             <Text style={S.nextBtnText}>
-              {step === 6 ? 'Voir mes recommandations' : 'Continuer'}{' '}
+              {step === 7 ? 'Voir mes recommandations' : 'Continuer'}{' '}
               <Text style={S.nextBtnAccent}>→</Text>
             </Text>
           </TouchableOpacity>
@@ -749,6 +829,16 @@ const S = StyleSheet.create({
     borderWidth: 1, borderColor: Colors.border,
     paddingHorizontal: 16, paddingVertical: 14,
     fontSize: 14, fontFamily: 'DMSans_400Regular', color: Colors.ink,
+  },
+  dateRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  dateRowText: {
+    fontSize: 14,
+    fontFamily: 'DMSans_400Regular',
+    color: Colors.ink,
   },
   errorText:      { fontSize: 13, fontFamily: 'DMSans_400Regular', color: Colors.rose, marginBottom: 12, textAlign: 'center' },
   primaryBtn: {

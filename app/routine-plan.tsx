@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   Alert,
   KeyboardAvoidingView,
@@ -34,6 +34,20 @@ import {
   validatePlan,
 } from '../src/lib/userRoutinePlan';
 import { hapticSuccess } from '../src/lib/haptics';
+import { loadAnalysisDraft } from '../src/lib/analysisDraftStorage';
+import { planFromHairAnalysis } from '../src/lib/planFromHairAnalysis';
+import { planFromRecipe } from '../src/lib/planFromRecipe';
+import { planWithTestedProduct } from '../src/lib/planFromProduct';
+import { markAnalysisRoutineAdopted } from '../src/lib/analysisJourney';
+import {
+  clearProductTestedPending,
+  loadProductTestedPending,
+  recordCompletedProductTest,
+} from '../src/lib/productTestedWorkflow';
+import { saveProductTestSignal } from '../src/lib/productTestSignals';
+import { trackProductEvent } from '../src/lib/productAnalytics';
+import { CATALOG_RECIPES } from '../src/data/recipesCatalog';
+import { formatDualEarnReward, getRoutineValidationRewards } from '../src/lib/cotonCoins';
 
 function parseKind(raw: string | string[] | undefined): RoutineType {
   const v = Array.isArray(raw) ? raw[0] : raw;
@@ -46,23 +60,84 @@ const ITEM_KINDS: RoutineItemKind[] = ['product', 'recipe', 'other'];
 export default function RoutinePlanScreen() {
   const router = useRouter();
   const { dispatch, state } = useApp();
-  const params = useLocalSearchParams<{ kind?: string | string[] }>();
+  const params = useLocalSearchParams<{
+    kind?: string | string[];
+    source?: string | string[];
+    recipeId?: string | string[];
+    productName?: string | string[];
+    productBrand?: string | string[];
+    focus?: string | string[];
+    eventName?: string | string[];
+  }>();
   const kind = parseKind(params.kind);
+  const source = Array.isArray(params.source) ? params.source[0] : params.source;
+  const fromAnalysis = source === 'analysis';
+  const fromRecipe = source === 'recipe';
+  const fromProduct = source === 'product';
+  const fromEvent = source === 'event';
+  const eventName = (Array.isArray(params.eventName) ? params.eventName[0] : params.eventName)?.trim();
+  const focusEvolution = (Array.isArray(params.focus) ? params.focus[0] : params.focus) === 'evolution';
 
   const savedPlan = state.routinePlans?.[kind] ?? null;
-  const seedPlan = planFromDisplayedSteps(kind, state.routineSteps[kind], savedPlan);
+  const defaultSeed = planFromDisplayedSteps(kind, state.routineSteps[kind], savedPlan);
+  const [analysisSeed, setAnalysisSeed] = useState<UserRoutinePlan | null>(null);
+  const [contentSeed, setContentSeed] = useState<UserRoutinePlan | null>(null);
+
+  useEffect(() => {
+    if (!fromAnalysis || savedPlan) return;
+    let cancelled = false;
+    void loadAnalysisDraft().then(draft => {
+      if (cancelled || !draft?.analysis?.routine?.length) return;
+      setAnalysisSeed(
+        planFromHairAnalysis(kind, draft.analysis.routine, draft.analysis.synthesis),
+      );
+    });
+    return () => { cancelled = true; };
+  }, [fromAnalysis, kind, savedPlan]);
+
+  useEffect(() => {
+    if (fromRecipe && !savedPlan) {
+      const recipeId = Array.isArray(params.recipeId) ? params.recipeId[0] : params.recipeId;
+      const recipe = CATALOG_RECIPES.find(r => r.id === recipeId) ?? CATALOG_RECIPES[0];
+      if (recipe) setContentSeed(planFromRecipe(kind, recipe));
+    }
+    if (fromProduct) {
+      const name = Array.isArray(params.productName) ? params.productName[0] : params.productName ?? '';
+      const brand = Array.isArray(params.productBrand) ? params.productBrand[0] : params.productBrand ?? '';
+      setContentSeed(planWithTestedProduct(kind, brand, name, savedPlan));
+    }
+  }, [fromRecipe, fromProduct, kind, savedPlan, params.recipeId, params.productName, params.productBrand]);
+
+  const seedPlan = contentSeed ?? analysisSeed ?? defaultSeed;
   const meta = ROUTINE_PLAN_LABELS[kind];
 
   const [mode, setMode] = useState<RoutinePlanMode>(seedPlan.mode);
   const [name, setName] = useState(
-    savedPlan?.name?.trim() || seedPlan.name || ROUTINE_TYPES[kind].label,
+    fromEvent && eventName
+      ? `Coiffage · ${eventName}`
+      : savedPlan?.name?.trim() || seedPlan.name || ROUTINE_TYPES[kind].label,
   );
+
+  useEffect(() => {
+    if (fromEvent && eventName) setName(`Coiffage · ${eventName}`);
+  }, [fromEvent, eventName]);
   const [items, setItems] = useState<RoutinePlanItem[]>(seedPlan.items);
   const [steps, setSteps] = useState<RoutinePlanStep[]>(seedPlan.steps);
   const [hairStateComment, setHairStateComment] = useState(savedPlan?.hairStateComment ?? '');
   const [evolutionComment, setEvolutionComment] = useState(savedPlan?.evolutionComment ?? '');
   const [newItemLabel, setNewItemLabel] = useState('');
   const [newItemKind, setNewItemKind] = useState<RoutineItemKind>('product');
+
+  useEffect(() => {
+    const seed = contentSeed ?? analysisSeed;
+    if (!seed || (savedPlan && !fromProduct)) return;
+    setMode(fromProduct ? 'try_new' : seed.mode);
+    setName(seed.name);
+    setItems(seed.items);
+    setSteps(seed.steps);
+    setHairStateComment(seed.hairStateComment ?? '');
+    setEvolutionComment(seed.evolutionComment ?? '');
+  }, [contentSeed, analysisSeed, savedPlan, fromProduct]);
 
   const itemLabels = useMemo(() => items.map(i => i.label).filter(Boolean), [items]);
 
@@ -113,7 +188,7 @@ export default function RoutinePlanScreen() {
     );
   }
 
-  function handleSave() {
+  async function handleSave() {
     const plan: UserRoutinePlan = {
       kind,
       mode,
@@ -131,6 +206,62 @@ export default function RoutinePlanScreen() {
     }
     hapticSuccess();
     dispatch({ type: 'setRoutinePlan', plan });
+    if (fromAnalysis) {
+      void trackProductEvent('analysis_routine_adopted', { routine_type: kind });
+      void markAnalysisRoutineAdopted();
+    }
+    if (fromProduct) {
+      void trackProductEvent('product_added_to_routine', { routine_type: kind });
+      const pending = await loadProductTestedPending();
+      const brand = Array.isArray(params.productBrand) ? params.productBrand[0] : params.productBrand ?? pending?.brand ?? '';
+      const name = Array.isArray(params.productName) ? params.productName[0] : params.productName ?? pending?.name ?? '';
+      if (plan.evolutionComment.trim()) {
+        void trackProductEvent('product_tested_evolution_saved', { routine_type: kind });
+        await clearProductTestedPending();
+        if (pending || name) {
+          await recordCompletedProductTest({
+            productId: pending?.productId ?? `${brand}-${name}`,
+            brand,
+            name,
+            completedAt: new Date().toISOString(),
+          });
+          void saveProductTestSignal({
+            profile: state.profile,
+            productBrand: brand,
+            productName: name,
+            productId: pending?.productId,
+          });
+        }
+      }
+    }
+    if (fromRecipe) {
+      void trackProductEvent('recipe_added_to_routine', { routine_type: kind });
+    }
+
+    const offerMorningValidation =
+      kind === 'daily' &&
+      !state.validated.daily &&
+      !fromAnalysis;
+
+    if (offerMorningValidation) {
+      const { cc, pts } = getRoutineValidationRewards('daily');
+      const reward = formatDualEarnReward(cc, pts);
+      Alert.alert(
+        'Routine enregistrée ✓',
+        `Valide ta routine matin maintenant pour lancer ton streak et gagner ${reward}.`,
+        [
+          { text: 'Plus tard', style: 'cancel', onPress: () => router.back() },
+          {
+            text: 'Valider ma routine matin',
+            onPress: () => {
+              router.replace('/(tabs)/routine?routine=daily' as any);
+            },
+          },
+        ],
+      );
+      return;
+    }
+
     router.back();
   }
 
@@ -320,8 +451,13 @@ export default function RoutinePlanScreen() {
           />
 
           <Text style={S.label}>Comment évoluent-ils avec cette routine ?</Text>
+          {focusEvolution ? (
+            <Text style={S.focusHint}>
+              Note l’effet de ton nouveau produit après ton wash day — utile pour affiner tes prochaines reco.
+            </Text>
+          ) : null}
           <TextInput
-            style={[S.input, S.textArea]}
+            style={[S.input, S.textArea, focusEvolution && S.textAreaFocus]}
             placeholder="Ce qui s'améliore, ce qui coince, depuis combien de temps tu testes…"
             placeholderTextColor={Colors.warmGray}
             value={evolutionComment}
@@ -405,6 +541,14 @@ const S = StyleSheet.create({
   },
   inputSmall: { marginBottom: 8 },
   textArea: { minHeight: 88, textAlignVertical: 'top' },
+  textAreaFocus: { borderColor: Colors.amber, borderWidth: 2 },
+  focusHint: {
+    fontSize: 12,
+    fontFamily: 'DMSans_400Regular',
+    color: Colors.amberDark,
+    marginBottom: 8,
+    lineHeight: 18,
+  },
 
   kindRow: { flexDirection: 'row', gap: 8, marginBottom: 10 },
   kindPill: {

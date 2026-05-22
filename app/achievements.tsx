@@ -1,11 +1,14 @@
 import { useMemo } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../src/theme/colors';
 import { AppHeader } from '../src/components/AppHeader';
 import { useAchievements } from '../src/context/AchievementsContext';
 import { EmptyAnimation } from '../src/components/animations/EmptyAnimation';
 import type { AchievementGroup, AchievementStatus } from '../src/data/achievements';
+import { CHALLENGE_HYDRA_PTS_PER_DAY, PTS_DEFI_LABEL } from '../src/constants/productPitch';
 
 const GROUP_LABEL: Record<AchievementGroup, string> = {
   starter:   'Premiers pas',
@@ -74,6 +77,7 @@ function Card({ a }: { a: AchievementStatus }) {
 }
 
 export default function AchievementsScreen() {
+  const router = useRouter();
   const { achievements, unlockedCount, totalCount } = useAchievements();
 
   const grouped = useMemo(() => {
@@ -116,6 +120,36 @@ export default function AchievementsScreen() {
           <View style={S.heroBar}>
             <View style={[S.heroFill, { width: `${Math.round(ratio * 100)}%` }]} />
           </View>
+        </View>
+
+        <Text style={[S.groupTitle, { marginTop: 4 }]}>Défis collectifs</Text>
+        <TouchableOpacity
+          style={S.challengeCard}
+          onPress={() => router.push('/hydra-challenge' as any)}
+          activeOpacity={0.88}
+        >
+          <View style={S.challengeLive}>
+            <Text style={S.challengeLiveText}>● LIVE</Text>
+          </View>
+          <Text style={S.challengeTitle}>Hydra Challenge 30</Text>
+          <Text style={S.challengeSub}>
+            30 jours d&apos;hydratation · posts communauté · +{CHALLENGE_HYDRA_PTS_PER_DAY} {PTS_DEFI_LABEL}/jour
+          </Text>
+          <Text style={S.challengeLink}>Rejoindre le défi →</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={S.highlightsLink}
+          onPress={() => router.push('/highlights' as any)}
+          activeOpacity={0.85}
+        >
+          <Text style={S.challengeAlt}>Voir tous les moments forts →</Text>
+        </TouchableOpacity>
+
+        <View style={S.shareTeaser}>
+          <Ionicons name="share-social-outline" size={18} color={Colors.warmGray} />
+          <Text style={S.shareTeaserText}>
+            Partager ta collection de badges — bientôt disponible.
+          </Text>
         </View>
 
         {grouped.length === 0 ? (
@@ -271,5 +305,72 @@ const S = StyleSheet.create({
     color: Colors.warmGray,
     textAlign: 'center',
     paddingHorizontal: 24,
+  },
+
+  challengeCard: {
+    backgroundColor: Colors.ink,
+    borderRadius: 18,
+    padding: 18,
+    marginBottom: 14,
+  },
+  challengeLive: {
+    alignSelf: 'flex-start',
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    marginBottom: 10,
+  },
+  challengeLiveText: {
+    fontSize: 10,
+    fontFamily: 'DMSans_700Bold',
+    color: Colors.amber,
+    letterSpacing: 0.6,
+  },
+  challengeTitle: {
+    fontSize: 18,
+    fontFamily: 'Poppins_700Bold',
+    color: '#fff',
+    marginBottom: 6,
+  },
+  challengeSub: {
+    fontSize: 13,
+    fontFamily: 'DMSans_400Regular',
+    color: 'rgba(255,255,255,0.65)',
+    lineHeight: 19,
+    marginBottom: 12,
+  },
+  challengeLink: {
+    fontSize: 13,
+    fontFamily: 'DMSans_700Bold',
+    color: Colors.amber,
+  },
+  highlightsLink: {
+    alignSelf: 'flex-start',
+    marginBottom: 14,
+    paddingVertical: 4,
+  },
+  challengeAlt: {
+    fontSize: 12,
+    fontFamily: 'DMSans_600SemiBold',
+    color: Colors.warmGray,
+  },
+  shareTeaser: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: Colors.surface,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    padding: 14,
+    marginBottom: 8,
+  },
+  shareTeaserText: {
+    flex: 1,
+    fontSize: 12,
+    fontFamily: 'DMSans_400Regular',
+    color: Colors.warmGray,
+    lineHeight: 17,
   },
 });

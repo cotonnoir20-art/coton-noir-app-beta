@@ -56,6 +56,19 @@ export const TRIGGER_CONFIGS: Record<BlackCottonTrigger, TriggerConfig> = {
     once: true,
   },
 
+  onboarding_gift: {
+    messages: [{
+      text: 'Cadeau de bienvenue 🎁',
+      subtext: '+50 CotonCoins offerts pour démarrer ta routine. Utilise-les dans Récompenses !',
+      mood: 'celebrating',
+    }],
+    displayMode: 'popup',
+    priority: 1,
+    duration: 0,
+    cooldown: Infinity,
+    once: true,
+  },
+
   onboarding_step: {
     messages: [
       { text: "C'est parti ! 🌱",        subtext: "Quelques questions pour personnaliser ton expérience.", mood: 'encouraging' },
@@ -184,6 +197,30 @@ export const TRIGGER_CONFIGS: Record<BlackCottonTrigger, TriggerConfig> = {
     displayMode: 'toast',
     priority: 2,
     duration: 4000,
+    cooldown: 1000 * 60 * 60 * 24 * 7,
+  },
+
+  post_routine: {
+    messages: [],
+    displayMode: 'toast',
+    priority: 2,
+    duration: 5000,
+    cooldown: 1000 * 60 * 60 * 4,
+  },
+
+  post_analysis: {
+    messages: [],
+    displayMode: 'popup',
+    priority: 1,
+    duration: 0,
+    cooldown: 1000 * 60 * 60 * 24 * 3,
+  },
+
+  post_measurement: {
+    messages: [],
+    displayMode: 'popup',
+    priority: 2,
+    duration: 0,
     cooldown: 1000 * 60 * 60 * 24 * 7,
   },
 

@@ -12,6 +12,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Colors } from '../src/theme/colors';
 import { supabase } from '../src/lib/supabase';
 import { AppHeader } from '../src/components/AppHeader';
+import { useAchievements } from '../src/context/AchievementsContext';
 import { normalizeHttpUrl, openSafeUrl } from '../src/lib/safeLinking';
 
 const LIKES_KEY = '@coton_noir_hairstyle_likes';
@@ -52,6 +53,7 @@ export default function CoiffureScreen() {
   const [error, setError]     = useState<string | null>(null);
 
   const [liked, setLiked]     = useState(false);
+  const { refreshExtras } = useAchievements();
 
   useEffect(() => {
     if (!params.id) return;
@@ -92,6 +94,7 @@ export default function CoiffureScreen() {
       const obj = raw ? JSON.parse(raw) as Record<string, boolean> : {};
       if (next) obj[params.id] = true; else delete obj[params.id];
       await AsyncStorage.setItem(LIKES_KEY, JSON.stringify(obj));
+      refreshExtras();
     } catch {}
   }
 
@@ -120,6 +123,7 @@ export default function CoiffureScreen() {
   const tools       = (data?.tools      ?? []).filter(Boolean);
   const hairTypes   = (data?.hair_types ?? []).filter(Boolean);
   const tutorialUrl = normalizeHttpUrl(data?.tutorial_url ?? '');
+  const styleName = (data?.name ?? params.name ?? 'Ma coiffure').trim() || 'Ma coiffure';
 
   const levelLabel = level === 'débutant' ? 'Débutant'
     : level === 'inter'                  ? 'Intermédiaire'
@@ -283,6 +287,36 @@ export default function CoiffureScreen() {
                 <Text style={S.tutoBtnText}>Voir le tutoriel vidéo</Text>
               </TouchableOpacity>
             ) : null}
+
+            <View style={S.eventCard}>
+              <Text style={S.sectionTitle}>Préparer un événement</Text>
+              <Text style={S.eventSub}>
+                Tutoriel → routine coiffage du jour → minuteur si besoin
+              </Text>
+              <TouchableOpacity
+                style={S.eventPrimary}
+                onPress={() =>
+                  router.push({
+                    pathname: '/routine-plan',
+                    params: {
+                      kind: 'daily',
+                      source: 'event',
+                      eventName: styleName,
+                    },
+                  } as any)
+                }
+              >
+                <Ionicons name="sparkles-outline" size={18} color={Colors.amber} />
+                <Text style={S.eventPrimaryText}>Coiffage du jour</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={S.eventSecondary}
+                onPress={() => router.push('/washday' as any)}
+              >
+                <Ionicons name="timer-outline" size={18} color={Colors.ink} />
+                <Text style={S.eventSecondaryText}>Minuteur de soin (wash day)</Text>
+              </TouchableOpacity>
+            </View>
           </>
         )}
 
@@ -429,4 +463,43 @@ const S = StyleSheet.create({
     borderRadius: 14, paddingVertical: 14,
   },
   tutoBtnText: { fontSize: 14, fontFamily: 'DMSans_700Bold', color: '#fff' },
+  eventCard: {
+    marginHorizontal: 20,
+    marginTop: 20,
+    padding: 14,
+    borderRadius: 16,
+    backgroundColor: Colors.cream,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  eventSub: {
+    fontSize: 12,
+    fontFamily: 'DMSans_400Regular',
+    color: Colors.warmGray,
+    marginBottom: 12,
+    lineHeight: 17,
+  },
+  eventPrimary: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: Colors.ink,
+    borderRadius: 12,
+    paddingVertical: 12,
+    marginBottom: 8,
+  },
+  eventPrimaryText: { fontSize: 13, fontFamily: 'DMSans_700Bold', color: Colors.amber },
+  eventSecondary: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    borderRadius: 12,
+    paddingVertical: 10,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    backgroundColor: Colors.surface,
+  },
+  eventSecondaryText: { fontSize: 12, fontFamily: 'DMSans_600SemiBold', color: Colors.ink },
 });

@@ -4,6 +4,7 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../src/theme/colors';
 import { useApp } from '../src/context/AppContext';
+import { trackProductEvent } from '../src/lib/productAnalytics';
 import { MiniDateCalendar } from '../src/components/MiniDateCalendar';
 
 const SOIN_TYPES = [
@@ -78,7 +79,13 @@ export default function PlanSoinModal() {
 
   function handlePlanifier() {
     if (!soinType) return;
-    dispatch({ type: 'planSoin', soin: { soinType, date: toISO(chosenDate) } });
+    const iso = toISO(chosenDate);
+    dispatch({ type: 'planSoin', soin: { soinType, date: iso } });
+    void trackProductEvent('washday_planned', {
+      source: 'plan_soin',
+      soin_type: soinType,
+      planned_date: iso,
+    });
     setSaved(true);
     setTimeout(() => router.back(), 700);
   }

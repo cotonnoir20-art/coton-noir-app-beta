@@ -5,7 +5,7 @@ import Svg, { Path } from 'react-native-svg';
 import { buildConicSweepSegments } from '../../lib/ringSweepPaths';
 import { getHealthScoreColors } from '../../lib/homeGrowth';
 import { Colors } from '../../theme/colors';
-import { FontDisplay } from '../../theme/typography';
+import { FontDisplay, Type } from '../../theme/typography';
 
 type Props = {
   hairType: string;
@@ -216,10 +216,9 @@ const s = StyleSheet.create({
         }),
   },
   kicker: {
-    fontSize: 11,
+    ...Type.label,
     fontFamily: 'DMSans_600SemiBold',
     color: Colors.warmGray,
-    letterSpacing: 1,
     marginBottom: 8,
   },
   cmRow: { flexDirection: 'row', alignItems: 'baseline', marginBottom: 2 },

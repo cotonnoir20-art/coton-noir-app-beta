@@ -23,7 +23,7 @@ export const FALLBACK_HOME_HIGHLIGHTS: MomentCard[] = [
     sub: '1247 participantes · jour 8 / 30',
     footerLeft: `+${CHALLENGE_HYDRA_PTS_PER_DAY} ${PTS_DEFI_LABEL}/jour`,
     variant: 'live',
-    route: '/community',
+    route: '/hydra-challenge',
   },
   {
     id: 'local-box',

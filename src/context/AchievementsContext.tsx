@@ -11,6 +11,8 @@ import {
   type AchievementStatus,
 } from '../data/achievements';
 import { hapticSuccess } from '../lib/haptics';
+import { getReferralsCount } from '../lib/referral';
+import { trackProductEvent } from '../lib/productAnalytics';
 
 const DATES_KEY            = '@coton_noir_achievement_dates';
 const RECIPE_LIKES_KEY     = '@coton_noir_recipe_likes';
@@ -96,15 +98,16 @@ export function AchievementsProvider({ children }: { children: React.ReactNode }
 
   // ── Chargement initial : extras + dates persistées ─────────────────────
   const reloadExtras = async () => {
-    const [recipes, hairstyles, invites] = await Promise.all([
+    const [recipes, hairstyles, invitesLocal, referralsServer] = await Promise.all([
       countJsonKeys(RECIPE_LIKES_KEY),
       countJsonKeys(HAIRSTYLE_LIKES_KEY),
       AsyncStorage.getItem(INVITES_SENT_KEY).then(v => (v ? Number(v) || 0 : 0)),
+      getReferralsCount().catch(() => 0),
     ]);
     setExtras({
       recipesLikedCount: recipes,
       hairstylesLikedCount: hairstyles,
-      invitesSentCount: invites,
+      invitesSentCount: Math.max(invitesLocal, referralsServer),
     });
   };
 
@@ -148,6 +151,16 @@ export function AchievementsProvider({ children }: { children: React.ReactNode }
     if (newlyUnlocked.length > 0) {
       setPendingIds(prev => [...prev, ...newlyUnlocked]);
       hapticSuccess();
+      for (const id of newlyUnlocked) {
+        const def = ACHIEVEMENT_BY_ID[id];
+        if (def) {
+          void trackProductEvent('achievement_unlocked', {
+            achievement_id: id,
+            achievement_name: def.name,
+            group: def.group,
+          });
+        }
+      }
     }
 
     if (!firstDiffDone.current) {

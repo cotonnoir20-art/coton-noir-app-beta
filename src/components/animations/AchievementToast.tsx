@@ -1,7 +1,8 @@
 import { useEffect } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useRouter } from 'expo-router';
 import Animated, {
   Easing,
   useAnimatedStyle,
@@ -13,18 +14,16 @@ import Animated, {
 } from 'react-native-reanimated';
 import { Colors } from '../../theme/colors';
 import { useAchievements } from '../../context/AchievementsContext';
+import { getAchievementCta } from '../../data/achievementCtas';
 
-const AUTO_DISMISS_MS = 4200;
+const AUTO_DISMISS_MS = 5500;
 
 /**
  * Toast plein-largeur affiché en haut de l'écran quand un badge est débloqué.
- * - Slide-in depuis le haut + spring scale léger.
- * - Halo qui pulse autour de l'emoji.
- * - Auto-dismiss après ~4 s OU tap pour fermer.
- * - File d'attente : si plusieurs badges débloqués en même temps, ils défilent
- *   les uns après les autres (cf. AchievementsContext.pendingIds).
+ * Propose un CTA contextuel (progression, parrainage, etc.).
  */
 export function AchievementToast() {
+  const router = useRouter();
   const { pending, dismissCurrent } = useAchievements();
   const insets = useSafeAreaInsets();
   const visible = !!pending;
@@ -33,6 +32,8 @@ export function AchievementToast() {
   const scale      = useSharedValue(0.96);
   const opacity    = useSharedValue(0);
   const haloPulse  = useSharedValue(0);
+
+  const cta = pending ? getAchievementCta(pending) : null;
 
   useEffect(() => {
     if (!visible) return;
@@ -56,7 +57,6 @@ export function AchievementToast() {
     );
 
     const t = setTimeout(() => {
-      // Animation de sortie puis dismiss.
       translateY.value = withTiming(-140, { duration: 260, easing: Easing.in(Easing.quad) });
       opacity.value    = withTiming(0, { duration: 220, easing: Easing.in(Easing.quad) });
       setTimeout(dismissCurrent, 240);
@@ -75,6 +75,12 @@ export function AchievementToast() {
     transform: [{ scale: 0.9 + 0.15 * haloPulse.value }],
   }));
 
+  function onCtaPress() {
+    if (!cta) return;
+    dismissCurrent();
+    router.push(cta.route as any);
+  }
+
   if (!visible || !pending) return null;
 
   return (
@@ -86,12 +92,7 @@ export function AchievementToast() {
         aStyle,
       ]}
     >
-      <Pressable
-        style={styles.toast}
-        onPress={dismissCurrent}
-        accessibilityRole="button"
-        accessibilityLabel={`Badge débloqué : ${pending.name}. Toucher pour fermer.`}
-      >
+      <View style={styles.toast}>
         <LinearGradient
           colors={[Colors.ink, '#1A1209']}
           start={{ x: 0, y: 0 }}
@@ -99,19 +100,38 @@ export function AchievementToast() {
           style={StyleSheet.absoluteFillObject}
         />
 
-        <View style={styles.emojiWrap}>
-          <Animated.View style={[styles.halo, haloStyle]} />
-          <Text style={styles.emoji}>{pending.emoji}</Text>
-        </View>
+        <Pressable
+          style={styles.mainRow}
+          onPress={dismissCurrent}
+          accessibilityRole="button"
+          accessibilityLabel={`Badge débloqué : ${pending.name}. Toucher pour fermer.`}
+        >
+          <View style={styles.emojiWrap}>
+            <Animated.View style={[styles.halo, haloStyle]} />
+            <Text style={styles.emoji}>{pending.emoji}</Text>
+          </View>
 
-        <View style={{ flex: 1 }}>
-          <Text style={styles.kicker}>BADGE DÉBLOQUÉ</Text>
-          <Text style={styles.title} numberOfLines={1}>{pending.name}</Text>
-          <Text style={styles.desc}  numberOfLines={2}>{pending.desc}</Text>
-        </View>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.kicker}>BADGE DÉBLOQUÉ</Text>
+            <Text style={styles.title} numberOfLines={1}>{pending.name}</Text>
+            <Text style={styles.desc} numberOfLines={2}>{pending.desc}</Text>
+          </View>
 
-        <Text style={styles.close}>✕</Text>
-      </Pressable>
+          <Text style={styles.close}>✕</Text>
+        </Pressable>
+
+        {cta ? (
+          <TouchableOpacity
+            style={styles.ctaBtn}
+            onPress={onCtaPress}
+            activeOpacity={0.88}
+            accessibilityRole="button"
+            accessibilityLabel={cta.label}
+          >
+            <Text style={styles.ctaText}>{cta.label} →</Text>
+          </TouchableOpacity>
+        ) : null}
+      </View>
     </Animated.View>
   );
 }
@@ -125,17 +145,20 @@ const styles = StyleSheet.create({
     elevation: 12,
   },
   toast: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 14,
-    paddingHorizontal: 14,
-    paddingVertical: 14,
     borderRadius: 18,
     overflow: 'hidden',
     shadowColor: '#000',
     shadowOpacity: 0.32,
     shadowRadius: 14,
     shadowOffset: { width: 0, height: 6 },
+  },
+  mainRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    paddingHorizontal: 14,
+    paddingTop: 14,
+    paddingBottom: 10,
   },
   emojiWrap: {
     width: 52,
@@ -177,5 +200,18 @@ const styles = StyleSheet.create({
     fontFamily: 'DMSans_700Bold',
     color: 'rgba(255,255,255,0.55)',
     paddingHorizontal: 4,
+  },
+  ctaBtn: {
+    marginHorizontal: 12,
+    marginBottom: 12,
+    backgroundColor: Colors.amber,
+    borderRadius: 12,
+    paddingVertical: 11,
+    alignItems: 'center',
+  },
+  ctaText: {
+    fontSize: 13,
+    fontFamily: 'DMSans_700Bold',
+    color: Colors.ink,
   },
 });

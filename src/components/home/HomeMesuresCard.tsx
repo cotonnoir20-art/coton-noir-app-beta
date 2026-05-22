@@ -5,7 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { BCEmojiAvatar } from '../blackCotton/BCEmojiAvatar';
 import type { GrowthEntry, HairProfile } from '../../context/AppContext';
 import { Colors } from '../../theme/colors';
-import { FontDisplay } from '../../theme/typography';
+import { Type } from '../../theme/typography';
 import { buildBlackCottonHomeRecommendations } from '../../lib/blackCottonRecommendations';
 import { buildHomeMeasureSessions } from '../../lib/homeGrowth';
 
@@ -161,8 +161,7 @@ export function HomeMesuresCard({ profile, growthHistory }: Props) {
 const s = StyleSheet.create({
   section: { marginBottom: 22, paddingHorizontal: 14 },
   sectionTitle: {
-    fontSize: 18,
-    fontFamily: FontDisplay,
+    ...Type.cardTitle,
     color: Colors.ink,
     marginBottom: 10,
   },

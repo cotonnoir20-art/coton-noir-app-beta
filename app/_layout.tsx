@@ -28,9 +28,14 @@ import { BlackCottonProvider } from '../src/context/BlackCottonContext';
 import { NotificationsProvider } from '../src/context/NotificationsContext';
 import { AppTabBar } from '../src/components/AppTabBar';
 import { BlackCottonFloatingAssistant } from '../src/components/blackCotton/BlackCottonFloatingAssistant';
+import { OnboardingAuthGate } from '../src/components/OnboardingAuthGate';
+import { ProductMilestonesBridge } from '../src/components/ProductMilestonesBridge';
+import { NotificationDeepLinkHandler } from '../src/components/NotificationDeepLinkHandler';
+import { isNativeNotificationsSupported } from '../src/lib/notificationsPlatform';
 import { LevelUpCelebration } from '../src/components/animations/LevelUpCelebration';
 import { AchievementToast } from '../src/components/animations/AchievementToast';
 import { AchievementsProvider } from '../src/context/AchievementsContext';
+import { PremiumProvider } from '../src/context/PremiumContext';
 import { setupNotificationsHandler } from '../src/lib/dailyCoach';
 import { WebProductionBlocker } from '../src/components/WebProductionBlocker';
 import { WebBetaBanner } from '../src/components/WebBetaBanner';
@@ -50,9 +55,8 @@ function RootLayoutNav() {
     const inAuthGroup = segments[0] === '(auth)';
     if (!session && !inAuthGroup) {
       router.replace('/(auth)/welcome');
-    } else if (session && inAuthGroup) {
-      router.replace('/(tabs)');
     }
+    // Redirection post-login avec profil incomplet : OnboardingAuthGate
   }, [session, loading, segments]);
 
   const inAuthGroup = segments[0] === '(auth)';
@@ -70,9 +74,12 @@ function RootLayoutNav() {
         <Stack.Screen name="washday"       options={{ presentation: 'card', animation: 'slide_from_right' }} />
         <Stack.Screen name="routine-plan"  options={{ presentation: 'card', animation: 'slide_from_right' }} />
         <Stack.Screen name="community"     options={{ presentation: 'card', animation: 'slide_from_right' }} />
+        <Stack.Screen name="hydra-challenge" options={{ presentation: 'card', animation: 'slide_from_right' }} />
         <Stack.Screen name="box"           options={{ presentation: 'card', animation: 'slide_from_right' }} />
         <Stack.Screen name="discover"      options={{ presentation: 'card', animation: 'slide_from_right' }} />
         <Stack.Screen name="growth"        options={{ presentation: 'card', animation: 'slide_from_right' }} />
+        <Stack.Screen name="quarterly-bilan" options={{ presentation: 'card', animation: 'slide_from_right' }} />
+        <Stack.Screen name="growth-calculator" options={{ presentation: 'card', animation: 'slide_from_right' }} />
         <Stack.Screen name="highlights"    options={{ presentation: 'card', animation: 'slide_from_right' }} />
         <Stack.Screen name="coiffures"     options={{ presentation: 'card', animation: 'slide_from_right' }} />
         <Stack.Screen name="hair-profile"  options={{ presentation: 'card', animation: 'slide_from_right' }} />
@@ -119,6 +126,7 @@ export default function RootLayout() {
     DMSans_500Medium,
     DMSans_600SemiBold,
     DMSans_700Bold,
+    /** Lecture éditoriale (Articles hero + détail) — ne pas utiliser ailleurs */
     PlayfairDisplay_700Bold,
   });
 
@@ -141,13 +149,19 @@ export default function RootLayout() {
         <AuthProvider>
           <DeviceIntegrityGuard>
             <AppProvider>
+              <PremiumProvider>
               <AchievementsProvider>
                 <NotificationsProvider>
                   <BlackCottonProvider>
-                    <RootLayoutNav />
+                    <ProductMilestonesBridge />
+                    {isNativeNotificationsSupported() ? <NotificationDeepLinkHandler /> : null}
+                    <OnboardingAuthGate>
+                      <RootLayoutNav />
+                    </OnboardingAuthGate>
                   </BlackCottonProvider>
                 </NotificationsProvider>
               </AchievementsProvider>
+              </PremiumProvider>
             </AppProvider>
           </DeviceIntegrityGuard>
         </AuthProvider>

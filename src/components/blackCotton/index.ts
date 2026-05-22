@@ -14,6 +14,7 @@ export { BlackCottonCoachCard } from './BlackCottonCoachCard';
 export { BlackCottonFloatingAssistant } from './BlackCottonFloatingAssistant';
 export { MOOD_ACCENT, MOOD_TO_EXPRESSION, TRIGGER_CONFIGS } from './constants';
 export type {
+  BCActionRoute,
   BCContextValue,
   BCMessage,
   BlackCottonMood,

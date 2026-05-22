@@ -10,6 +10,7 @@ export type BlackCottonMood =
 
 export type BlackCottonTrigger =
   | 'first_login'
+  | 'onboarding_gift'
   | 'first_routine'
   | 'profile_completed'
   | 'badge_unlocked'
@@ -21,7 +22,27 @@ export type BlackCottonTrigger =
   | 'onboarding_step'
   | 'pantry_filled'
   | 'protective_mode_on'
+  | 'post_routine'
+  | 'post_analysis'
+  | 'post_measurement'
   | 'manual';
+
+/** Une seule route Expo Router par message coach. */
+export type BCActionRoute =
+  | '/(tabs)/'
+  | '/(tabs)/routine'
+  | '/(tabs)/analyze'
+  | '/hair-length'
+  | '/washday'
+  | '/add-washday'
+  | '/recipes'
+  | '/articles'
+  | '/tutorials'
+  | '/premium'
+  | '/routine-plan'
+  | '/rewards'
+  | '/achievements'
+  | '/onboarding';
 
 export type DisplayMode = 'toast' | 'popup';
 
@@ -30,9 +51,12 @@ export interface TriggerContext {
   streak?: number;
   onboardingStep?: number;
   text?: string;
+  subtext?: string;
   mood?: BlackCottonMood;
   displayMode?: DisplayMode;
   actionLabel?: string;
+  actionRoute?: BCActionRoute;
+  /** @deprecated Préférer actionRoute */
   onAction?: () => void;
 }
 
@@ -46,6 +70,8 @@ export interface BCMessage {
   displayMode: DisplayMode;
   duration: number; // ms, 0 = manual dismiss only
   actionLabel?: string;
+  actionRoute?: BCActionRoute;
+  /** @deprecated Préférer actionRoute */
   onAction?: () => void;
 }
 

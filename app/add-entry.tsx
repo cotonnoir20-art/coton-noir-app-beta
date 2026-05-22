@@ -2,10 +2,11 @@ import { useState } from 'react';
 import { Alert, KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../src/theme/colors';
 import { useApp } from '../src/context/AppContext';
+import { appendJournalEntry } from '../src/lib/journalStorage';
 import { AppHeader } from '../src/components/AppHeader';
 import {
   CompletionLottieOverlay,
@@ -33,11 +34,22 @@ const NOTES_PLACEHOLDER: Record<EntryType, string> = {
 
 export default function AddEntryScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams<{
+    type?: string | string[];
+    title?: string | string[];
+    notes?: string | string[];
+  }>();
   const { grantJournalEntrySecure } = useApp();
 
-  const [type, setType]         = useState<EntryType>('soin');
-  const [title, setTitle]       = useState('');
-  const [notes, setNotes]       = useState('');
+  const paramType = Array.isArray(params.type) ? params.type[0] : params.type;
+  const paramTitle = Array.isArray(params.title) ? params.title[0] : params.title;
+  const paramNotes = Array.isArray(params.notes) ? params.notes[0] : params.notes;
+
+  const [type, setType]         = useState<EntryType>(
+    paramType === 'routine' ? 'routine' : 'soin',
+  );
+  const [title, setTitle]       = useState(paramTitle?.trim() ?? '');
+  const [notes, setNotes]       = useState(paramNotes?.trim() ?? '');
   const [saved, setSaved]       = useState(false);
   const [completionOpen, setCompletionOpen] = useState(false);
   const [completionVariant, setCompletionVariant] = useState<CompletionLottieVariant>('light');
@@ -63,9 +75,16 @@ export default function AddEntryScreen() {
       label: title.trim(),
       entryDate,
     });
+    await appendJournalEntry({
+      entryDate,
+      title: title.trim(),
+      notes: notes.trim(),
+      kind: type,
+    });
     if (!grant.ok) return;
     if (grant.alreadyDone) {
-      Alert.alert('Déjà récompensé', 'Tu as déjà gagné des CotonCoins pour ce type de soin aujourd’hui.');
+      Alert.alert('Déjà récompensé', 'Entrée enregistrée dans ton journal. Les CotonCoins du jour étaient déjà crédités.');
+      setTimeout(() => router.back(), 700);
       return;
     }
     setSaved(true);

@@ -1,6 +1,10 @@
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, TouchableOpacity, View, useWindowDimensions } from 'react-native';
 import { Colors } from '../theme/colors';
+import {
+  calendarCellStyle,
+  getCalendarGridMetrics,
+} from '../lib/calendarGridLayout';
 
 const MONTH_NAMES = [
   'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
@@ -39,7 +43,7 @@ export function MiniDateCalendar({
   const minDay = startOfDay(minimumDate ?? today);
   const { width: screenWidth } = useWindowDimensions();
   const innerW = contentWidth ?? screenWidth - 64;
-  const cellSize = Math.floor(innerW / 7);
+  const { cellSize, gridWidth, cellMargin } = getCalendarGridMetrics(innerW);
 
   const [calDate, setCalDate] = useState(() => {
     const base = selectedDate ?? today;
@@ -71,17 +75,23 @@ export function MiniDateCalendar({
         </TouchableOpacity>
       </View>
 
-      <View style={s.weekRow}>
+      <View style={[s.weekRow, { width: gridWidth }]}>
         {WEEK_DAYS.map((label, i) => (
-          <Text key={i} style={[s.weekDay, { width: cellSize }]}>
+          <Text
+            key={i}
+            style={[s.weekDay, calendarCellStyle, { width: cellSize, margin: cellMargin }]}
+          >
             {label}
           </Text>
         ))}
       </View>
 
-      <View style={s.grid}>
+      <View style={[s.grid, { width: gridWidth }]}>
         {Array.from({ length: firstOffset }).map((_, i) => (
-          <View key={`e-${i}`} style={{ width: cellSize, height: cellSize }} />
+          <View
+            key={`e-${i}`}
+            style={[calendarCellStyle, { width: cellSize, height: cellSize, margin: cellMargin }]}
+          />
         ))}
         {Array.from({ length: daysInMonth }, (_, i) => i + 1).map(dayNum => {
           const date = new Date(calDate.year, calDate.month, dayNum);
@@ -92,7 +102,7 @@ export function MiniDateCalendar({
           return (
             <Pressable
               key={dayNum}
-              style={[s.cell, { width: cellSize, height: cellSize }]}
+              style={[s.cell, calendarCellStyle, { width: cellSize, height: cellSize, margin: cellMargin }]}
               onPress={() => onSelect(date)}
               disabled={isPast}
               accessibilityRole="button"
@@ -151,14 +161,14 @@ const s = StyleSheet.create({
   },
   navArrow: { fontSize: 16, color: Colors.ink },
   navMonth: { fontSize: 14, fontFamily: 'DMSans_700Bold', color: Colors.ink },
-  weekRow: { flexDirection: 'row', marginBottom: 4 },
+  weekRow: { flexDirection: 'row', flexWrap: 'nowrap', marginBottom: 4, alignSelf: 'center' },
   weekDay: {
     textAlign: 'center',
     fontSize: 10,
     fontFamily: 'DMSans_500Medium',
     color: Colors.warmGray,
   },
-  grid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center' },
+  grid: { flexDirection: 'row', flexWrap: 'wrap', alignSelf: 'center' },
   cell: { alignItems: 'center', justifyContent: 'center' },
   inner: {
     width: 30,

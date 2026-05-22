@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import { usePremium } from '../src/context/PremiumContext';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../src/theme/colors';
 import { useApp } from '../src/context/AppContext';
@@ -32,6 +33,7 @@ const TABS: { id: TabId; label: string }[] = [
 ];
 
 export default function BoxScreen() {
+  const { requireAccess, openPremium } = usePremium();
   const router = useRouter();
   const { state } = useApp();
   const [tab, setTab] = useState<TabId>('current');
@@ -87,6 +89,13 @@ export default function BoxScreen() {
                   : { backgroundColor: Colors.sageLight,  borderColor: Colors.sage },
               ]}
               activeOpacity={0.8}
+              onPress={() => {
+                if (isPremium) {
+                  void requireAccess('box_masterclass').then(ok => {
+                    if (!ok) openPremium('box_masterclass');
+                  });
+                }
+              }}
             >
               <View style={[S.itemIconBox, { backgroundColor: '#fff' }]}>
                 <Ionicons name={item.icon} size={22} color={isPremium ? Colors.rose : item.iconColor} />

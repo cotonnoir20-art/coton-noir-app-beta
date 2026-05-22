@@ -28,6 +28,11 @@ import {
   REFERRER_REWARD_CC,
   type InviteLogEntry,
 } from '../src/lib/referral';
+import {
+  REFERRAL_MAX_CC_EARNED,
+  REFERRAL_MAX_REFEREES,
+} from '../src/lib/cotonCoins';
+import { trackProductEvent } from '../src/lib/productAnalytics';
 
 const METHOD_LABEL: Record<InviteLogEntry['method'], { emoji: string; label: string }> = {
   copy:     { emoji: '📋', label: 'Code copié'      },
@@ -140,6 +145,7 @@ export default function InviteScreen() {
         await reload();
         refreshExtras();
         hapticSuccess();
+        void trackProductEvent('invite_shared', { method: 'share' });
       }
     } catch {
       hapticLight();
@@ -203,6 +209,9 @@ export default function InviteScreen() {
             Pour chaque inscription validée, gagne{' '}
             <Text style={S.highlight}>+{REFERRER_REWARD_CC} CotonCoins</Text>
             {'. Elles aussi.'}
+          </Text>
+          <Text style={S.inviteCap}>
+            Plafond marraine : {REFERRAL_MAX_REFEREES} filleules rémunérées · {REFERRAL_MAX_CC_EARNED} CC max.
           </Text>
 
           {/* Stats */}
@@ -373,7 +382,15 @@ const S = StyleSheet.create({
   inviteDesc: {
     fontSize: 13, fontFamily: 'DMSans_400Regular',
     color: 'rgba(255,255,255,0.6)', textAlign: 'center',
-    lineHeight: 20, marginBottom: 20,
+    lineHeight: 20, marginBottom: 8,
+  },
+  inviteCap: {
+    fontSize: 11,
+    fontFamily: 'DMSans_400Regular',
+    color: 'rgba(255,255,255,0.45)',
+    textAlign: 'center',
+    lineHeight: 16,
+    marginBottom: 16,
   },
   highlight: { color: Colors.amber, fontFamily: 'DMSans_700Bold' },
 

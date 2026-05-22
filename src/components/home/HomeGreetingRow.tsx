@@ -1,19 +1,24 @@
 import { StyleSheet, Text, View } from 'react-native';
 import { Colors } from '../../theme/colors';
-import { FontDisplay } from '../../theme/typography';
+import { Fonts, Type } from '../../theme/typography';
+import { ProfileAvatar } from '../profile/ProfileAvatar';
 
 type Props = {
   displayName: string;
-  /** Emoji entre « Bonjour » et le prénom (ex. 🌸). */
+  /** Emoji entre « Bonjour » et le prénom (ex. 🌸) si pas d’avatar perso. */
   greetingEmoji?: string;
+  onAvatarPress?: () => void;
 };
 
-export function HomeGreetingRow({ displayName, greetingEmoji = '🌸' }: Props) {
+export function HomeGreetingRow({ displayName, greetingEmoji = '🌸', onAvatarPress }: Props) {
   return (
     <View style={s.wrap}>
+      {onAvatarPress ? (
+        <ProfileAvatar size={40} onPress={onAvatarPress} style={s.avatar} />
+      ) : null}
       <Text style={s.line} numberOfLines={1}>
         <Text style={s.bonjour}>Bonjour </Text>
-        <Text style={s.emoji}>{greetingEmoji} </Text>
+        {!onAvatarPress ? <Text style={s.emoji}>{greetingEmoji} </Text> : null}
         <Text style={s.name}>{displayName}</Text>
       </Text>
     </View>
@@ -21,18 +26,17 @@ export function HomeGreetingRow({ displayName, greetingEmoji = '🌸' }: Props) 
 }
 
 const s = StyleSheet.create({
-  wrap: { alignItems: 'center', marginBottom: 10, paddingHorizontal: 12 },
+  wrap: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, marginBottom: 10, paddingHorizontal: 12 },
+  avatar: { flexShrink: 0 },
   line: { textAlign: 'center' },
   bonjour: {
-    fontSize: 16,
-    fontFamily: 'DMSans_500Medium',
+    ...Type.sectionTitle,
+    fontFamily: Fonts.bodyMedium,
     color: Colors.warmGray,
   },
   emoji: { fontSize: 16 },
   name: {
-    fontSize: 20,
-    fontFamily: FontDisplay,
+    ...Type.greetingName,
     color: Colors.ink,
-    letterSpacing: -0.3,
   },
 });

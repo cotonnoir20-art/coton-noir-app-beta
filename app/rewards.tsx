@@ -1,4 +1,4 @@
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useEffect, useRef, useState } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -6,6 +6,7 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../src/theme/colors';
 import { useApp } from '../src/context/AppContext';
+import { usePremium } from '../src/context/PremiumContext';
 import { BCEmojiAvatar } from '../src/components/blackCotton/BCEmojiAvatar';
 import { LEVELS, getCurrentLevel, getNextLevel, getLevelProgress } from '../src/data/levels';
 import { EARN_WAYS, REWARDS } from '../src/data/rewards';
@@ -21,6 +22,8 @@ import {
   CC_STREAK_BONUS_7,
   PTS_ROUTINE_DAILY_NIGHT,
   PTS_ROUTINE_WASHDAY,
+  REFERRAL_MAX_CC_EARNED,
+  REFERRAL_MAX_REFEREES,
   formatCc,
   formatCcSigned,
   formatPoints,
@@ -81,13 +84,18 @@ const TIPS = [
   {
     e: '🎁',
     title: 'Invite tes amies',
-    tip: `Chaque amie inscrite via ton lien te rapporte ${CC_REFERRAL_SIGNUP} CC — sans limite de parrainages !`,
+    tip: `Chaque filleule inscrite via ton code : +${CC_REFERRAL_SIGNUP} CC (plafond ${REFERRAL_MAX_REFEREES} filleules · ${REFERRAL_MAX_CC_EARNED} CC max).`,
   },
 ];
 
 export default function RewardsScreen() {
   const router  = useRouter();
   const { state, dispatch, spendCoinsSecure } = useApp();
+  const { hasAccess, openPremium, maybeShowMoment } = usePremium();
+
+  useEffect(() => {
+    void maybeShowMoment('coins_multiplier');
+  }, [maybeShowMoment]);
   const { coins, coinHistory, totalEarned } = state;
 
   const scrollRef    = useRef<ScrollView>(null);
@@ -130,12 +138,42 @@ export default function RewardsScreen() {
   const nextLvl  = getNextLevel(totalEarned);
   const progress = getLevelProgress(totalEarned);
 
+  async function handleRedeem(r: CatalogRow) {
+    const result = await spendCoinsSecure(r.cost, r.name, { rewardId: r.id });
+    if (!result.ok) {
+      Alert.alert('Échange impossible', 'Solde insuffisant ou erreur serveur. Réessaie dans un instant.');
+      return;
+    }
+    Alert.alert(
+      'Récompense débloquée 🎁',
+      `${r.name} — ${formatCc(r.cost)} débités. Récupère ton avantage partenaire dans Codes promo.`,
+      [
+        { text: 'Plus tard', style: 'cancel' },
+        { text: 'Voir mes codes →', onPress: () => router.push('/codes' as any) },
+      ],
+    );
+  }
+
   return (
     <SafeAreaView style={S.safe} edges={['top']}>
 
       <AppHeader title="Récompenses" subtitle={REWARDS_MONEY_LEGEND} />
 
       <ScrollView ref={scrollRef} showsVerticalScrollIndicator={false} contentContainerStyle={S.content}>
+
+        {!hasAccess ? (
+          <TouchableOpacity style={S.premiumCcCard} onPress={() => openPremium('coins_multiplier')} activeOpacity={0.88}>
+            <Text style={S.premiumCcTitle}>CotonCoins × 2 avec Premium</Text>
+            <Text style={S.premiumCcSub}>
+              Chaque routine, wash day et défi rapporte le double — monte plus vite au catalogue.
+            </Text>
+            <Text style={S.premiumCcCta}>Essai 7 jours →</Text>
+          </TouchableOpacity>
+        ) : (
+          <View style={S.premiumCcActive}>
+            <Text style={S.premiumCcActiveText}>✨ Multiplicateur Premium actif · gains doublés</Text>
+          </View>
+        )}
 
         {/* ── Niveau actuel ── */}
         <LinearGradient
@@ -272,7 +310,7 @@ export default function RewardsScreen() {
               <TouchableOpacity
                 style={[S.redeemBtn, !canRedeem && S.redeemBtnDisabled]}
                 disabled={!canRedeem}
-                onPress={() => { if (canRedeem) void spendCoinsSecure(r.cost, r.name); }}
+                onPress={() => { if (canRedeem) void handleRedeem(r); }}
               >
                 <Text style={[S.redeemText, !canRedeem && S.redeemTextDisabled]}>
                   {r.locked ? 'Bientôt' : insufficient ? 'Insuff.' : 'Échanger'}
@@ -339,6 +377,74 @@ export default function RewardsScreen() {
 const S = StyleSheet.create({
   safe:    { flex: 1, backgroundColor: Colors.bg },
   content: { paddingHorizontal: 20, paddingBottom: 16 },
+
+  premiumCcCard: {
+    backgroundColor: Colors.amberLight,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: Colors.amber,
+    padding: 14,
+    marginBottom: 14,
+  },
+  premiumCcTitle: { fontSize: 15, fontFamily: 'DMSans_700Bold', color: Colors.ink, marginBottom: 4 },
+  premiumCcSub: { fontSize: 12, fontFamily: 'DMSans_400Regular', color: Colors.warmGray, lineHeight: 17 },
+  premiumCcCta: { marginTop: 8, fontSize: 12, fontFamily: 'DMSans_700Bold', color: Colors.amberDark },
+  premiumCcActive: {
+    backgroundColor: Colors.sageLight,
+    borderRadius: 12,
+    padding: 10,
+    marginBottom: 14,
+    alignItems: 'center',
+  },
+  premiumCcActiveText: { fontSize: 12, fontFamily: 'DMSans_600SemiBold', color: Colors.sage },
+
+  workflowCard: {
+    backgroundColor: Colors.surface,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    padding: 16,
+    marginBottom: 16,
+  },
+  workflowTitle: {
+    fontSize: 15,
+    fontFamily: 'DMSans_700Bold',
+    color: Colors.ink,
+    marginBottom: 6,
+  },
+  workflowSub: {
+    fontSize: 12,
+    fontFamily: 'DMSans_400Regular',
+    color: Colors.warmGray,
+    lineHeight: 18,
+    marginBottom: 12,
+  },
+  workflowSteps: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  workflowStep: {
+    flex: 1,
+    alignItems: 'center',
+    backgroundColor: Colors.cream,
+    borderRadius: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 4,
+  },
+  workflowStepEmoji: { fontSize: 20, marginBottom: 4 },
+  workflowStepLabel: {
+    fontSize: 10,
+    fontFamily: 'DMSans_700Bold',
+    color: Colors.ink,
+    textAlign: 'center',
+  },
+  workflowArrow: {
+    fontSize: 14,
+    fontFamily: 'DMSans_700Bold',
+    color: Colors.warmGray,
+    marginHorizontal: 4,
+  },
 
   // ── Header ──
   header: {

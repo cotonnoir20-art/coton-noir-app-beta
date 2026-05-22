@@ -10,6 +10,7 @@ import { useAuth } from './AuthContext';
 import { buildDemoAppState, buildDemoPrefs, getDemoFixture, isDemoEmail } from '../data/demoUsers';
 import {
   CC_ONBOARDING_GIFT,
+  CC_PROFILE_COMPLETE,
   CC_STREAK_BONUS_30,
   CC_STREAK_BONUS_7,
   ONBOARDING_GIFT_LABEL,
@@ -18,6 +19,29 @@ import {
   getRoutineValidationRewards,
   hasOnboardingGiftInHistory,
 } from '../lib/cotonCoins';
+import {
+  getOnboardingDoneLocal,
+  markOnboardingDoneLocal,
+  needsOnboardingFlow,
+} from '../lib/onboardingGate';
+import {
+  hasProfileCompleteBonusInHistory,
+  isProfileComplete,
+  PROFILE_COMPLETE_LABEL,
+} from '../lib/profileCompleteness';
+import { trackProductEvent } from '../lib/productAnalytics';
+import { loadUserPrefs } from '../lib/userPrefs';
+import { isNativeNotificationsSupported } from '../lib/notificationsPlatform';
+import { scheduleRoutineReminder } from '../lib/routineReminder';
+import {
+  scheduleWashdayGrowthReminder,
+  scheduleWashdayReminder,
+} from '../lib/washdayReminder';
+import { scheduleGrowthMonthlyReminder } from '../lib/growthMeasurementReminder';
+import { recordAnalysisJourneyValidation } from '../lib/analysisJourney';
+import { buildGrowthMilestones, getHomeLengthMetrics } from '../lib/homeGrowth';
+import type { BlackCottonTrigger, TriggerContext } from '../components/blackCotton/types';
+import { buildPostRoutineContext } from '../lib/coachMoments';
 import {
   applyReferralCodeOnServer,
   claimOnboardingGiftOnServer,
@@ -97,6 +121,13 @@ export type PlannedSoin = {
   id: number;
   soinType: string;
   date: string; // "YYYY-MM-DD"
+  products?: string;
+  notes?: string;
+  hairState?: string;
+  ratingStars?: number;
+  ratingNote?: string;
+  reminderHour?: number;
+  reminderMinute?: number;
 };
 
 type RoutineStepsState = Record<RoutineType, RoutineStep[]>;
@@ -375,9 +406,28 @@ function reducer(state: AppState, action: Action): AppState {
 /** Niveau gagné lors du dernier passage de palier — sert à déclencher la célébration. */
 export type LevelDef = (typeof LEVELS)[number];
 
+function hasAnyRoutineValidationInHistory(history: CoinHistoryEntry[]): boolean {
+  return history.some(
+    e =>
+      e.amount > 0 &&
+      (e.label.includes('Routine') || e.label.includes('Wash day')),
+  );
+}
+
 type AppContextType = {
   state: AppState;
   dispatch: React.Dispatch<Action>;
+  /** Hydratation Supabase / cache terminée pour la session courante. */
+  isAppReady: boolean;
+  /** Rediriger vers l’onboarding (profil incomplet). */
+  needsOnboarding: boolean;
+  /** Message Black Cotton en attente (trigger + contexte optionnel). */
+  pendingBc: { trigger: BlackCottonTrigger; ctx?: TriggerContext } | null;
+  queueBcTrigger: (trigger: BlackCottonTrigger, ctx?: TriggerContext) => void;
+  clearPendingBc: () => void;
+  /** Cadeau 50 CC à célébrer avant le popup first_login. */
+  celebrateOnboardingGift: boolean;
+  clearCelebrateOnboardingGift: () => void;
   /** Compte démo : logique locale uniquement (pas de RPC économie). */
   isDemoAccount: boolean;
   /** Niveau atteint en attente d'être célébré (null si rien à fêter). */
@@ -391,7 +441,11 @@ type AppContextType = {
     points?: number;
     idempotencyKey?: string;
   }) => Promise<EconomyRpcResult>;
-  spendCoinsSecure: (amount: number, label: string) => Promise<EconomyRpcResult>;
+  spendCoinsSecure: (
+    amount: number,
+    label: string,
+    meta?: { rewardId?: string },
+  ) => Promise<EconomyRpcResult>;
   claimOnboardingGiftSecure: () => Promise<EconomyRpcResult>;
   refreshEconomySecure: () => Promise<EconomyRpcResult>;
   grantJournalEntrySecure: (args: {
@@ -429,27 +483,47 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   /** Ref pour détection « niveau atteint » (ignore les hydratations > +400 CC d’un coup). */
   const prevCoinsForLevelHaptic = useRef<number | null>(null);
   const [pendingLevelUp, setPendingLevelUp] = useState<LevelDef | null>(null);
+  const [isAppReady, setIsAppReady] = useState(false);
+  const [needsOnboarding, setNeedsOnboarding] = useState(false);
+  const [pendingBc, setPendingBc] = useState<{
+    trigger: BlackCottonTrigger;
+    ctx?: TriggerContext;
+  } | null>(null);
+  const [celebrateOnboardingGift, setCelebrateOnboardingGift] = useState(false);
+  const serverOnboardingDoneRef = useRef(false);
+  const profileCompleteGrantStarted = useRef(false);
+
+  const clearPendingBc = useCallback(() => setPendingBc(null), []);
+  const clearCelebrateOnboardingGift = useCallback(() => setCelebrateOnboardingGift(false), []);
+  const queueBcTrigger = useCallback((t: BlackCottonTrigger, ctx?: TriggerContext) => {
+    setPendingBc({ trigger: t, ctx });
+  }, []);
 
   useEffect(() => {
-    const c = state.coins;
+    const pts = state.totalEarned;
     const prev = prevCoinsForLevelHaptic.current;
     if (prev === null) {
-      prevCoinsForLevelHaptic.current = c;
+      prevCoinsForLevelHaptic.current = pts;
       return;
     }
-    const delta = c - prev;
+    const delta = pts - prev;
     if (delta <= 0) {
-      prevCoinsForLevelHaptic.current = c;
+      prevCoinsForLevelHaptic.current = pts;
       return;
     }
     const oldLevel = getCurrentLevel(prev);
-    const newLevel = getCurrentLevel(c);
+    const newLevel = getCurrentLevel(pts);
     if (newLevel.id > oldLevel.id && delta <= MAX_SINGLE_GAIN_FOR_LEVEL_HAPTIC) {
       hapticSuccess();
       setPendingLevelUp(newLevel);
+      void trackProductEvent('level_up', {
+        level_id: newLevel.id,
+        level_name: newLevel.name,
+        total_earned: pts,
+      });
     }
-    prevCoinsForLevelHaptic.current = c;
-  }, [state.coins]);
+    prevCoinsForLevelHaptic.current = pts;
+  }, [state.totalEarned]);
 
   const dismissLevelUp = () => setPendingLevelUp(null);
 
@@ -475,18 +549,69 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, [userId, applyEconomySnapshot]);
 
   const validateRoutineSecure = useCallback(async (routineType: RoutineType): Promise<EconomyRpcResult> => {
+    const wasFirstRoutine = !hasAnyRoutineValidationInHistory(state.coinHistory);
+
     if (isDemo.current) {
       dispatch({ type: 'validateRoutine', routineType });
+      const nextStreak = computeNewStreak(state.streak, state.lastRoutineDate);
+      if (wasFirstRoutine) {
+        queueBcTrigger('first_routine');
+        void trackProductEvent('first_routine_validated', { routine_type: routineType });
+      } else {
+        queueBcTrigger('post_routine', buildPostRoutineContext({
+          streak: nextStreak,
+          routineType,
+          profile: state.profile,
+          isFirstRoutine: false,
+        }));
+      }
+      if (nextStreak === 7) queueBcTrigger('streak_7_days');
+      if (nextStreak === 30) queueBcTrigger('streak_30_days');
+      void trackProductEvent('routine_validated', { routine_type: routineType });
+      void recordAnalysisJourneyValidation();
+      void cancelDailyCoach();
+      if (routineType === 'washday') {
+        void scheduleWashdayGrowthReminder();
+      }
       return { ok: true };
     }
     const result = await validateRoutineOnServer(routineType);
     if (result.ok && result.snapshot) {
       applyEconomySnapshot(result.snapshot);
+      if (!result.alreadyDone) {
+        void trackProductEvent('routine_validated', { routine_type: routineType });
+        void recordAnalysisJourneyValidation();
+        void cancelDailyCoach();
+        if (routineType === 'washday') {
+          void scheduleWashdayGrowthReminder();
+        }
+        const newStreak = result.snapshot.streak;
+        if (wasFirstRoutine) {
+          queueBcTrigger('first_routine');
+          void trackProductEvent('first_routine_validated', { routine_type: routineType });
+        } else {
+          queueBcTrigger('post_routine', buildPostRoutineContext({
+            streak: newStreak,
+            routineType,
+            profile: state.profile,
+            isFirstRoutine: false,
+          }));
+        }
+        if (newStreak === 7) queueBcTrigger('streak_7_days');
+        if (newStreak === 30) queueBcTrigger('streak_30_days');
+      }
     } else if (!result.ok) {
       void refreshEconomySecure();
     }
     return result;
-  }, [applyEconomySnapshot, refreshEconomySecure]);
+  }, [
+    applyEconomySnapshot,
+    refreshEconomySecure,
+    state.coinHistory,
+    state.streak,
+    state.profile,
+    queueBcTrigger,
+  ]);
 
   const grantCoinsSecure = useCallback(async (args: {
     amount: number;
@@ -503,25 +628,68 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     return result;
   }, [applyEconomySnapshot]);
 
-  const spendCoinsSecure = useCallback(async (amount: number, label: string): Promise<EconomyRpcResult> => {
+  const spendCoinsSecure = useCallback(async (
+    amount: number,
+    label: string,
+    meta?: { rewardId?: string },
+  ): Promise<EconomyRpcResult> => {
     if (isDemo.current) {
       dispatch({ type: 'spendCoins', amount, label });
+      void trackProductEvent('reward_redeemed', {
+        cost: amount,
+        reward_name: label,
+        reward_id: meta?.rewardId ?? null,
+      });
       return { ok: true };
     }
     const result = await spendCoinsOnServer(amount, label);
-    if (result.ok && result.snapshot) applyEconomySnapshot(result.snapshot);
+    if (result.ok && result.snapshot) {
+      applyEconomySnapshot(result.snapshot);
+      void trackProductEvent('reward_redeemed', {
+        cost: amount,
+        reward_name: label,
+        reward_id: meta?.rewardId ?? null,
+      });
+    }
     return result;
   }, [applyEconomySnapshot]);
 
   const claimOnboardingGiftSecure = useCallback(async (): Promise<EconomyRpcResult> => {
     if (isDemo.current) {
       dispatch({ type: 'grantOnboardingGift' });
+      setCelebrateOnboardingGift(true);
+      queueBcTrigger('onboarding_gift');
       return { ok: true };
     }
     const result = await claimOnboardingGiftOnServer();
-    if (result.ok && result.snapshot) applyEconomySnapshot(result.snapshot);
+    if (result.ok && result.snapshot) {
+      applyEconomySnapshot(result.snapshot);
+      if (!result.alreadyDone) {
+        setCelebrateOnboardingGift(true);
+        queueBcTrigger('onboarding_gift');
+      }
+    }
     return result;
-  }, [applyEconomySnapshot]);
+  }, [applyEconomySnapshot, queueBcTrigger]);
+
+  const tryGrantProfileCompleteBonus = useCallback(async () => {
+    if (!userId || isDemo.current || profileCompleteGrantStarted.current) return;
+    if (!isProfileComplete(state.profile)) return;
+    if (hasProfileCompleteBonusInHistory(state.coinHistory)) return;
+
+    profileCompleteGrantStarted.current = true;
+    const result = await grantCoinsOnServer({
+      amount: CC_PROFILE_COMPLETE,
+      label: PROFILE_COMPLETE_LABEL,
+      idempotencyKey: `profile_complete:${userId}`,
+    });
+    if (result.ok && result.snapshot) {
+      applyEconomySnapshot(result.snapshot);
+      queueBcTrigger('profile_completed');
+    } else {
+      profileCompleteGrantStarted.current = false;
+    }
+  }, [userId, state.profile, state.coinHistory, applyEconomySnapshot, queueBcTrigger]);
 
   const grantJournalEntrySecure = useCallback(async (args: {
     kind: 'soin' | 'routine';
@@ -640,6 +808,49 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     void saveOfflineSlice(pickOfflinePersistSlice(state));
   }, [userId, state.routineSteps, state.plannedSoins, state.profile, state.routinePlans]);
 
+  useEffect(() => {
+    void scheduleWashdayReminder(state.plannedSoins);
+  }, [state.plannedSoins]);
+
+  const milestoneCelebrationReady = useRef(false);
+  const milestoneDoneRef = useRef<Set<number>>(new Set());
+
+  useEffect(() => {
+    if (!isAppReady) return;
+    const metrics = getHomeLengthMetrics(state);
+    const milestones = buildGrowthMilestones(metrics.currentCm, metrics.targetCm);
+    const doneCm = new Set(
+      milestones.filter(m => m.status === 'done').map(m => m.cm),
+    );
+
+    if (!milestoneCelebrationReady.current) {
+      milestoneDoneRef.current = doneCm;
+      milestoneCelebrationReady.current = true;
+      return;
+    }
+
+    for (const cm of doneCm) {
+      if (!milestoneDoneRef.current.has(cm)) {
+        queueBcTrigger('hair_growth_progress');
+        break;
+      }
+    }
+    milestoneDoneRef.current = doneCm;
+  }, [
+    isAppReady,
+    state.growthHistory,
+    state.profile.targetLength,
+    state.profile.length,
+    queueBcTrigger,
+  ]);
+
+  useEffect(() => {
+    void scheduleGrowthMonthlyReminder(
+      state.growthHistory,
+      state.profile.objectiveTargetDate,
+    );
+  }, [state.growthHistory, state.profile.objectiveTargetDate]);
+
   // ── Chargement Supabase au login ──
   useEffect(() => {
     if (!userId) {
@@ -686,11 +897,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
         dispatch({ type: 'hydrate', payload: demoState });
         syncReady.current = true;
+        setIsAppReady(true);
+        setNeedsOnboarding(false);
         return;
       }
     }
 
     isDemo.current = false;
+    setIsAppReady(false);
+    profileCompleteGrantStarted.current = false;
+    serverOnboardingDoneRef.current = false;
 
     (async () => {
       const today = new Date().toISOString().slice(0, 10);
@@ -805,8 +1021,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             loggedRoutines.current = new Set(
               (Object.keys(s.validated) as RoutineType[]).filter(t => s.validated[t]),
             );
+            if (!claim.alreadyDone || pendingGift) {
+              setCelebrateOnboardingGift(true);
+              setPendingBc({ trigger: 'onboarding_gift' });
+            }
           }
         }
+
+        serverOnboardingDoneRef.current = !!(profile as { onboarding_done?: boolean }).onboarding_done;
 
         const createdAt = authSession?.user?.created_at;
         const memberSince = createdAt ? createdAt.slice(0, 10) : null;
@@ -862,8 +1084,31 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       );
 
       syncReady.current = true;
+      setIsAppReady(true);
+      if (isNativeNotificationsSupported()) {
+        void loadUserPrefs().then(p => {
+          void scheduleRoutineReminder(p);
+        });
+      }
     })();
   }, [userId, userEmail]);
+
+  useEffect(() => {
+    if (!isAppReady || !userId || isDemo.current) {
+      setNeedsOnboarding(false);
+      return;
+    }
+    void needsOnboardingFlow(
+      state.profile,
+      userId,
+      serverOnboardingDoneRef.current,
+    ).then(setNeedsOnboarding);
+  }, [isAppReady, userId, state.profile.objective, state.profile.careStyle]);
+
+  useEffect(() => {
+    if (!isAppReady || !userId || isDemo.current) return;
+    void tryGrantProfileCompleteBonus();
+  }, [isAppReady, userId, state.profile, state.coinHistory.length, tryGrantProfileCompleteBonus]);
 
   // ── Sync profil (sans économie — coins/streak côté serveur uniquement) ──
   useEffect(() => {
@@ -873,6 +1118,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (profileJson === lastSyncedProfile.current) return;
 
     lastSyncedProfile.current = profileJson;
+
+    const onboardingDone =
+      serverOnboardingDoneRef.current ||
+      isProfileComplete(state.profile);
 
     supabase.from('profiles').upsert({
       id:               userId,
@@ -890,6 +1139,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       climate:          state.profile.climate      ?? '',
       budget:           state.profile.budget       ?? '',
       care_style:       state.profile.careStyle    ?? '',
+      onboarding_done:  onboardingDone,
     });
   }, [state.profile, userId]);
 
@@ -917,6 +1167,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       value={{
         state,
         dispatch,
+        isAppReady,
+        needsOnboarding,
+        pendingBc,
+        queueBcTrigger,
+        clearPendingBc,
+        celebrateOnboardingGift,
+        clearCelebrateOnboardingGift,
         isDemoAccount: isDemo.current,
         pendingLevelUp,
         dismissLevelUp,

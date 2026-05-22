@@ -119,6 +119,16 @@ export const ACHIEVEMENTS: readonly AchievementDef[] = [
 
   // ── Growth
   {
+    id: 'first-measure',
+    emoji: '📏',
+    name: 'Première mesure',
+    desc: 'Tu as enregistré ta première longueur',
+    group: 'growth',
+    tier: 1,
+    predicate: state => (state.growthHistory?.length ?? 0) >= 1,
+    progress:  state => clamp01((state.growthHistory?.length ?? 0) >= 1 ? 1 : 0),
+  },
+  {
     id: 'growth-photographer',
     emoji: '📸',
     name: 'Photographe',
