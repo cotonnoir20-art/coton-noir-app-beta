@@ -18,6 +18,7 @@ import { useBlackCotton } from '../../src/components/blackCotton';
 import { CoinIcon } from '../../src/components/CoinIcon';
 import { getCurrentLevel, getLevelProgress, getNextLevel } from '../../src/data/levels';
 import { displayObjective } from '../../src/constants/hairObjectives';
+import { formatProfileLengthDisplay } from '../../src/constants/hairLengthLandmarks';
 import { useAchievements } from '../../src/context/AchievementsContext';
 import { mapSupabaseAuthError, validatePassword } from '../../src/lib/passwordPolicy';
 import { openSafeMailto } from '../../src/lib/safeLinking';
@@ -27,12 +28,17 @@ const AVATAR_COLORS = ['#B45309', '#4C1D95', '#1A4731', '#3D2B1F', '#164E63', '#
 
 const PREOCCUPATION_STYLE: Record<string, { color: string; text: string }> = {
   Sécheresse: { color: Colors.blush, text: Colors.rose },
-  Pointes: { color: Colors.amberLight, text: Colors.amberDark },
   Casse: { color: Colors.cream, text: Colors.warmGray },
-  Volume: { color: Colors.sageLight, text: Colors.sage },
-  'Fourches': { color: Colors.blush, text: Colors.rose },
-  'Nœuds': { color: Colors.cream, text: Colors.warmGray },
   Pellicules: { color: Colors.sageLight, text: Colors.sage },
+  Frisottis: { color: Colors.amberLight, text: Colors.amberDark },
+  'Cheveux fins': { color: Colors.sageLight, text: Colors.sage },
+  'Cheveux gras': { color: Colors.cream, text: Colors.warmGray },
+  'Manque de brillance': { color: Colors.amberLight, text: Colors.amberDark },
+  'Nœuds fréquents': { color: Colors.blush, text: Colors.rose },
+  'Pousse lente': { color: Colors.sageLight, text: Colors.sage },
+  'Dommages coloration': { color: Colors.blush, text: Colors.rose },
+  'Nœuds': { color: Colors.blush, text: Colors.rose },
+  Fourches: { color: Colors.blush, text: Colors.rose },
   Rétraction: { color: Colors.amberLight, text: Colors.amberDark },
 };
 
@@ -403,7 +409,8 @@ export default function ProfileScreen() {
             { label: 'Type de cheveux', value: profile.hairType, pill: true  },
             { label: 'Porosité',        value: profile.porosity, pill: false  },
             { label: 'Densité',         value: profile.density,  pill: false  },
-            { label: 'Longueur',        value: profile.length ? `${profile.length} cm` : '—', pill: false },
+            { label: 'Longueur actuelle',  value: formatProfileLengthDisplay(profile.length), pill: false },
+            { label: 'Longueur souhaitée', value: formatProfileLengthDisplay(profile.targetLength), pill: false },
             { label: 'Objectif',        value: displayObjective(profile.objective), pill: false  },
           ].map((row, i) => (
             <View key={i} style={[S.hairRow, i > 0 && S.hairBorder]}>

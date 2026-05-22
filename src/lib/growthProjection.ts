@@ -1,4 +1,5 @@
 import type { GrowthEntry, HairProfile } from '../context/AppContext';
+import { isHairLengthLandmark } from '../constants/hairLengthLandmarks';
 import { averageLatestCmByZone, parseCmFromText, toLocalISODate } from './homeGrowth';
 
 export type GrowthProjection = {
@@ -29,7 +30,7 @@ export function computeGrowthProjection(
     latestM && refPoint3m ? +(latestM.cm - refPoint3m.cm).toFixed(1) : null;
   const growthPerMonth = growth3m !== null ? +(growth3m / 3).toFixed(1) : 0;
 
-  const targetCm = parseFloat(profile.targetLength ?? '') || 40;
+  const targetCm = parseCmFromText(profile.targetLength) ?? 40;
   const avgCurrentCm = averageLatestCmByZone(history);
   const currentCm =
     avgCurrentCm || (latestM?.cm ?? parseCmFromText(profile.length) ?? 0);
@@ -49,6 +50,10 @@ export function computeGrowthProjection(
     monthsToTarget,
     growthPerMonth,
     growth3m,
-    hasMeasurements: history.length > 0 || !!parseCmFromText(profile.length),
+    hasMeasurements:
+      history.length > 0 ||
+      !!parseCmFromText(profile.length) ||
+      isHairLengthLandmark(profile.length) ||
+      isHairLengthLandmark(profile.targetLength),
   };
 }

@@ -7,6 +7,7 @@ import type { GrowthEntry, HairProfile } from '../../context/AppContext';
 import { Colors } from '../../theme/colors';
 import { Type } from '../../theme/typography';
 import { buildBlackCottonHomeRecommendations } from '../../lib/blackCottonRecommendations';
+import { formatProfileLengthDisplay } from '../../constants/hairLengthLandmarks';
 import { buildHomeMeasureSessions } from '../../lib/homeGrowth';
 
 type Props = {
@@ -88,6 +89,8 @@ export function HomeMesuresCard({ profile, growthHistory }: Props) {
 
   const openGrowth = () => router.push('/growth' as any);
   const openMeasure = () => router.push('/hair-length' as any);
+  const profileLengthLabel = formatProfileLengthDisplay(profile.length);
+  const hasProfileLength = profileLengthLabel !== '—';
 
   return (
     <View style={s.section}>
@@ -95,15 +98,32 @@ export function HomeMesuresCard({ profile, growthHistory }: Props) {
 
       <View style={s.card}>
         {sessions.length === 0 ? (
-          <TouchableOpacity
-            style={s.empty}
-            onPress={openMeasure}
-            activeOpacity={0.88}
-            accessibilityRole="button"
-          >
+          <View style={s.empty}>
             <Text style={s.emptyTitle}>Aucune mesure enregistrée</Text>
-            <Text style={s.emptyHint}>Ajoute ta première longueur pour suivre ta pousse.</Text>
-          </TouchableOpacity>
+            {hasProfileLength ? (
+              <Text style={s.emptyHint}>
+                Longueur indiquée :{' '}
+                <Text style={s.emptyHintBold}>{profileLengthLabel}</Text>
+                {formatProfileLengthDisplay(profile.targetLength) !== '—'
+                  ? ` → objectif ${formatProfileLengthDisplay(profile.targetLength)}`
+                  : ''}
+              </Text>
+            ) : (
+              <Text style={s.emptyHint}>
+                Indique où en sont tes cheveux (Oreilles, Épaules, Taille…) ou mesure au mètre ruban.
+              </Text>
+            )}
+            <TouchableOpacity
+              style={s.emptyPrimaryBtn}
+              onPress={openMeasure}
+              activeOpacity={0.88}
+              accessibilityRole="button"
+            >
+              <Text style={s.emptyPrimaryBtnText}>
+                {hasProfileLength ? 'Modifier ma longueur' : 'Indiquer ma longueur'}
+              </Text>
+            </TouchableOpacity>
+          </View>
         ) : (
           sessions.map((session, i) => (
             <HistoryRow
@@ -192,6 +212,23 @@ const s = StyleSheet.create({
     fontFamily: 'DMSans_400Regular',
     color: Colors.warmGray,
     lineHeight: 19,
+    marginBottom: 12,
+  },
+  emptyHintBold: {
+    fontFamily: 'DMSans_600SemiBold',
+    color: Colors.ink,
+  },
+  emptyPrimaryBtn: {
+    alignSelf: 'flex-start',
+    backgroundColor: Colors.amber,
+    borderRadius: 999,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+  },
+  emptyPrimaryBtnText: {
+    fontSize: 13,
+    fontFamily: 'DMSans_700Bold',
+    color: Colors.white,
   },
   row: {
     paddingHorizontal: 16,

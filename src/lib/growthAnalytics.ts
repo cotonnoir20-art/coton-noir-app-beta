@@ -1,7 +1,7 @@
 import { trackProductEvent } from './productAnalytics';
 
 export async function trackMeasurementSaved(args: {
-  source: 'hair_length' | 'growth_modal';
+  source: 'hair_length' | 'hair_length_landmark' | 'growth_modal';
   zonesCount: number;
   wasFirst: boolean;
 }): Promise<void> {

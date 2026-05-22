@@ -14,8 +14,10 @@ import {
   buildPostMeasurementContext,
 } from '../src/lib/coachMoments';
 import { AppHeader } from '../src/components/AppHeader';
+import { ProfileLengthLandmarksForm } from '../src/components/profile/ProfileLengthLandmarksForm';
 import { toLocalISODate } from '../src/lib/homeGrowth';
 import { trackMeasurementSaved } from '../src/lib/growthAnalytics';
+import { isHairLengthLandmark } from '../src/constants/hairLengthLandmarks';
 
 const ZONES = [
   { key: 'devant',     label: 'Devant',       zone: 'Devant',       img: require('../assets/images/zone-devant.png')   },
@@ -29,7 +31,7 @@ type ZoneKey = typeof ZONES[number]['key'];
 export default function HairLengthScreen() {
   const router = useRouter();
   const { state, dispatch, queueBcTrigger } = useApp();
-  const { growthHistory } = state;
+  const { growthHistory, profile } = state;
 
   const TODAY = toLocalISODate(new Date());
 
@@ -45,6 +47,11 @@ export default function HairLengthScreen() {
     devant: '', gauche: '', droite: '', derriere: '',
   });
   const [guideOpen, setGuideOpen] = useState(false);
+  const [landmarkLength, setLandmarkLength] = useState(profile.length ?? '');
+  const [landmarkTarget, setLandmarkTarget] = useState(profile.targetLength ?? '');
+  const [landmarkSaved, setLandmarkSaved] = useState(false);
+
+  const hasZoneHistory = growthHistory.length > 0;
 
   const zoneLengths = ZONES.map(z => {
     const input = parseFloat(values[z.key]);
@@ -95,6 +102,22 @@ export default function HairLengthScreen() {
 
   const anyFilled = ZONES.some(z => parseFloat(values[z.key]) > 0);
 
+  function handleSaveLandmarks() {
+    const length = landmarkLength.trim();
+    const targetLength = landmarkTarget.trim();
+    if (!length && !targetLength) return;
+    dispatch({
+      type: 'updateProfile',
+      payload: { length, targetLength },
+    });
+    setLandmarkSaved(true);
+    void trackMeasurementSaved({
+      source: 'hair_length_landmark',
+      zonesCount: 0,
+      wasFirst: !hasZoneHistory && !isHairLengthLandmark(profile.length),
+    });
+  }
+
   return (
     <SafeAreaView style={S.safe} edges={['top']}>
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
@@ -116,6 +139,28 @@ export default function HairLengthScreen() {
         />
 
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={S.content}>
+
+          {!hasZoneHistory ? (
+            <ProfileLengthLandmarksForm
+              length={landmarkLength}
+              targetLength={landmarkTarget}
+              onLengthChange={v => {
+                setLandmarkLength(v);
+                setLandmarkSaved(false);
+              }}
+              onTargetChange={v => {
+                setLandmarkTarget(v);
+                setLandmarkSaved(false);
+              }}
+              showSaveButton
+              onSave={handleSaveLandmarks}
+              saved={landmarkSaved}
+            />
+          ) : null}
+
+          {!hasZoneHistory ? (
+            <Text style={S.orDivider}>Ou mesure au mètre ruban</Text>
+          ) : null}
 
           {/* Carte longueur max */}
           <View style={S.summaryCard}>
@@ -240,6 +285,15 @@ const S = StyleSheet.create({
     width: 64, height: 64, borderRadius: 20,
     backgroundColor: 'rgba(255,255,255,0.08)',
     alignItems: 'center', justifyContent: 'center',
+  },
+
+  orDivider: {
+    marginTop: 8,
+    marginBottom: 4,
+    fontSize: 13,
+    fontFamily: 'DMSans_600SemiBold',
+    color: Colors.warmGray,
+    textAlign: 'center',
   },
 
   // Section

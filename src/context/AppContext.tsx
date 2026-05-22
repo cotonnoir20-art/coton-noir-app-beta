@@ -39,6 +39,7 @@ import {
 } from '../lib/washdayReminder';
 import { scheduleGrowthMonthlyReminder } from '../lib/growthMeasurementReminder';
 import { recordAnalysisJourneyValidation } from '../lib/analysisJourney';
+import { normalizeProblematicLabels } from '../constants/hairProblematics';
 import { buildGrowthMilestones, getHomeLengthMetrics } from '../lib/homeGrowth';
 import type { BlackCottonTrigger, TriggerContext } from '../components/blackCotton/types';
 import { buildPostRoutineContext } from '../lib/coachMoments';
@@ -970,7 +971,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           targetLength: profile.target_length ?? '',
           objectiveTargetDate: profile.target_goal_date ?? '',
           routineType:  profile.routine_type  ?? '',
-          problematics: profile.problematics  ?? [],
+          problematics: normalizeProblematicLabels(profile.problematics),
           region:       profile.region        ?? '',
           climate:      profile.climate       ?? '',
           budget:       profile.budget        ?? '',

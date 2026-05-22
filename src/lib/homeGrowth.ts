@@ -1,4 +1,5 @@
 import type { AppState, GrowthEntry } from '../context/AppContext';
+import { isHairLengthLandmark, landmarkApproxCm } from '../constants/hairLengthLandmarks';
 import { Colors } from '../theme/colors';
 
 /** Même libellés de zones que `growth.tsx` / `hair-length.tsx` (sync obligatoire). */
@@ -18,6 +19,8 @@ export function toLocalISODate(d: Date): string {
  */
 export function parseCmFromText(raw: string | undefined | null): number | null {
   if (raw == null || String(raw).trim() === '') return null;
+  const landmarkCm = landmarkApproxCm(raw);
+  if (landmarkCm != null) return landmarkCm;
   const m = String(raw).match(/(\d+(?:[.,]\d+)?)/);
   if (!m) return null;
   const n = parseFloat(m[1].replace(',', '.'));
@@ -89,7 +92,7 @@ export function getHomeLengthMetrics(state: AppState): HomeLengthMetrics {
   const todayStr = toLocalISODate(todayObj);
   const history = state.growthHistory;
 
-  const targetCm = Math.max(1, parseFloat(state.profile.targetLength ?? '') || 40);
+  const targetCm = Math.max(1, parseCmFromText(state.profile.targetLength) ?? 40);
 
   const avgCm = averageLatestCmByZone(history);
   const devantSorted = primaryDevantSorted(history);
@@ -111,7 +114,10 @@ export function getHomeLengthMetrics(state: AppState): HomeLengthMetrics {
   }
 
   const hasHistory = HOME_GROWTH_ZONES.some(z => latestCmByZone(history, z) != null);
-  const hasMeasurements = hasHistory || profileCm != null;
+  const hasProfileLandmark =
+    isHairLengthLandmark(state.profile.length) ||
+    isHairLengthLandmark(state.profile.targetLength);
+  const hasMeasurements = hasHistory || profileCm != null || hasProfileLandmark;
 
   const homeMMap = monthMapDevant(history);
   const curMonthKey = todayStr.slice(0, 7);
@@ -128,7 +134,9 @@ export function getHomeLengthMetrics(state: AppState): HomeLengthMetrics {
 
   const hint =
     source === 'profile'
-      ? 'Valeur indiquée sur ton profil — ajoute une mesure pour suivre la pousse.'
+      ? hasHistory
+        ? null
+        : 'Repère indiqué sur ton profil — mesure au mètre pour affiner le suivi.'
       : null;
 
   return {

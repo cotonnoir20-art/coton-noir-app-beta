@@ -18,6 +18,9 @@ type Props = {
   goalHorizonLabel?: string;
   /** Texte optionnel (ex. source profil). */
   hint?: string | null;
+  /** Affichage repère (ex. « Épaules ») à la place des cm. */
+  currentLandmarkLabel?: string | null;
+  targetLandmarkLabel?: string | null;
   /** Score santé capillaire 0–100 (écran Progrès). */
   healthScore?: number | null;
   /** Clic sur l’anneau (ex. ouvrir Progrès). */
@@ -39,6 +42,8 @@ export function HomeLengthRing({
   hasMeasurements,
   goalHorizonLabel,
   hint,
+  currentLandmarkLabel,
+  targetLandmarkLabel,
   healthScore,
   onRingPress,
   onEmptyPress,
@@ -69,8 +74,11 @@ export function HomeLengthRing({
   const cmDisplay = hasMeasurements ? String(currentCm).replace('.', ',') : '—';
   const cmParts = cmDisplay.includes(',') ? cmDisplay.split(',') : [cmDisplay, null];
 
-  const goalLine =
-    goalHorizonLabel != null && goalHorizonLabel.length > 0
+  const goalLine = targetLandmarkLabel
+    ? goalHorizonLabel != null && goalHorizonLabel.length > 0
+      ? `Objectif ${targetLandmarkLabel} · ${goalHorizonLabel}`
+      : `Objectif ${targetLandmarkLabel}`
+    : goalHorizonLabel != null && goalHorizonLabel.length > 0
       ? `Objectif ${targetCm} cm · ${goalHorizonLabel}`
       : `Objectif ${targetCm} cm`;
 
@@ -122,7 +130,9 @@ export function HomeLengthRing({
           </View>
           <View style={[s.inner, { width: size, height: size }]}>
             <Text style={s.kicker}>LONGUEUR - {hairType || '—'}</Text>
-            {hasMeasurements ? (
+            {hasMeasurements && currentLandmarkLabel ? (
+              <Text style={s.landmarkLabel}>{currentLandmarkLabel}</Text>
+            ) : hasMeasurements ? (
               <Text style={s.cmRow}>
                 <Text style={s.cmNum}>{cmParts[0]}</Text>
                 {cmParts[1] != null ? (
@@ -151,7 +161,7 @@ export function HomeLengthRing({
             ) : null}
             {!hasMeasurements && onEmptyPress ? (
               <Pressable onPress={onEmptyPress} hitSlop={8}>
-                <Text style={s.hintTap}>Ajouter une mesure →</Text>
+                <Text style={s.hintTap}>Indiquer ma longueur →</Text>
               </Pressable>
             ) : null}
           </View>
@@ -240,6 +250,14 @@ const s = StyleSheet.create({
     fontFamily: FontDisplay,
     color: Colors.warmGray,
     lineHeight: 52,
+  },
+  landmarkLabel: {
+    fontSize: 28,
+    fontFamily: 'Poppins_700Bold',
+    color: Colors.ink,
+    textAlign: 'center',
+    lineHeight: 34,
+    paddingHorizontal: 8,
   },
   healthPill: {
     flexDirection: 'row',

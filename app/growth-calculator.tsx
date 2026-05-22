@@ -19,6 +19,9 @@ import { AppHeader } from '../src/components/AppHeader';
 import { MiniCalendar, formatFull } from '../src/components/MiniCalendar';
 import { computeGrowthProjection } from '../src/lib/growthProjection';
 import { toLocalISODate } from '../src/lib/homeGrowth';
+import { HairLengthLandmarkPicker } from '../src/components/profile/HairLengthLandmarkPicker';
+import { ProfileLengthLandmarksForm } from '../src/components/profile/ProfileLengthLandmarksForm';
+import { isHairLengthLandmark } from '../src/constants/hairLengthLandmarks';
 import { trackProductEvent } from '../src/lib/productAnalytics';
 
 export default function GrowthCalculatorScreen() {
@@ -47,7 +50,7 @@ export default function GrowthCalculatorScreen() {
 
   function openGoalModal() {
     const tl = (state.profile.targetLength ?? '').trim();
-    setObjForm({ longueur: tl || (targetCm > 0 ? String(targetCm) : '') });
+    setObjTargetLandmark(isHairLengthLandmark(tl) ? tl : '');
     const raw = state.profile.objectiveTargetDate?.trim();
     setObjDate(
       raw && /^\d{4}-\d{2}-\d{2}$/.test(raw) ? new Date(`${raw}T12:00:00`) : null,
@@ -66,28 +69,67 @@ export default function GrowthCalculatorScreen() {
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={S.content}>
         {!hasMeasurements ? (
-          <View style={S.hintCard}>
-            <Text style={S.hintEmoji}>📏</Text>
-            <Text style={S.hintTitle}>Ajoute une première mesure</Text>
-            <Text style={S.hintSub}>
-              Le calculateur s’appuie sur tes mesures (zone Devant sur 3 mois) pour estimer ton rythme de pousse.
-            </Text>
-            <TouchableOpacity
-              style={S.hintBtn}
-              onPress={() => router.push('/hair-length' as any)}
-            >
-              <Text style={S.hintBtnText}>Mesurer mes 4 zones</Text>
-            </TouchableOpacity>
-          </View>
+          <>
+            <ProfileLengthLandmarksForm
+              length={landmarkLength}
+              targetLength={landmarkTarget}
+              onLengthChange={v => {
+                setLandmarkLength(v);
+                setLandmarkSaved(false);
+              }}
+              onTargetChange={v => {
+                setLandmarkTarget(v);
+                setLandmarkSaved(false);
+              }}
+              showSaveButton
+              onSave={() => {
+                const length = landmarkLength.trim();
+                const targetLength = landmarkTarget.trim();
+                if (!length && !targetLength) return;
+                dispatch({
+                  type: 'updateProfile',
+                  payload: {
+                    ...(length ? { length } : {}),
+                    ...(targetLength ? { targetLength } : {}),
+                  },
+                });
+                setLandmarkSaved(true);
+              }}
+              saved={landmarkSaved}
+            />
+            <View style={S.hintCard}>
+              <Text style={S.hintEmoji}>📏</Text>
+              <Text style={S.hintTitle}>Mesure au mètre (optionnel)</Text>
+              <Text style={S.hintSub}>
+                Pour estimer ton rythme de pousse, enregistre des mesures par zone (Devant, côtés…).
+              </Text>
+              <TouchableOpacity
+                style={S.hintBtn}
+                onPress={() => router.push('/hair-length' as any)}
+              >
+                <Text style={S.hintBtnText}>Mesurer mes 4 zones</Text>
+              </TouchableOpacity>
+            </View>
+          </>
         ) : null}
 
         <View style={S.statsRow}>
           <View style={S.statBox}>
-            <Text style={S.statVal}>{currentCm > 0 ? `${currentCm} cm` : '—'}</Text>
+            <Text style={S.statVal}>
+              {isHairLengthLandmark(state.profile.length)
+                ? state.profile.length
+                : currentCm > 0
+                  ? `${currentCm} cm`
+                  : '—'}
+            </Text>
             <Text style={S.statLabel}>Longueur actuelle</Text>
           </View>
           <View style={S.statBox}>
-            <Text style={[S.statVal, { color: Colors.growth }]}>{targetCm} cm</Text>
+            <Text style={[S.statVal, { color: Colors.growth }]}>
+              {isHairLengthLandmark(state.profile.targetLength)
+                ? state.profile.targetLength
+                : `${targetCm} cm`}
+            </Text>
             <Text style={S.statLabel}>Objectif</Text>
           </View>
         </View>
@@ -163,16 +205,12 @@ export default function GrowthCalculatorScreen() {
             <TouchableOpacity activeOpacity={1} onPress={() => {}}>
               <View style={S.objSheet}>
                 <Text style={S.objTitle}>Objectif de longueur</Text>
-                <Text style={S.objLabel}>Longueur cible (cm)</Text>
-                <TextInput
-                  style={S.objInput}
-                  value={objForm.longueur}
-                  onChangeText={v => setObjForm({ longueur: v })}
-                  placeholder="ex. 40"
-                  placeholderTextColor={Colors.border}
-                  keyboardType="decimal-pad"
+                <HairLengthLandmarkPicker
+                  title="Longueur souhaitée"
+                  value={objTargetLandmark}
+                  onChange={setObjTargetLandmark}
                 />
-                <Text style={[S.objLabel, { marginTop: 14 }]}>Date cible</Text>
+                <Text style={[S.objLabel, { marginTop: 14 }]}>Date cible (optionnel)</Text>
                 <TouchableOpacity style={[S.objInput, S.objDateRow]} onPress={() => setShowObjCal(v => !v)}>
                   <Text style={objDate ? S.objDateText : S.objDatePlaceholder}>
                     {objDate ? formatFull(objDate) : 'Choisir une date'}
@@ -190,20 +228,22 @@ export default function GrowthCalculatorScreen() {
                   />
                 ) : null}
                 <TouchableOpacity
-                  style={[S.objBtn, (!objForm.longueur?.trim() || !objDate) && S.objBtnDisabled]}
-                  disabled={!objForm.longueur?.trim() || !objDate}
+                  style={[S.objBtn, !objTargetLandmark.trim() && S.objBtnDisabled]}
+                  disabled={!objTargetLandmark.trim()}
                   onPress={() => {
-                    if (!objForm.longueur?.trim() || !objDate) return;
+                    if (!objTargetLandmark.trim()) return;
                     dispatch({
                       type: 'updateProfile',
                       payload: {
-                        targetLength: objForm.longueur.trim(),
-                        objectiveTargetDate: toLocalISODate(objDate),
+                        targetLength: objTargetLandmark.trim(),
+                        ...(objDate
+                          ? { objectiveTargetDate: toLocalISODate(objDate) }
+                          : {}),
                       },
                     });
                     void trackProductEvent('growth_goal_set', {
-                      target_cm: objForm.longueur.trim(),
-                      target_date: toLocalISODate(objDate),
+                      target_cm: objTargetLandmark.trim(),
+                      target_date: objDate ? toLocalISODate(objDate) : '',
                     });
                     setShowObjectif(false);
                   }}

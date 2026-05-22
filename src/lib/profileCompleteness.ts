@@ -10,7 +10,8 @@ const COMPLETION_FIELDS: { key: keyof HairProfile; label: string; weight: number
   { key: 'objective', label: 'Objectif', weight: 2 },
   { key: 'careStyle', label: 'Style de soin', weight: 2 },
   { key: 'length', label: 'Longueur actuelle', weight: 1 },
-  { key: 'problematics', label: 'Préoccupations', weight: 1 },
+  { key: 'targetLength', label: 'Longueur souhaitée', weight: 1 },
+  { key: 'problematics', label: 'Problématiques capillaires', weight: 1 },
 ];
 
 function fieldFilled(profile: HairProfile, key: keyof HairProfile): boolean {

@@ -35,6 +35,7 @@ import { loadUserPrefs } from '../../src/lib/userPrefs';
 import { getCurrentLevel } from '../../src/data/levels';
 import { CC_ROUTINE_VALIDATION_REWARD, CC_ROUTINE_WASHDAY } from '../../src/lib/cotonCoins';
 import { HOME_TAGLINE, HOME_TAGLINE_WEB } from '../../src/constants/productPitch';
+import { isHairLengthLandmark } from '../../src/constants/hairLengthLandmarks';
 import { isWebPlatform } from '../../src/lib/webStaging';
 import { PANTRY_ITEMS } from '../../src/data/pantryItems';
 import {
@@ -495,6 +496,12 @@ export default function HomeScreen() {
               monthDeltaCm={lengthMetrics.monthDeltaCm}
               progress01={lengthMetrics.ringProgress}
               hasMeasurements={lengthMetrics.hasMeasurements}
+              currentLandmarkLabel={
+                isHairLengthLandmark(profile.length) ? profile.length : null
+              }
+              targetLandmarkLabel={
+                isHairLengthLandmark(profile.targetLength) ? profile.targetLength : null
+              }
               goalHorizonLabel={goalHorizonLabel}
               hint={lengthMetrics.hint}
               healthScore={healthScore}

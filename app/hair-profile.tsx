@@ -9,6 +9,9 @@ import { AppHeader } from '../src/components/AppHeader';
 import { HAIR_OBJECTIVES, normalizeObjectiveId } from '../src/constants/hairObjectives';
 import { CARE_STYLES } from '../src/constants/careStyles';
 import { ProfileCompletionCard } from '../src/components/profile/ProfileCompletionCard';
+import { ProfileLengthLandmarksForm } from '../src/components/profile/ProfileLengthLandmarksForm';
+import { HairProblematicsPicker } from '../src/components/profile/HairProblematicsPicker';
+import { normalizeProblematicLabels } from '../src/constants/hairProblematics';
 import { getProfileCompletion } from '../src/lib/profileCompleteness';
 
 type OptionGroup = { key: string; label: string; options: string[] };
@@ -20,10 +23,6 @@ const HAIR_GROUPS: OptionGroup[] = [
   { key: 'routineType', label: 'Style de routine', options: ['Minimaliste', 'Standard', 'Intensive'] },
 ];
 
-const PROBLEMATICS = [
-  'Casse', 'Sécheresse', 'Pellicules', 'Nœuds', 'Fourches', 'Rétraction',
-];
-
 export default function HairProfileScreen() {
   const router = useRouter();
   const { state, dispatch } = useApp();
@@ -32,19 +31,13 @@ export default function HairProfileScreen() {
   const [localProfile, setLocalProfile] = useState(() => ({
     ...profile,
     objective: normalizeObjectiveId(profile.objective ?? ''),
+    problematics: normalizeProblematicLabels(profile.problematics),
   }));
   const [saved, setSaved] = useState(false);
   const completion = getProfileCompletion(localProfile);
 
   function setValue(key: string, value: string) {
     setLocalProfile(prev => ({ ...prev, [key]: value }));
-    setSaved(false);
-  }
-
-  function toggleProblematic(p: string) {
-    const current = localProfile.problematics ?? [];
-    const updated = current.includes(p) ? current.filter(x => x !== p) : [...current, p];
-    setLocalProfile(prev => ({ ...prev, problematics: updated }));
     setSaved(false);
   }
 
@@ -91,16 +84,15 @@ export default function HairProfileScreen() {
             placeholder="Prénom"
             placeholderTextColor={Colors.warmGray}
           />
-          <Text style={[styles.fieldLabel, { marginTop: 16 }]}>Longueur (cm)</Text>
-          <TextInput
-            style={styles.textInput}
-            value={localProfile.length}
-            onChangeText={v => setValue('length', v)}
-            keyboardType="decimal-pad"
-            placeholder="ex: 32"
-            placeholderTextColor={Colors.warmGray}
-          />
         </View>
+
+        <ProfileLengthLandmarksForm
+          variant="profile"
+          length={localProfile.length ?? ''}
+          targetLength={localProfile.targetLength ?? ''}
+          onLengthChange={v => setValue('length', v)}
+          onTargetChange={v => setValue('targetLength', v)}
+        />
 
         {/* Option groups */}
         {HAIR_GROUPS.map(group => (
@@ -124,6 +116,15 @@ export default function HairProfileScreen() {
             </View>
           </View>
         ))}
+
+        <HairProblematicsPicker
+          variant="profile"
+          selected={localProfile.problematics ?? []}
+          onChange={labels => {
+            setLocalProfile(prev => ({ ...prev, problematics: labels }));
+            setSaved(false);
+          }}
+        />
 
         {/* Objective */}
         <View style={styles.groupCard}>
@@ -173,40 +174,6 @@ export default function HairProfileScreen() {
               </TouchableOpacity>
             );
           })}
-        </View>
-
-        {/* Problematics */}
-        <View style={styles.groupCard}>
-          <Text style={styles.groupLabel}>Problématiques (plusieurs possibles)</Text>
-          <View style={styles.optionsRow}>
-            {PROBLEMATICS.map(p => {
-              const isActive = (localProfile.problematics ?? []).includes(p);
-              return (
-                <TouchableOpacity
-                  key={p}
-                  style={[styles.optionPill, isActive && styles.optionPillRose]}
-                  onPress={() => toggleProblematic(p)}
-                >
-                  <Text style={[styles.optionText, isActive && styles.optionTextActive]}>
-                    {p}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-        </View>
-
-        {/* Target length */}
-        <View style={styles.fieldCard}>
-          <Text style={styles.fieldLabel}>Longueur cible (cm)</Text>
-          <TextInput
-            style={styles.textInput}
-            value={localProfile.targetLength ?? ''}
-            onChangeText={v => setValue('targetLength', v)}
-            keyboardType="decimal-pad"
-            placeholder="ex: 50"
-            placeholderTextColor={Colors.warmGray}
-          />
         </View>
 
         {/* Save button */}
