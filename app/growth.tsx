@@ -26,16 +26,19 @@ import { BCEmojiAvatar } from '../src/components/blackCotton/BCEmojiAvatar';
 import { CoinIcon } from '../src/components/CoinIcon';
 import {
   averageLatestCmByZone,
+  buildHomeMeasureSessions,
   computeHairHealthScore,
   parseCmFromText,
   toLocalISODate,
 } from '../src/lib/homeGrowth';
+import { GROWTH_ZONE_NAMES } from '../src/constants/growthZones';
 import { GrowthHealthActionBanner } from '../src/components/growth/GrowthHealthActionBanner';
 import { trackMeasurementSaved } from '../src/lib/growthAnalytics';
 import { trackProductEvent } from '../src/lib/productAnalytics';
 import {
   avgLatestGrowthCm,
   buildPostMeasurementContext,
+  type GrowthMeasureRow,
 } from '../src/lib/coachMoments';
 import { resolveBlackCottonBilanSynthesis } from '../src/lib/monthlyBilanSynthesis';
 import { exportBilanPdf } from '../src/lib/bilanPdfExport';
@@ -43,8 +46,7 @@ import { exportBilanPdf } from '../src/lib/bilanPdfExport';
 const TODAY_DATE = new Date();
 const TODAY      = toLocalISODate(TODAY_DATE);
 
-const ZONES = ['Devant', 'Derrière', 'Côté Gauche', 'Côté Droit'] as const;
-type Zone = typeof ZONES[number];
+type Zone = (typeof GROWTH_ZONE_NAMES)[number];
 
 type Entry = GrowthEntry & { zone: Zone };
 
@@ -59,33 +61,13 @@ type MeasureSession = {
   dotColor: string;
 };
 
-function formatMeasureDate(iso: string): string {
-  const d = new Date(iso + 'T12:00:00');
-  return d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' });
-}
-
-function buildMeasureSessions(history: Entry[]): MeasureSession[] {
-  if (history.length === 0) return [];
-  const byDate = new Map<string, Entry[]>();
-  history.forEach(h => {
-    const list = byDate.get(h.date) ?? [];
-    list.push(h);
-    byDate.set(h.date, list);
-  });
-  const sortedDates = [...byDate.keys()].sort((a, b) => b.localeCompare(a));
-  const latestDate = sortedDates[0];
-  return sortedDates.map((date, i) => {
-    const rows = byDate.get(date)!;
-    const avgCm = Math.round((rows.reduce((s, r) => s + r.cm, 0) / rows.length) * 10) / 10;
-    return {
-      date,
-      dateLabel: formatMeasureDate(date),
-      avgCm,
-      zoneCount: rows.length,
-      isLatest: date === latestDate,
-      dotColor: DOT_COLORS[i % DOT_COLORS.length],
-    };
-  });
+function withSessionDotColors(
+  history: Entry[],
+): MeasureSession[] {
+  return buildHomeMeasureSessions(history, history.length || 1).map((session, i) => ({
+    ...session,
+    dotColor: DOT_COLORS[i % DOT_COLORS.length],
+  }));
 }
 
 /* ── Conseils cards ── */
@@ -255,7 +237,7 @@ export default function GrowthScreen() {
   }
   /** Au moins 2 mois de mesures Devant → courbe mensuelle (fixtures démo incluses). */
   const hasChartData = mKeys.length >= 2;
-  const measureSessions = buildMeasureSessions(history);
+  const measureSessions = withSessionDotColors(history);
   const hasGrowthEntries = history.length > 0;
 
   // Palier / objectif
@@ -304,7 +286,7 @@ export default function GrowthScreen() {
     const wasFirst = history.length === 0;
     const beforeAvg = avgLatestGrowthCm(history);
     entries.forEach(e => dispatch({ type: 'addGrowthEntry', entry: { date: TODAY, zone: e.zone, cm: e.cm } }));
-    const afterHistory: GrowthEntry[] = [
+    const afterHistory: GrowthMeasureRow[] = [
       ...history,
       ...entries.map(e => ({ date: TODAY, zone: e.zone, cm: e.cm })),
     ];

@@ -18,6 +18,14 @@ export type ProductFavorite = {
   savedAt: string;
 };
 
+export type RecipeFavorite = {
+  id: string;
+  name: string;
+  category: string;
+  thumbEmoji?: string;
+  savedAt: string;
+};
+
 async function readJson<T>(key: string): Promise<T[]> {
   try {
     const raw = await AsyncStorage.getItem(key);
@@ -33,97 +41,58 @@ async function writeJson<T>(key: string, items: T[]): Promise<void> {
   await AsyncStorage.setItem(key, JSON.stringify(items));
 }
 
-export async function listArticleFavorites(): Promise<ArticleFavorite[]> {
-  return readJson<ArticleFavorite>(ARTICLE_FAV_KEY);
+type FavoriteBase = { id: string; savedAt: string };
+
+function createFavoriteStore<T extends FavoriteBase>(storageKey: string) {
+  return {
+    async list(): Promise<T[]> {
+      return readJson<T>(storageKey);
+    },
+    async isFavorite(id: string): Promise<boolean> {
+      const list = await readJson<T>(storageKey);
+      return list.some(item => item.id === id);
+    },
+    async toggle(item: Omit<T, 'savedAt'>): Promise<boolean> {
+      const list = await readJson<T>(storageKey);
+      const exists = list.some(entry => entry.id === item.id);
+      if (exists) {
+        await writeJson(
+          storageKey,
+          list.filter(entry => entry.id !== item.id),
+        );
+        return false;
+      }
+      await writeJson(storageKey, [
+        { ...item, savedAt: new Date().toISOString() } as T,
+        ...list,
+      ]);
+      return true;
+    },
+    async remove(id: string): Promise<void> {
+      const list = await readJson<T>(storageKey);
+      await writeJson(
+        storageKey,
+        list.filter(entry => entry.id !== id),
+      );
+    },
+  };
 }
 
-export async function isArticleFavorite(id: string): Promise<boolean> {
-  const list = await listArticleFavorites();
-  return list.some(a => a.id === id);
-}
+const articleStore = createFavoriteStore<ArticleFavorite>(ARTICLE_FAV_KEY);
+const productStore = createFavoriteStore<ProductFavorite>(PRODUCT_FAV_KEY);
+const recipeStore = createFavoriteStore<RecipeFavorite>(RECIPE_FAV_KEY);
 
-export async function toggleArticleFavorite(article: Omit<ArticleFavorite, 'savedAt'>): Promise<boolean> {
-  const list = await listArticleFavorites();
-  const exists = list.some(a => a.id === article.id);
-  if (exists) {
-    await writeJson(
-      ARTICLE_FAV_KEY,
-      list.filter(a => a.id !== article.id),
-    );
-    return false;
-  }
-  await writeJson(ARTICLE_FAV_KEY, [
-    { ...article, savedAt: new Date().toISOString() },
-    ...list,
-  ]);
-  return true;
-}
+export const listArticleFavorites = articleStore.list;
+export const isArticleFavorite = articleStore.isFavorite;
+export const toggleArticleFavorite = articleStore.toggle;
+export const removeArticleFavorite = articleStore.remove;
 
-export async function removeArticleFavorite(id: string): Promise<void> {
-  const list = await listArticleFavorites();
-  await writeJson(ARTICLE_FAV_KEY, list.filter(a => a.id !== id));
-}
+export const listProductFavorites = productStore.list;
+export const isProductFavorite = productStore.isFavorite;
+export const toggleProductFavorite = productStore.toggle;
+export const removeProductFavorite = productStore.remove;
 
-export async function listProductFavorites(): Promise<ProductFavorite[]> {
-  return readJson<ProductFavorite>(PRODUCT_FAV_KEY);
-}
-
-export async function isProductFavorite(id: string): Promise<boolean> {
-  const list = await listProductFavorites();
-  return list.some(p => p.id === id);
-}
-
-export async function toggleProductFavorite(product: Omit<ProductFavorite, 'savedAt'>): Promise<boolean> {
-  const list = await listProductFavorites();
-  const exists = list.some(p => p.id === product.id);
-  if (exists) {
-    await writeJson(
-      PRODUCT_FAV_KEY,
-      list.filter(p => p.id !== product.id),
-    );
-    return false;
-  }
-  await writeJson(PRODUCT_FAV_KEY, [
-    { ...product, savedAt: new Date().toISOString() },
-    ...list,
-  ]);
-  return true;
-}
-
-export async function removeProductFavorite(id: string): Promise<void> {
-  const list = await listProductFavorites();
-  await writeJson(PRODUCT_FAV_KEY, list.filter(p => p.id !== id));
-}
-
-export async function listRecipeFavorites(): Promise<RecipeFavorite[]> {
-  return readJson<RecipeFavorite>(RECIPE_FAV_KEY);
-}
-
-export async function isRecipeFavorite(id: string): Promise<boolean> {
-  const list = await listRecipeFavorites();
-  return list.some(r => r.id === id);
-}
-
-export async function toggleRecipeFavorite(
-  recipe: Omit<RecipeFavorite, 'savedAt'>,
-): Promise<boolean> {
-  const list = await listRecipeFavorites();
-  const exists = list.some(r => r.id === recipe.id);
-  if (exists) {
-    await writeJson(
-      RECIPE_FAV_KEY,
-      list.filter(r => r.id !== recipe.id),
-    );
-    return false;
-  }
-  await writeJson(RECIPE_FAV_KEY, [
-    { ...recipe, savedAt: new Date().toISOString() },
-    ...list,
-  ]);
-  return true;
-}
-
-export async function removeRecipeFavorite(id: string): Promise<void> {
-  const list = await listRecipeFavorites();
-  await writeJson(RECIPE_FAV_KEY, list.filter(r => r.id !== id));
-}
+export const listRecipeFavorites = recipeStore.list;
+export const isRecipeFavorite = recipeStore.isFavorite;
+export const toggleRecipeFavorite = recipeStore.toggle;
+export const removeRecipeFavorite = recipeStore.remove;

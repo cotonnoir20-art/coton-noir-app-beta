@@ -22,6 +22,7 @@ import {
   recoStepsToRoutineSteps,
 } from '../../src/lib/onboardingRecommendations';
 import { ONBOARDING_HAIR_TYPES } from '../../src/constants/onboardingHairTypes';
+import { POROSITY_OPTIONS } from '../../src/constants/hairProfileOptions';
 import { markOnboardingDoneLocal } from '../../src/lib/onboardingGate';
 import { trackProductEvent } from '../../src/lib/productAnalytics';
 import { MiniCalendar, formatFull } from '../../src/components/MiniCalendar';
@@ -45,11 +46,7 @@ function defaultGoalDate(): Date {
   return d;
 }
 
-const POROSITY = [
-  { id: 'Faible',  label: "L'eau perle",         desc: "Le cheveu repousse l'eau",        emoji: '💧' },
-  { id: 'Moyenne', label: "L'eau s'absorbe",      desc: 'Ni trop vite, ni trop lentement', emoji: '🌊' },
-  { id: 'Élevée',  label: 'Le cheveu boit tout',  desc: 'Absorption instantanée',          emoji: '🫧' },
-];
+const POROSITY = POROSITY_OPTIONS;
 
 const DENSITIES = [
   { id: 'Faible',  emoji: '🌿', label: 'Peu de cheveux',      desc: 'Le cuir chevelu est légèrement visible' },

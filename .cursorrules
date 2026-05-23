@@ -1,0 +1,19 @@
+# Coton Noir
+
+## Fichiers de règles
+- Sécurité : @.cursor/rules/security.md
+- Stack et conventions : @.cursor/rules/stack.md
+- Workflow : @.cursor/rules/workflow.md
+
+## Commandes
+- Dev : npm run dev
+- Build : npm run build
+- Test : npm run test
+
+## Important
+- Toujours lire les fichiers de règles avant de coder
+- Ne jamais modifier les règles sans demander
+
+Index complet : CLAUDE.md — sécurité auto-appliquée via `.cursor/rules/security.mdc`.
+
+Journal dev (mai 2026) : décisions, patterns, erreurs → `.cursor/rules/stack.md` et `workflow.md`.

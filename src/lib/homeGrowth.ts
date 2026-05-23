@@ -5,10 +5,11 @@ import {
   type ResolvedLength,
   resolveProfileLengthCm,
 } from '../constants/hairLengthLandmarks';
+import { GROWTH_ZONE_NAMES } from '../constants/growthZones';
 import { Colors } from '../theme/colors';
 
-/** Même libellés de zones que `growth.tsx` / `hair-length.tsx` (sync obligatoire). */
-export const HOME_GROWTH_ZONES = ['Devant', 'Derrière', 'Côté Gauche', 'Côté Droit'] as const;
+/** @deprecated Préférer `GROWTH_ZONE_NAMES` — alias conservé pour compatibilité. */
+export const HOME_GROWTH_ZONES = GROWTH_ZONE_NAMES;
 
 /** yyyy-mm-dd fuseau local (évite le décalage UTC de `toISOString().slice(0,10)`). */
 export function toLocalISODate(d: Date): string {
@@ -72,7 +73,7 @@ export function latestCmByZone(history: GrowthEntry[], zone: string): number | n
 /** Moyenne des dernières mesures par zone (même règle que l’écran Progrès). */
 export function averageLatestCmByZone(history: GrowthEntry[]): number {
   const values: number[] = [];
-  for (const zone of HOME_GROWTH_ZONES) {
+  for (const zone of GROWTH_ZONE_NAMES) {
     const v = latestCmByZone(history, zone);
     if (v != null) values.push(v);
   }
@@ -143,7 +144,7 @@ export function getHomeLengthMetrics(state: AppState): HomeLengthMetrics {
     source = 'profile';
   }
 
-  const hasHistory = HOME_GROWTH_ZONES.some(z => latestCmByZone(history, z) != null);
+  const hasHistory = GROWTH_ZONE_NAMES.some(z => latestCmByZone(history, z) != null);
   const hasMeasurements =
     hasHistory || current.confidence !== 'none' || target.confidence !== 'none';
   const projectionIsEstimate =
@@ -300,6 +301,9 @@ function formatMeasureDateLabel(iso: string): string {
   const d = new Date(iso + 'T12:00:00');
   return d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' });
 }
+
+/** Alias exporté pour réutilisation (ex. `growth.tsx`). */
+export { formatMeasureDateLabel as formatGrowthMeasureDate };
 
 /** Historique de pousse groupé par date (moyenne des zones mesurées ce jour-là). */
 export function buildHomeMeasureSessions(

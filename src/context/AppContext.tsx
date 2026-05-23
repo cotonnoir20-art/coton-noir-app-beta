@@ -40,6 +40,7 @@ import {
 import { scheduleGrowthMonthlyReminder } from '../lib/growthMeasurementReminder';
 import { recordAnalysisJourneyValidation } from '../lib/analysisJourney';
 import { normalizeProblematicLabels } from '../constants/hairProblematics';
+import { resolvePorosity } from '../constants/hairProfileOptions';
 import { buildGrowthMilestones, getHomeLengthMetrics } from '../lib/homeGrowth';
 import type { BlackCottonTrigger, TriggerContext } from '../components/blackCotton/types';
 import { buildPostRoutineContext } from '../lib/coachMoments';
@@ -964,7 +965,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         const hydratedProfile: HairProfile = {
           name:         profile.name         ?? authSession?.user?.user_metadata?.name ?? 'Utilisatrice',
           hairType:     profile.hair_type    ?? '3C',
-          porosity:     profile.porosity     ?? 'Moyenne',
+          porosity:     resolvePorosity(profile.porosity),
           density:      profile.density      ?? 'Épaisse',
           length:       profile.length       ?? '',
           objective:    normalizeObjectiveId(profile.objective ?? ''),

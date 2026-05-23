@@ -1,8 +1,8 @@
-import { Image } from 'expo-image';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Colors } from '../../src/theme/colors';
+import { AuthBrandLogo } from '../../src/components/auth/AuthBrandLogo';
 
 export default function WelcomeScreen() {
   const router = useRouter();
@@ -11,15 +11,7 @@ export default function WelcomeScreen() {
     <SafeAreaView style={S.safe}>
 
       <View style={S.logoZone}>
-        <View style={S.avatarShell}>
-          <View style={S.avatarRing}>
-            <Image
-              source={require('../../assets/welcome-avatar.png')}
-              style={S.avatar}
-              contentFit="cover"
-            />
-          </View>
-        </View>
+        <AuthBrandLogo width={200} />
       </View>
 
       {/* Tagline */}
@@ -79,27 +71,6 @@ const S = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingTop: 12,
-  },
-  avatarShell: {
-    width: 214,
-    height: 214,
-    borderRadius: 107,
-    backgroundColor: Colors.border,
-    padding: 7,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  avatarRing: {
-    width: 200,
-    height: 200,
-    borderRadius: 100,
-    overflow: 'hidden',
-    backgroundColor: Colors.bg,
-  },
-  avatar: {
-    width: 200,
-    height: 200,
-    transform: [{ scale: 1.12 }],
   },
 
   taglineZone: { alignItems: 'center', marginBottom: 28 },

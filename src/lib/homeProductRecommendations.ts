@@ -1,6 +1,7 @@
 import type { IonName } from '../components/AppIconBox';
 import type { HairProfile } from '../context/AppContext';
 import { normalizeObjectiveId } from '../constants/hairObjectives';
+import { resolvePorosity } from '../constants/hairProfileOptions';
 import {
   buildOnboardingRecommendations,
   diagnosticSnapshotFromProfile,
@@ -125,7 +126,7 @@ function resolveProblems(profile: HairProfile): ProblemBundle {
   if (objective && BY_OBJECTIVE[objective]) {
     return BY_OBJECTIVE[objective];
   }
-  const porosity = profile.porosity || 'Moyenne';
+  const porosity = resolvePorosity(profile.porosity);
   return BY_POROSITY[porosity] ?? BY_POROSITY.Moyenne;
 }
 

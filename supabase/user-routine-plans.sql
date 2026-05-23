@@ -31,7 +31,8 @@ create policy "user_routine_plans_insert_own"
 
 create policy "user_routine_plans_update_own"
   on public.user_routine_plans for update
-  using (auth.uid() = user_id);
+  using (auth.uid() = user_id)
+  with check (auth.uid() = user_id);
 
 create policy "user_routine_plans_delete_own"
   on public.user_routine_plans for delete

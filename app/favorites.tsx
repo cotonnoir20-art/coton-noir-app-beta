@@ -101,6 +101,14 @@ export default function FavoritesScreen() {
     } as any);
   }
 
+  function openRecipe(fav: RecipeFavorite) {
+    const catalog = CATALOG_RECIPES.find(r => r.id === fav.id);
+    router.push({
+      pathname: '/recipes',
+      params: { openId: fav.id, openName: catalog?.name ?? fav.name },
+    } as any);
+  }
+
   const isEmpty =
     !loading &&
     ((tab === 'articles' && articles.length === 0) ||

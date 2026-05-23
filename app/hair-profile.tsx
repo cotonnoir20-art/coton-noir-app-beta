@@ -12,13 +12,14 @@ import { ProfileCompletionCard } from '../src/components/profile/ProfileCompleti
 import { ProfileLengthLandmarksForm } from '../src/components/profile/ProfileLengthLandmarksForm';
 import { HairProblematicsPicker } from '../src/components/profile/HairProblematicsPicker';
 import { normalizeProblematicLabels } from '../src/constants/hairProblematics';
+import { POROSITY_VALUES, resolvePorosity } from '../src/constants/hairProfileOptions';
 import { getProfileCompletion } from '../src/lib/profileCompleteness';
 
 type OptionGroup = { key: string; label: string; options: string[] };
 
 const HAIR_GROUPS: OptionGroup[] = [
   { key: 'hairType', label: 'Type de cheveux', options: ['3A', '3B', '3C', '4A', '4B', '4C', 'Locks'] },
-  { key: 'porosity', label: 'Porosité',         options: ['Basse', 'Moyenne', 'Haute'] },
+  { key: 'porosity', label: 'Porosité',         options: [...POROSITY_VALUES] },
   { key: 'density',  label: 'Densité',           options: ['Fine', 'Moyenne', 'Épaisse'] },
   { key: 'routineType', label: 'Style de routine', options: ['Minimaliste', 'Standard', 'Intensive'] },
 ];
@@ -30,6 +31,7 @@ export default function HairProfileScreen() {
 
   const [localProfile, setLocalProfile] = useState(() => ({
     ...profile,
+    porosity: resolvePorosity(profile.porosity),
     objective: normalizeObjectiveId(profile.objective ?? ''),
     problematics: normalizeProblematicLabels(profile.problematics),
   }));

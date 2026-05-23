@@ -15,18 +15,13 @@ import {
 } from '../src/lib/coachMoments';
 import { AppHeader } from '../src/components/AppHeader';
 import { ProfileLengthLandmarksForm } from '../src/components/profile/ProfileLengthLandmarksForm';
-import { toLocalISODate } from '../src/lib/homeGrowth';
+import { HAIR_MEASURE_ZONES, type HairMeasureZoneKey } from '../src/constants/growthZones';
+import { toLocalISODate, latestCmByZone } from '../src/lib/homeGrowth';
 import { trackMeasurementSaved } from '../src/lib/growthAnalytics';
 import { isHairLengthLandmark } from '../src/constants/hairLengthLandmarks';
 
-const ZONES = [
-  { key: 'devant',     label: 'Devant',       zone: 'Devant',       img: require('../assets/images/zone-devant.png')   },
-  { key: 'gauche',     label: 'Côté gauche',  zone: 'Côté Gauche',  img: require('../assets/images/zone-gauche.png')   },
-  { key: 'droite',     label: 'Côté droit',   zone: 'Côté Droit',   img: require('../assets/images/zone-droite.png')   },
-  { key: 'derriere',   label: 'Derrière',     zone: 'Derrière',     img: require('../assets/images/zone-derriere.png') },
-] as const;
-
-type ZoneKey = typeof ZONES[number]['key'];
+const ZONES = HAIR_MEASURE_ZONES;
+type ZoneKey = HairMeasureZoneKey;
 
 export default function HairLengthScreen() {
   const router = useRouter();
@@ -34,14 +29,6 @@ export default function HairLengthScreen() {
   const { growthHistory, profile } = state;
 
   const TODAY = toLocalISODate(new Date());
-
-  // Dernière mesure connue par zone
-  function lastMeasure(zoneName: string): number | null {
-    const entries = growthHistory
-      .filter(h => h.zone === zoneName)
-      .sort((a, b) => b.date.localeCompare(a.date));
-    return entries[0]?.cm ?? null;
-  }
 
   const [values, setValues] = useState<Record<ZoneKey, string>>({
     devant: '', gauche: '', droite: '', derriere: '',
@@ -55,7 +42,7 @@ export default function HairLengthScreen() {
 
   const zoneLengths = ZONES.map(z => {
     const input = parseFloat(values[z.key]);
-    const last  = lastMeasure(z.zone);
+    const last  = latestCmByZone(growthHistory, z.zone);
     return isNaN(input) ? last : input;
   }).filter((v): v is number => v !== null);
 
@@ -79,7 +66,7 @@ export default function HairLengthScreen() {
         return !isNaN(cm) && cm > 0;
       }).length;
       const beforeAvg = avgLatestGrowthCm(growthHistory);
-      const added: GrowthEntry[] = ZONES.flatMap(z => {
+      const added: Pick<GrowthEntry, 'date' | 'zone' | 'cm'>[] = ZONES.flatMap(z => {
         const cm = parseFloat(values[z.key]);
         return !isNaN(cm) && cm > 0 ? [{ date: TODAY, zone: z.zone, cm }] : [];
       });
@@ -191,7 +178,7 @@ export default function HairLengthScreen() {
 
           <View style={S.zonesCard}>
             {ZONES.map((z, i) => {
-              const last = lastMeasure(z.zone);
+              const last = latestCmByZone(growthHistory, z.zone);
               return (
                 <View key={z.key} style={[S.zoneRow, i < ZONES.length - 1 && S.zoneBorder]}>
                   {/* Image */}

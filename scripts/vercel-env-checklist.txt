@@ -16,3 +16,8 @@ puis Supabase → Authentication → URL Configuration :
 
 Coach (optionnel) : Supabase Edge Function secret COACH_ALLOWED_ORIGINS
   = https://ton-projet.vercel.app,http://localhost:8081
+
+Integrity (optionnel) : Supabase Edge Function secret INTEGRITY_ALLOWED_ORIGINS
+  = même liste que COACH_ALLOWED_ORIGINS (pas de CORS *)
+
+SQL pré-déploiement : exécuter supabase/security-pre-deploy-rls.sql dans SQL Editor

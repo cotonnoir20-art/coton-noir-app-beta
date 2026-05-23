@@ -84,6 +84,7 @@ const PERIODS: { key: Period; label: string }[] = [
 
 export default function RoutineScreen() {
   const { state, dispatch, validateRoutineSecure } = useApp();
+  const { maybeShowMoment } = usePremium();
   const params = useLocalSearchParams<{ routine?: string | string[]; period?: string | string[] }>();
   const [type,   setType]   = useState<RoutineType>('daily');
   const [period, setPeriod] = useState<Period>('today');

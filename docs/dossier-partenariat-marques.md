@@ -3,6 +3,8 @@
 **Document destiné aux marques, salons et acteurs de la beauté capillaire**  
 *Version 1.0 — [Date]*
 
+> **Maj. app mai 2026** : longueur par repères corporels + cm, problématiques capillaires (onboarding/profil), favoris recettes, suivi longueur accueil (cm). Réf. technique : `.cursor/rules/stack.md`, `docs/navigation-v2.md`.
+
 ---
 
 ## Sommaire
@@ -126,6 +128,7 @@ Coton Noir veut devenir **la référence européenne** du soin capillaire quotid
 - Routines, washday tracker, mesures, CotonCoins, niveaux
 - Articles, recettes, boutique, partenaires, codes promo
 - Black Cotton, analyse IA, communauté, Premium
+- **Mai 2026** : longueur par repères corporels + cm affiné ; 10 problématiques capillaires (profil/onboarding) ; favoris recettes ; anneau accueil (suivi cm + objectif daté)
 
 **En cours / à venir (renforce la promesse B2B) :**
 - **Missions partenaires** : test produit → avis + UGC → CC (table dédiée + validation)

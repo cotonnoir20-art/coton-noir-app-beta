@@ -1,5 +1,6 @@
 import type { CareStyleId } from '../constants/careStyles';
 import { displayObjective, normalizeObjectiveId } from '../constants/hairObjectives';
+import { resolvePorosity } from '../constants/hairProfileOptions';
 import { ROUTINE_TYPES, type RoutineStep, type RoutineType } from '../data/routines';
 import { PRODUCTS } from '../data/products';
 import { CATALOG_RECIPES } from '../data/recipesCatalog';
@@ -231,7 +232,7 @@ export function diagnosticSnapshotFromProfile(p: {
 }): DiagnosticSnapshot {
   return {
     hairType: p.hairType || '3C',
-    porosity: p.porosity || 'Moyenne',
+    porosity: resolvePorosity(p.porosity),
     density: p.density || 'Moyenne',
     objective: p.objective || '',
     region: p.region ?? '',

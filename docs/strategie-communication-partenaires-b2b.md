@@ -2,15 +2,18 @@
 
 **Objectif** : attirer des marques (cosmétiques, salons, accessoires, services) qui investissent dans **la routine quotidienne** des utilisatrices — pas de la pub interruptive.
 
+> **Maj. technique mai 2026** (app) : profil enrichi (repères longueur + cm, 10 problématiques capillaires), favoris recettes, anneau accueil en cm, scripts SQL communauté/premium/analytics à déployer. Détail dev : `.cursor/rules/stack.md`, `docs/navigation-v2.md`.
+
 **Alignement produit** (déjà en app) :
 | Levier dossier | Écran / table Supabase | Statut |
 |----------------|------------------------|--------|
 | A. Récompense (codes) | `Récompenses` + `codes` (`promo_codes`) | ✅ Live |
-| B. Expertise (guides) | `articles` + `recipes` + Premium | ✅ Contenu |
-| C. Échantillons / avis | Missions CC + `community` (à formaliser) | 🔶 À packager |
+| B. Expertise (guides) | `articles` + `recipes` + Premium + **favoris recettes** | ✅ Contenu |
+| C. Échantillons / avis | Missions CC + `community` + likes/Hydra (SQL prêt) | 🔶 SQL à exécuter |
 | D. Visibilité native | `shop` + reco Black Cotton (roadmap) | 🔶 Partiel |
 | Annuaire partenaires | `partners` | ✅ Live |
 | Niveaux & % réduction | `levels.ts` (5% → 50% partenaire) | ✅ Gamification |
+| Profil & rétention | `hair-profile`, onboarding, anneau longueur | ✅ Mai 2026 |
 
 ---
 

@@ -4,6 +4,8 @@
 **Rythme** : phrases courtes, pauses sur les hooks, énergie modérée (pas « publicitaire criard »).  
 **Lancement cible** : 19 mai 2026.
 
+**App (mai 2026)** : messages « ton profil / ta longueur / tes recettes » alignés avec repères longueur, problématiques et favoris recettes en prod — voir `docs/navigation-v2.md`.
+
 ---
 
 ## Post 1 · 7 avr. · TOFU

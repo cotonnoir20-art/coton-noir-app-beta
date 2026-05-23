@@ -62,3 +62,5 @@ alter table public.profiles
 -- Déploiement Edge Function :
 --   supabase functions deploy verify-app-integrity --no-verify-jwt
 --   (JWT vérifié dans la fonction via supabase.auth.getUser)
+-- Secret Supabase : INTEGRITY_ALLOWED_ORIGINS=https://ton-projet.vercel.app,http://localhost:8081
+--   (allowlist stricte — jamais Access-Control-Allow-Origin: *)

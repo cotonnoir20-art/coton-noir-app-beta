@@ -18,7 +18,7 @@ import { PlayfairDisplay_700Bold } from '@expo-google-fonts/playfair-display';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import 'react-native-reanimated';
@@ -40,6 +40,7 @@ import { setupNotificationsHandler } from '../src/lib/dailyCoach';
 import { WebProductionBlocker } from '../src/components/WebProductionBlocker';
 import { WebBetaBanner } from '../src/components/WebBetaBanner';
 import { DeviceIntegrityGuard } from '../src/components/DeviceIntegrityGuard';
+import { BrandSplashScreen } from '../src/components/splash/BrandSplashScreen';
 
 setupNotificationsHandler();
 
@@ -115,6 +116,7 @@ function RootLayoutNav() {
 }
 
 export default function RootLayout() {
+  const [brandSplashDone, setBrandSplashDone] = useState(false);
   const [loaded, error] = useFonts({
     Poppins_400Regular,
     Poppins_500Medium,
@@ -138,6 +140,8 @@ export default function RootLayout() {
     if (loaded) SplashScreen.hideAsync();
   }, [loaded]);
 
+  const showBrandSplash = loaded && !brandSplashDone;
+
   if (!loaded) return null;
 
   return (
@@ -145,7 +149,7 @@ export default function RootLayout() {
     <SafeAreaProvider style={{ flex: 1 }}>
       <WebBetaBanner />
       <View style={{ flex: 1 }}>
-        <StatusBar style="dark" />
+        <StatusBar style={showBrandSplash ? 'light' : 'dark'} />
         <AuthProvider>
           <DeviceIntegrityGuard>
             <AppProvider>
@@ -166,6 +170,10 @@ export default function RootLayout() {
           </DeviceIntegrityGuard>
         </AuthProvider>
       </View>
+      <BrandSplashScreen
+        visible={showBrandSplash}
+        onFinish={() => setBrandSplashDone(true)}
+      />
     </SafeAreaProvider>
     </WebProductionBlocker>
   );

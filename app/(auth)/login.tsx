@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import {
-  ActivityIndicator, Image, KeyboardAvoidingView,
+  ActivityIndicator, KeyboardAvoidingView,
   Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -19,6 +19,7 @@ import {
   PASSWORD_POLICY_HINT,
   validatePassword,
 } from '../../src/lib/passwordPolicy';
+import { AuthBrandLogo } from '../../src/components/auth/AuthBrandLogo';
 
 type Mode = 'login' | 'signup';
 
@@ -143,11 +144,7 @@ export default function LoginScreen() {
 
           {/* Logo */}
           <View style={S.logoZone}>
-            <Image
-              source={require('../../assets/logo-dark.png')}
-              style={S.logo}
-              resizeMode="contain"
-            />
+            <AuthBrandLogo width={168} variant="circle" />
           </View>
 
           {/* Toggle */}
@@ -300,8 +297,7 @@ const S = StyleSheet.create({
     marginTop: 8, marginBottom: 8,
   },
 
-  logoZone: { alignItems: 'center', paddingVertical: 20 },
-  logo:     { width: 130, height: 130 },
+  logoZone: { alignItems: 'center', paddingVertical: 16, marginBottom: 4 },
 
   // Toggle
   toggle: {

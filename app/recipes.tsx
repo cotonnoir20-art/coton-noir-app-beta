@@ -32,6 +32,7 @@ import {
   type CatalogRecipe,
   type RecipeCategory,
 } from '../src/data/recipesCatalog';
+import { isRecipeFavorite, toggleRecipeFavorite } from '../src/lib/contentFavorites';
 
 const LIKES_KEY = '@coton_noir_recipe_likes';
 const REVIEWS_KEY = '@coton_noir_recipe_reviews';

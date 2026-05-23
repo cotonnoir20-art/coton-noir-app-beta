@@ -48,7 +48,8 @@ create policy "Voir son propre profil"
 
 create policy "Modifier son propre profil"
   on public.profiles for update
-  using (auth.uid() = id);
+  using (auth.uid() = id)
+  with check (auth.uid() = id);
 
 create policy "Cr?er son propre profil"
   on public.profiles for insert

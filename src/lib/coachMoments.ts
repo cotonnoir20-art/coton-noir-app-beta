@@ -66,8 +66,12 @@ export function buildPostAnalysisContext(analysis: HairAnalysis): TriggerContext
   };
 }
 
+type GrowthMeasureRow = Pick<GrowthEntry, 'date' | 'zone' | 'cm'>;
+
+export type { GrowthMeasureRow };
+
 /** Moyenne cm sur la date la plus récente de l'historique. */
-export function avgLatestGrowthCm(history: GrowthEntry[]): number | null {
+export function avgLatestGrowthCm(history: GrowthMeasureRow[]): number | null {
   if (history.length === 0) return null;
   const latestDate = [...history].map(e => e.date).sort().pop()!;
   const vals = history.filter(e => e.date === latestDate).map(e => e.cm);
