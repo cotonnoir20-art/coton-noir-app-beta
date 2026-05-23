@@ -1,5 +1,10 @@
 import type { AppState, GrowthEntry } from '../context/AppContext';
-import { isHairLengthLandmark, landmarkApproxCm } from '../constants/hairLengthLandmarks';
+import {
+  isHairLengthLandmark,
+  type LengthConfidence,
+  type ResolvedLength,
+  resolveProfileLengthCm,
+} from '../constants/hairLengthLandmarks';
 import { Colors } from '../theme/colors';
 
 /** Même libellés de zones que `growth.tsx` / `hair-length.tsx` (sync obligatoire). */
@@ -13,19 +18,47 @@ export function toLocalISODate(d: Date): string {
   return `${y}-${m}-${day}`;
 }
 
-/**
- * Extrait un nombre de cm depuis une chaîne profil ou saisie libre
- * (« 32 », « 32 cm », « 32,5 ») — borne 0,1–250.
- */
-export function parseCmFromText(raw: string | undefined | null): number | null {
-  if (raw == null || String(raw).trim() === '') return null;
-  const landmarkCm = landmarkApproxCm(raw);
-  if (landmarkCm != null) return landmarkCm;
-  const m = String(raw).match(/(\d+(?:[.,]\d+)?)/);
-  if (!m) return null;
-  const n = parseFloat(m[1].replace(',', '.'));
-  if (!Number.isFinite(n) || n < 0.1 || n > 250) return null;
-  return Math.round(n * 10) / 10;
+export { parseCmFromText } from '../constants/hairLengthLandmarks';
+
+function primaryDevantLatestCm(history: GrowthEntry[]): number | null {
+  const sorted = primaryDevantSorted(history);
+  const cm = sorted[sorted.length - 1]?.cm;
+  if (cm == null || !Number.isFinite(cm) || cm <= 0) return null;
+  return Math.round(cm * 10) / 10;
+}
+
+/** Longueur courante : mesures zones → cm affiné → repère estimé. */
+export function resolveCurrentLength(
+  profileLength: string | undefined | null,
+  history: GrowthEntry[],
+): ResolvedLength {
+  const avgCm = averageLatestCmByZone(history);
+  const profile = resolveProfileLengthCm(profileLength);
+
+  if (avgCm > 0) {
+    return {
+      cm: avgCm,
+      landmark: profile.landmark,
+      displayLabel: profile.landmark ? `${profile.landmark} · ${avgCm} cm` : `${avgCm} cm`,
+      confidence: 'measured',
+    };
+  }
+
+  const devant = primaryDevantLatestCm(history);
+  if (devant != null) {
+    return {
+      cm: devant,
+      landmark: profile.landmark,
+      displayLabel: profile.landmark ? `${profile.landmark} · ${devant} cm` : `${devant} cm`,
+      confidence: 'measured',
+    };
+  }
+
+  return profile;
+}
+
+export function resolveTargetLength(profileTarget: string | undefined | null): ResolvedLength {
+  return resolveProfileLengthCm(profileTarget);
 }
 
 /** Dernière mesure connue par zone (tri date desc). */
@@ -69,12 +102,18 @@ export type HomeLengthSource = 'avg_zones' | 'devant' | 'profile' | 'none';
 export type HomeLengthMetrics = {
   currentCm: number;
   targetCm: number;
+  currentLabel: string;
+  targetLabel: string;
+  currentConfidence: LengthConfidence;
+  targetConfidence: LengthConfidence;
   /** Delta mois courant vs mois précédent (zone Devant uniquement — série stable). */
   monthDeltaCm: number | null;
   /** Progression 0–1 vers l’objectif (longueur / cible, plafonnée à 1). */
   ringProgress: number;
   /** Au moins une mesure dans `growthHistory` OU une longueur exploitable dans le profil. */
   hasMeasurements: boolean;
+  /** Projection calculateur basée sur estimations repère (pas assez précise). */
+  projectionIsEstimate: boolean;
   /** D’où vient la valeur affichée (pour libellés / confiance). */
   source: HomeLengthSource;
   /** Texte court optionnel sous l’objectif (ex. indication profil). */
@@ -92,32 +131,25 @@ export function getHomeLengthMetrics(state: AppState): HomeLengthMetrics {
   const todayStr = toLocalISODate(todayObj);
   const history = state.growthHistory;
 
-  const targetCm = Math.max(1, parseCmFromText(state.profile.targetLength) ?? 40);
+  const current = resolveCurrentLength(state.profile.length, history);
+  const target = resolveTargetLength(state.profile.targetLength);
+  const targetCm = Math.max(1, target.cm > 0 ? target.cm : 40);
+  const currentCm = current.cm;
 
-  const avgCm = averageLatestCmByZone(history);
-  const devantSorted = primaryDevantSorted(history);
-  const latestDevant = devantSorted[devantSorted.length - 1]?.cm ?? null;
-  const profileCm = parseCmFromText(state.profile.length);
-
-  let currentCm = 0;
   let source: HomeLengthSource = 'none';
-
-  if (avgCm > 0) {
-    currentCm = avgCm;
-    source = 'avg_zones';
-  } else if (latestDevant != null && latestDevant > 0) {
-    currentCm = Math.round(latestDevant * 10) / 10;
-    source = 'devant';
-  } else if (profileCm != null) {
-    currentCm = profileCm;
+  if (current.confidence === 'measured') {
+    source = averageLatestCmByZone(history) > 0 ? 'avg_zones' : 'devant';
+  } else if (current.confidence !== 'none') {
     source = 'profile';
   }
 
   const hasHistory = HOME_GROWTH_ZONES.some(z => latestCmByZone(history, z) != null);
-  const hasProfileLandmark =
-    isHairLengthLandmark(state.profile.length) ||
-    isHairLengthLandmark(state.profile.targetLength);
-  const hasMeasurements = hasHistory || profileCm != null || hasProfileLandmark;
+  const hasMeasurements =
+    hasHistory || current.confidence !== 'none' || target.confidence !== 'none';
+  const projectionIsEstimate =
+    hasHistory
+      ? target.confidence === 'estimate'
+      : current.confidence === 'estimate' || target.confidence === 'estimate';
 
   const homeMMap = monthMapDevant(history);
   const curMonthKey = todayStr.slice(0, 7);
@@ -132,19 +164,27 @@ export function getHomeLengthMetrics(state: AppState): HomeLengthMetrics {
   const ringProgress =
     targetCm > 0 ? Math.min(1, Math.max(0, currentCm / targetCm)) : 0;
 
-  const hint =
-    source === 'profile'
-      ? hasHistory
-        ? null
-        : 'Repère indiqué sur ton profil — mesure au mètre pour affiner le suivi.'
-      : null;
+  let hint: string | null = null;
+  if (projectionIsEstimate && !hasHistory) {
+    hint =
+      'Estimation à partir de tes repères — ajoute une mesure au mètre ou précise en cm pour un calculateur fiable.';
+  } else if (current.confidence === 'estimate' && hasHistory) {
+    hint = 'Objectif indicatif — précise ta cible en cm ou par mesure régulière.';
+  } else if (source === 'profile' && !hasHistory) {
+    hint = 'Mesure au mètre ruban pour affiner ta longueur et le suivi de pousse.';
+  }
 
   return {
     currentCm,
     targetCm,
+    currentLabel: current.displayLabel,
+    targetLabel: target.displayLabel,
+    currentConfidence: current.confidence,
+    targetConfidence: target.confidence,
     monthDeltaCm,
     ringProgress,
     hasMeasurements,
+    projectionIsEstimate,
     source,
     hint,
   };

@@ -2,6 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const ARTICLE_FAV_KEY = '@coton_noir_fav_articles';
 const PRODUCT_FAV_KEY = '@coton_noir_fav_products';
+const RECIPE_FAV_KEY = '@coton_noir_fav_recipes';
 
 export type ArticleFavorite = {
   id: string;
@@ -92,4 +93,37 @@ export async function toggleProductFavorite(product: Omit<ProductFavorite, 'save
 export async function removeProductFavorite(id: string): Promise<void> {
   const list = await listProductFavorites();
   await writeJson(PRODUCT_FAV_KEY, list.filter(p => p.id !== id));
+}
+
+export async function listRecipeFavorites(): Promise<RecipeFavorite[]> {
+  return readJson<RecipeFavorite>(RECIPE_FAV_KEY);
+}
+
+export async function isRecipeFavorite(id: string): Promise<boolean> {
+  const list = await listRecipeFavorites();
+  return list.some(r => r.id === id);
+}
+
+export async function toggleRecipeFavorite(
+  recipe: Omit<RecipeFavorite, 'savedAt'>,
+): Promise<boolean> {
+  const list = await listRecipeFavorites();
+  const exists = list.some(r => r.id === recipe.id);
+  if (exists) {
+    await writeJson(
+      RECIPE_FAV_KEY,
+      list.filter(r => r.id !== recipe.id),
+    );
+    return false;
+  }
+  await writeJson(RECIPE_FAV_KEY, [
+    { ...recipe, savedAt: new Date().toISOString() },
+    ...list,
+  ]);
+  return true;
+}
+
+export async function removeRecipeFavorite(id: string): Promise<void> {
+  const list = await listRecipeFavorites();
+  await writeJson(RECIPE_FAV_KEY, list.filter(r => r.id !== id));
 }

@@ -9,17 +9,22 @@ import { EmptyAnimation } from '../src/components/animations/EmptyAnimation';
 import {
   listArticleFavorites,
   listProductFavorites,
+  listRecipeFavorites,
   removeArticleFavorite,
   removeProductFavorite,
+  removeRecipeFavorite,
   type ArticleFavorite,
   type ProductFavorite,
+  type RecipeFavorite,
 } from '../src/lib/contentFavorites';
 import { CATALOG_ARTICLES } from '../src/data/articlesCatalog';
+import { CATALOG_RECIPES } from '../src/data/recipesCatalog';
 
-type TabId = 'articles' | 'products';
+type TabId = 'articles' | 'products' | 'recipes';
 
 const TABS: { id: TabId; label: string }[] = [
   { id: 'articles', label: 'Articles' },
+  { id: 'recipes', label: 'Recettes' },
   { id: 'products', label: 'Produits' },
 ];
 
@@ -33,13 +38,19 @@ export default function FavoritesScreen() {
   const router = useRouter();
   const [tab, setTab] = useState<TabId>('articles');
   const [articles, setArticles] = useState<ArticleFavorite[]>([]);
+  const [recipes, setRecipes] = useState<RecipeFavorite[]>([]);
   const [products, setProducts] = useState<ProductFavorite[]>([]);
   const [loading, setLoading] = useState(true);
 
   const reload = useCallback(async () => {
     setLoading(true);
-    const [a, p] = await Promise.all([listArticleFavorites(), listProductFavorites()]);
+    const [a, r, p] = await Promise.all([
+      listArticleFavorites(),
+      listRecipeFavorites(),
+      listProductFavorites(),
+    ]);
     setArticles(a);
+    setRecipes(r);
     setProducts(p);
     setLoading(false);
   }, []);
@@ -58,6 +69,11 @@ export default function FavoritesScreen() {
   async function removeProduct(id: string) {
     await removeProductFavorite(id);
     setProducts(prev => prev.filter(p => p.id !== id));
+  }
+
+  async function removeRecipe(id: string) {
+    await removeRecipeFavorite(id);
+    setRecipes(prev => prev.filter(r => r.id !== id));
   }
 
   function openArticle(fav: ArticleFavorite) {
@@ -88,11 +104,12 @@ export default function FavoritesScreen() {
   const isEmpty =
     !loading &&
     ((tab === 'articles' && articles.length === 0) ||
+      (tab === 'recipes' && recipes.length === 0) ||
       (tab === 'products' && products.length === 0));
 
   return (
     <SafeAreaView style={S.safe} edges={['top']}>
-      <AppHeader title="Mes favoris" subtitle="Articles et produits enregistrés sur cet appareil" />
+      <AppHeader title="Mes favoris" subtitle="Articles, recettes et produits enregistrés sur cet appareil" />
 
       <View style={S.tabsBar}>
         {TABS.map(t => (
@@ -104,6 +121,9 @@ export default function FavoritesScreen() {
             <Text style={[S.tabText, tab === t.id && S.tabTextActive]}>{t.label}</Text>
             {t.id === 'articles' && articles.length > 0 ? (
               <View style={S.badge}><Text style={S.badgeText}>{articles.length}</Text></View>
+            ) : null}
+            {t.id === 'recipes' && recipes.length > 0 ? (
+              <View style={S.badge}><Text style={S.badgeText}>{recipes.length}</Text></View>
             ) : null}
             {t.id === 'products' && products.length > 0 ? (
               <View style={S.badge}><Text style={S.badgeText}>{products.length}</Text></View>
@@ -124,14 +144,24 @@ export default function FavoritesScreen() {
             <Text style={S.emptySub}>
               {tab === 'articles'
                 ? 'Ouvre un article et touche Favori pour le retrouver ici.'
-                : 'Sur une fiche produit, ajoute un cœur pour le sauvegarder.'}
+                : tab === 'recipes'
+                  ? 'Sur une recette, touche Favori pour l’enregistrer ici.'
+                  : 'Sur une fiche produit, ajoute un cœur pour le sauvegarder.'}
             </Text>
             <TouchableOpacity
               style={S.emptyCta}
-              onPress={() => router.push(tab === 'articles' ? '/articles' : '/shop')}
+              onPress={() =>
+                router.push(
+                  tab === 'articles' ? '/articles' : tab === 'recipes' ? '/recipes' : '/shop',
+                )
+              }
             >
               <Text style={S.emptyCtaText}>
-                {tab === 'articles' ? 'Parcourir les articles' : 'Aller à la boutique'}
+                {tab === 'articles'
+                  ? 'Parcourir les articles'
+                  : tab === 'recipes'
+                    ? 'Parcourir les recettes'
+                    : 'Aller à la boutique'}
               </Text>
             </TouchableOpacity>
           </View>
@@ -155,6 +185,28 @@ export default function FavoritesScreen() {
               </View>
               <TouchableOpacity style={S.viewBtn} onPress={() => openArticle(a)}>
                 <Text style={S.viewBtnText}>Lire l’article</Text>
+              </TouchableOpacity>
+            </View>
+          ))}
+
+        {tab === 'recipes' &&
+          recipes.map(r => (
+            <View key={r.id} style={S.card}>
+              <View style={S.cardTop}>
+                <View style={[S.iconBox, { backgroundColor: Colors.sageLight }]}>
+                  <Text style={S.iconEmoji}>{r.thumbEmoji || '🥛'}</Text>
+                </View>
+                <View style={S.cardInfo}>
+                  <Text style={S.cardName} numberOfLines={2}>{r.name}</Text>
+                  <Text style={S.cardBrand}>{r.category}</Text>
+                  <Text style={S.cardDesc}>Ajoutée le {formatSaved(r.savedAt)}</Text>
+                </View>
+                <TouchableOpacity style={S.trashBtn} onPress={() => void removeRecipe(r.id)}>
+                  <Ionicons name="trash-outline" size={16} color={Colors.warmGray} />
+                </TouchableOpacity>
+              </View>
+              <TouchableOpacity style={S.viewBtn} onPress={() => openRecipe(r)}>
+                <Text style={S.viewBtnText}>Voir la recette</Text>
               </TouchableOpacity>
             </View>
           ))}

@@ -1,10 +1,20 @@
 import type { GrowthEntry, HairProfile } from '../context/AppContext';
-import { isHairLengthLandmark } from '../constants/hairLengthLandmarks';
-import { averageLatestCmByZone, parseCmFromText, toLocalISODate } from './homeGrowth';
+import type { LengthConfidence } from '../constants/hairLengthLandmarks';
+import {
+  resolveCurrentLength,
+  resolveTargetLength,
+  toLocalISODate,
+} from './homeGrowth';
 
 export type GrowthProjection = {
   targetCm: number;
   currentCm: number;
+  currentLabel: string;
+  targetLabel: string;
+  currentConfidence: LengthConfidence;
+  targetConfidence: LengthConfidence;
+  /** True si le délai / reste repose sur des estimations repère (pas de série mesurée fiable). */
+  projectionIsEstimate: boolean;
   palierPct: number;
   remaining: number;
   monthsToTarget: number | null;
@@ -30,30 +40,38 @@ export function computeGrowthProjection(
     latestM && refPoint3m ? +(latestM.cm - refPoint3m.cm).toFixed(1) : null;
   const growthPerMonth = growth3m !== null ? +(growth3m / 3).toFixed(1) : 0;
 
-  const targetCm = parseCmFromText(profile.targetLength) ?? 40;
-  const avgCurrentCm = averageLatestCmByZone(history);
-  const currentCm =
-    avgCurrentCm || (latestM?.cm ?? parseCmFromText(profile.length) ?? 0);
+  const current = resolveCurrentLength(profile.length, history);
+  const target = resolveTargetLength(profile.targetLength);
+  const targetCm = Math.max(1, target.cm > 0 ? target.cm : 40);
+  const currentCm = current.cm;
+  const hasZoneHistory = history.length > 0;
+  const projectionIsEstimate = hasZoneHistory
+    ? target.confidence === 'estimate'
+    : current.confidence === 'estimate' || target.confidence === 'estimate';
   const palierPct =
     currentCm > 0 ? Math.min(100, Math.round((currentCm / targetCm) * 100)) : 0;
   const remaining = Math.max(0, +(targetCm - currentCm).toFixed(1));
   const monthsToTarget =
-    growthPerMonth > 0 && remaining > 0
+    !projectionIsEstimate &&
+    growthPerMonth > 0 &&
+    remaining > 0
       ? +(remaining / growthPerMonth).toFixed(1)
       : null;
 
   return {
     targetCm,
     currentCm,
+    currentLabel: current.displayLabel,
+    targetLabel: target.displayLabel,
+    currentConfidence: current.confidence,
+    targetConfidence: target.confidence,
+    projectionIsEstimate,
     palierPct,
     remaining,
     monthsToTarget,
     growthPerMonth,
     growth3m,
     hasMeasurements:
-      history.length > 0 ||
-      !!parseCmFromText(profile.length) ||
-      isHairLengthLandmark(profile.length) ||
-      isHairLengthLandmark(profile.targetLength),
+      hasZoneHistory || current.confidence !== 'none' || target.confidence !== 'none',
   };
 }

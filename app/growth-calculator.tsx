@@ -21,7 +21,11 @@ import { computeGrowthProjection } from '../src/lib/growthProjection';
 import { toLocalISODate } from '../src/lib/homeGrowth';
 import { HairLengthLandmarkPicker } from '../src/components/profile/HairLengthLandmarkPicker';
 import { ProfileLengthLandmarksForm } from '../src/components/profile/ProfileLengthLandmarksForm';
-import { isHairLengthLandmark } from '../src/constants/hairLengthLandmarks';
+import {
+  isHairLengthLandmark,
+  parseProfileLength,
+  serializeProfileLength,
+} from '../src/constants/hairLengthLandmarks';
 import { trackProductEvent } from '../src/lib/productAnalytics';
 
 export default function GrowthCalculatorScreen() {
@@ -33,13 +37,20 @@ export default function GrowthCalculatorScreen() {
   );
 
   const [showObjectif, setShowObjectif] = useState(false);
-  const [objForm, setObjForm] = useState({ longueur: '' });
+  const [objTargetLandmark, setObjTargetLandmark] = useState('');
+  const [objTargetCm, setObjTargetCm] = useState('');
   const [objDate, setObjDate] = useState<Date | null>(null);
   const [showObjCal, setShowObjCal] = useState(false);
+  const [landmarkLength, setLandmarkLength] = useState(state.profile.length ?? '');
+  const [landmarkTarget, setLandmarkTarget] = useState(state.profile.targetLength ?? '');
+  const [landmarkSaved, setLandmarkSaved] = useState(false);
 
   const {
     targetCm,
     currentCm,
+    currentLabel,
+    targetLabel,
+    projectionIsEstimate,
     palierPct,
     remaining,
     monthsToTarget,
@@ -49,8 +60,9 @@ export default function GrowthCalculatorScreen() {
   } = projection;
 
   function openGoalModal() {
-    const tl = (state.profile.targetLength ?? '').trim();
-    setObjTargetLandmark(isHairLengthLandmark(tl) ? tl : '');
+    const parsed = parseProfileLength(state.profile.targetLength);
+    setObjTargetLandmark(parsed.landmark ?? '');
+    setObjTargetCm(parsed.cm != null ? String(parsed.cm) : '');
     const raw = state.profile.objectiveTargetDate?.trim();
     setObjDate(
       raw && /^\d{4}-\d{2}-\d{2}$/.test(raw) ? new Date(`${raw}T12:00:00`) : null,
@@ -88,10 +100,7 @@ export default function GrowthCalculatorScreen() {
                 if (!length && !targetLength) return;
                 dispatch({
                   type: 'updateProfile',
-                  payload: {
-                    ...(length ? { length } : {}),
-                    ...(targetLength ? { targetLength } : {}),
-                  },
+                  payload: { length, targetLength },
                 });
                 setLandmarkSaved(true);
               }}
@@ -113,22 +122,25 @@ export default function GrowthCalculatorScreen() {
           </>
         ) : null}
 
+        {projectionIsEstimate ? (
+          <View style={S.estimateBanner}>
+            <Text style={S.estimateBannerText}>
+              Projection indicative : repères ou cm affinés. Enregistre des mesures au mètre
+              ruban pour un délai et un rythme fiables.
+            </Text>
+          </View>
+        ) : null}
+
         <View style={S.statsRow}>
           <View style={S.statBox}>
-            <Text style={S.statVal}>
-              {isHairLengthLandmark(state.profile.length)
-                ? state.profile.length
-                : currentCm > 0
-                  ? `${currentCm} cm`
-                  : '—'}
+            <Text style={S.statVal} numberOfLines={2}>
+              {currentLabel !== '—' ? currentLabel : '—'}
             </Text>
             <Text style={S.statLabel}>Longueur actuelle</Text>
           </View>
           <View style={S.statBox}>
-            <Text style={[S.statVal, { color: Colors.growth }]}>
-              {isHairLengthLandmark(state.profile.targetLength)
-                ? state.profile.targetLength
-                : `${targetCm} cm`}
+            <Text style={[S.statVal, { color: Colors.growth }]} numberOfLines={2}>
+              {targetLabel !== '—' ? targetLabel : `${targetCm} cm`}
             </Text>
             <Text style={S.statLabel}>Objectif</Text>
           </View>
@@ -166,6 +178,8 @@ export default function GrowthCalculatorScreen() {
                 À ton rythme actuel, environ{' '}
                 <Text style={S.palierBold}>~{monthsToTarget} mois</Text> 🌱
               </>
+            ) : projectionIsEstimate ? (
+              'Précise en cm ou mesure 2× au mètre (espacées de 1 mois) pour activer le délai estimé.'
             ) : growthPerMonth <= 0 ? (
               'Ajoute des mesures régulières pour obtenir une projection.'
             ) : (
@@ -210,6 +224,19 @@ export default function GrowthCalculatorScreen() {
                   value={objTargetLandmark}
                   onChange={setObjTargetLandmark}
                 />
+                {objTargetLandmark ? (
+                  <>
+                    <Text style={[S.objLabel, { marginTop: 10 }]}>Préciser en cm (optionnel)</Text>
+                    <TextInput
+                      style={S.objInput}
+                      value={objTargetCm}
+                      onChangeText={setObjTargetCm}
+                      keyboardType="decimal-pad"
+                      placeholder="ex. 50"
+                      placeholderTextColor={Colors.border}
+                    />
+                  </>
+                ) : null}
                 <Text style={[S.objLabel, { marginTop: 14 }]}>Date cible (optionnel)</Text>
                 <TouchableOpacity style={[S.objInput, S.objDateRow]} onPress={() => setShowObjCal(v => !v)}>
                   <Text style={objDate ? S.objDateText : S.objDatePlaceholder}>
@@ -262,6 +289,21 @@ export default function GrowthCalculatorScreen() {
 const S = StyleSheet.create({
   safe: { flex: 1, backgroundColor: Colors.bg },
   content: { paddingHorizontal: 20, paddingBottom: 32 },
+
+  estimateBanner: {
+    backgroundColor: Colors.amberLight,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: Colors.amber + '44',
+    padding: 12,
+    marginBottom: 12,
+  },
+  estimateBannerText: {
+    fontSize: 12,
+    fontFamily: 'DMSans_400Regular',
+    color: Colors.ink,
+    lineHeight: 17,
+  },
 
   hintCard: {
     backgroundColor: Colors.surface,

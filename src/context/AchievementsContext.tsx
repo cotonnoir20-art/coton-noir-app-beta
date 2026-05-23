@@ -13,9 +13,9 @@ import {
 import { hapticSuccess } from '../lib/haptics';
 import { getReferralsCount } from '../lib/referral';
 import { trackProductEvent } from '../lib/productAnalytics';
+import { listRecipeFavorites } from '../lib/contentFavorites';
 
 const DATES_KEY            = '@coton_noir_achievement_dates';
-const RECIPE_LIKES_KEY     = '@coton_noir_recipe_likes';
 const HAIRSTYLE_LIKES_KEY  = '@coton_noir_hairstyle_likes';
 const INVITES_SENT_KEY     = '@coton_noir_invites_sent';
 
@@ -99,7 +99,7 @@ export function AchievementsProvider({ children }: { children: React.ReactNode }
   // ── Chargement initial : extras + dates persistées ─────────────────────
   const reloadExtras = async () => {
     const [recipes, hairstyles, invitesLocal, referralsServer] = await Promise.all([
-      countJsonKeys(RECIPE_LIKES_KEY),
+      listRecipeFavorites().then(r => r.length),
       countJsonKeys(HAIRSTYLE_LIKES_KEY),
       AsyncStorage.getItem(INVITES_SENT_KEY).then(v => (v ? Number(v) || 0 : 0)),
       getReferralsCount().catch(() => 0),

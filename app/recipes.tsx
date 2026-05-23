@@ -11,7 +11,7 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -94,6 +94,7 @@ function mapSupabaseRow(row: Record<string, unknown>): Recipe | null {
 
 export default function RecipesScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams<{ openId?: string; openName?: string }>();
   const { state } = useApp();
 
   const [remoteRecipes, setRemoteRecipes] = useState<Recipe[]>([]);
@@ -102,6 +103,7 @@ export default function RecipesScreen() {
   const [category, setCategory] = useState<'Toutes' | RecipeCategory>('Toutes');
   const [selected, setSelected] = useState<Recipe | null>(null);
   const [likedIds, setLikedIds] = useState<Record<string, boolean>>({});
+  const [favIds, setFavIds] = useState<Record<string, boolean>>({});
   const [reviews, setReviews] = useState<Record<string, Review[]>>({});
   const [reviewRating, setReviewRating] = useState(0);
   const [reviewText, setReviewText] = useState('');
@@ -152,6 +154,13 @@ export default function RecipesScreen() {
     setReviewText('');
   }, [selected?.id]);
 
+  useEffect(() => {
+    if (!selected) return;
+    void isRecipeFavorite(selected.id).then(on => {
+      setFavIds(prev => ({ ...prev, [selected.id]: on }));
+    });
+  }, [selected?.id]);
+
   const allRecipes = useMemo(() => {
     const ids = new Set(CATALOG_RECIPES.map(r => r.id));
     const extra = remoteRecipes.filter(r => !ids.has(r.id));
@@ -169,7 +178,30 @@ export default function RecipesScreen() {
     return list.filter(r => r.category === category);
   }, [allRecipes, category, featured?.id]);
 
+  useEffect(() => {
+    const openId = params.openId?.trim();
+    if (!openId || loading) return;
+    const found = allRecipes.find(r => r.id === openId);
+    if (found) setSelected(found);
+  }, [params.openId, allRecipes, loading]);
+
   const { refreshExtras } = useAchievements();
+
+  async function toggleFavorite(recipe: Recipe) {
+    const on = await toggleRecipeFavorite({
+      id: recipe.id,
+      name: recipe.name,
+      category: recipe.category,
+      thumbEmoji: recipe.thumb_emoji,
+    });
+    setFavIds(prev => {
+      const next = { ...prev };
+      if (on) next[recipe.id] = true;
+      else delete next[recipe.id];
+      return next;
+    });
+    void refreshExtras();
+  }
 
   function toggleLike(id: string) {
     setLikedIds(prev => {
@@ -1061,4 +1093,30 @@ const S = StyleSheet.create({
   },
   likeBtnBigActive: { backgroundColor: Colors.rose },
   likeBtnBigText: { fontSize: 13, fontFamily: 'DMSans_700Bold', color: Colors.rose },
+  recipeActionsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    alignItems: 'center',
+  },
+  secondaryActionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    backgroundColor: Colors.cream,
+  },
+  secondaryActionBtnActive: {
+    borderColor: Colors.ink,
+    backgroundColor: Colors.amberLight,
+  },
+  secondaryActionText: {
+    fontSize: 12,
+    fontFamily: 'DMSans_600SemiBold',
+    color: Colors.ink,
+  },
 });
