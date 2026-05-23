@@ -54,14 +54,18 @@ function RootLayoutNav() {
   useEffect(() => {
     if (loading) return;
     const inAuthGroup = segments[0] === '(auth)';
-    if (!session && !inAuthGroup) {
+    const isPublicLegal =
+      segments[0] === 'privacy' || segments[0] === 'cgv' || segments[0] === 'legal';
+    if (!session && !inAuthGroup && !isPublicLegal) {
       router.replace('/(auth)/welcome');
     }
     // Redirection post-login avec profil incomplet : OnboardingAuthGate
   }, [session, loading, segments]);
 
   const inAuthGroup = segments[0] === '(auth)';
-  const showTabBar  = !!session && !loading && !inAuthGroup;
+  const isPublicLegal =
+    segments[0] === 'privacy' || segments[0] === 'cgv' || segments[0] === 'legal';
+  const showTabBar  = !!session && !loading && !inAuthGroup && !isPublicLegal;
 
   return (
     <View style={{ flex: 1 }}>
@@ -90,6 +94,8 @@ function RootLayoutNav() {
         <Stack.Screen name="favorites"     options={{ presentation: 'card', animation: 'slide_from_right' }} />
         <Stack.Screen name="premium"       options={{ presentation: 'card', animation: 'slide_from_right' }} />
         <Stack.Screen name="legal"         options={{ presentation: 'card', animation: 'slide_from_right' }} />
+        <Stack.Screen name="privacy"       options={{ presentation: 'card', animation: 'slide_from_right' }} />
+        <Stack.Screen name="cgv"           options={{ presentation: 'card', animation: 'slide_from_right' }} />
         <Stack.Screen name="notifications" options={{ presentation: 'card', animation: 'slide_from_right' }} />
         <Stack.Screen name="avis"          options={{ presentation: 'card', animation: 'slide_from_right' }} />
         <Stack.Screen name="add-entry"     options={{ presentation: 'card', animation: 'slide_from_right' }} />

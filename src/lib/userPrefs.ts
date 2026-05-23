@@ -25,9 +25,42 @@ export const DEFAULT_USER_PREFS: Required<Pick<UserPrefs, 'rappelHour' | 'rappel
   notifEnabled: true,
 };
 
+let activeUserId: string | null = null;
+
+function storageKey(): string {
+  return activeUserId ? `${PREFS_KEY}:${activeUserId}` : PREFS_KEY;
+}
+
+/** Lie les préférences UI au compte connecté (évite le mélange entre utilisateurs). */
+export function setActivePrefsUserId(userId: string | null): void {
+  activeUserId = userId;
+}
+
+async function migrateLegacyPrefsIfNeeded(userId: string): Promise<void> {
+  const userKey = `${PREFS_KEY}:${userId}`;
+  try {
+    const [userRaw, legacyRaw] = await Promise.all([
+      AsyncStorage.getItem(userKey),
+      AsyncStorage.getItem(PREFS_KEY),
+    ]);
+    if (!userRaw && legacyRaw) {
+      await AsyncStorage.setItem(userKey, legacyRaw);
+    }
+  } catch {
+    /* non bloquant */
+  }
+}
+
+export async function prepareUserPrefs(userId: string | null): Promise<void> {
+  setActivePrefsUserId(userId);
+  if (userId) {
+    await migrateLegacyPrefsIfNeeded(userId);
+  }
+}
+
 export async function loadUserPrefs(): Promise<UserPrefs> {
   try {
-    const raw = await AsyncStorage.getItem(PREFS_KEY);
+    const raw = await AsyncStorage.getItem(storageKey());
     if (!raw) return { ...DEFAULT_USER_PREFS };
     const p = JSON.parse(raw) as UserPrefs;
     return {
@@ -43,7 +76,7 @@ export async function loadUserPrefs(): Promise<UserPrefs> {
 export async function saveUserPrefs(patch: UserPrefs): Promise<UserPrefs> {
   const current = await loadUserPrefs();
   const next = { ...current, ...patch };
-  await AsyncStorage.setItem(PREFS_KEY, JSON.stringify(next));
+  await AsyncStorage.setItem(storageKey(), JSON.stringify(next));
   return next;
 }
 

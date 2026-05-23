@@ -85,7 +85,7 @@ function formatBadgeDate(iso: string): string {
 
 export default function ProfileScreen() {
   const router = useRouter();
-  const { state } = useApp();
+  const { state, flushProfileSync } = useApp();
   const { coins, streak, profile, coinHistory, memberSince } = state;
   const { signOut, session } = useAuth();
   const { fire } = useBlackCotton();
@@ -213,7 +213,19 @@ export default function ProfileScreen() {
       applyPrefs(p);
       setPrefsLoaded(true);
     });
-  }, [applyPrefs]);
+  }, [applyPrefs, session?.user?.id]);
+
+  const handleSignOut = useCallback(async () => {
+    const synced = await flushProfileSync();
+    if (!synced) {
+      Alert.alert(
+        'Synchronisation',
+        'Certaines modifications n’ont pas pu être enregistrées en ligne. Réessaie dans quelques secondes avant de te déconnecter.',
+      );
+      return;
+    }
+    await signOut();
+  }, [flushProfileSync, signOut]);
 
   useFocusEffect(
     useCallback(() => {
@@ -723,7 +735,7 @@ export default function ProfileScreen() {
         </ScrollView>
 
         {/* ── Actions compte ── */}
-        <TouchableOpacity style={S.logoutBtn} onPress={signOut}>
+        <TouchableOpacity style={S.logoutBtn} onPress={() => void handleSignOut()}>
           <Text style={S.logoutText}>Se déconnecter</Text>
         </TouchableOpacity>
         <TouchableOpacity style={S.deleteBtn} onPress={handleDeleteAccount}>

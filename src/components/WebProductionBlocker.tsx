@@ -1,11 +1,18 @@
 import { useEffect } from 'react';
 import { Platform, StyleSheet, Text, View } from 'react-native';
+import { usePathname } from 'expo-router';
 import { Colors } from '../theme/colors';
 import {
   isWebProductionRestricted,
   purgeLegacyWebLocalStorageAuth,
 } from '../lib/webAuthPolicy';
 import { openSafeUrl, validateExternalUrl } from '../lib/safeLinking';
+
+const PUBLIC_WEB_PATHS = ['/privacy', '/cgv', '/legal'] as const;
+
+function isPublicLegalWebPath(pathname: string): boolean {
+  return PUBLIC_WEB_PATHS.some(p => pathname === p || pathname.startsWith(`${p}/`));
+}
 
 function readStoreUrl(): string | null {
   const raw =
@@ -25,11 +32,17 @@ function isVercelStagingHost(): boolean {
  * Avec EXPO_PUBLIC_ALLOW_WEB_PROD=true au build → l’app PWA beta s’affiche.
  */
 export function WebProductionBlocker({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
+
   useEffect(() => {
     if (Platform.OS === 'web') purgeLegacyWebLocalStorageAuth();
   }, []);
 
-  if (Platform.OS !== 'web' || !isWebProductionRestricted()) {
+  if (
+    Platform.OS !== 'web' ||
+    !isWebProductionRestricted() ||
+    isPublicLegalWebPath(pathname)
+  ) {
     return <>{children}</>;
   }
 

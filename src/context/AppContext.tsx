@@ -30,7 +30,8 @@ import {
   PROFILE_COMPLETE_LABEL,
 } from '../lib/profileCompleteness';
 import { trackProductEvent } from '../lib/productAnalytics';
-import { loadUserPrefs } from '../lib/userPrefs';
+import { loadUserPrefs, prepareUserPrefs, setActivePrefsUserId, PREFS_KEY } from '../lib/userPrefs';
+import { syncProfileToServer } from '../lib/profileSync';
 import { isNativeNotificationsSupported } from '../lib/notificationsPlatform';
 import { scheduleRoutineReminder } from '../lib/routineReminder';
 import {
@@ -456,6 +457,8 @@ type AppContextType = {
     entryDate?: string;
   }) => Promise<EconomyRpcResult>;
   applyReferralCodeSecure: (code: string) => Promise<EconomyRpcResult & { referralError?: string }>;
+  /** Force l’envoi du profil capillaire vers Supabase (ex. avant déconnexion). */
+  flushProfileSync: (profileOverride?: HairProfile) => Promise<boolean>;
 };
 
 const AppContext = createContext<AppContextType | null>(null);
@@ -863,6 +866,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         syncReady.current = false;
         isDemo.current = false;
         loggedRoutines.current = new Set();
+        setActivePrefsUserId(null);
         dispatch({ type: 'reset' });
         void clearSensitiveAppStorage();
         routinePlansReady.current = false;
@@ -872,6 +876,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       return;
     }
     hadSession.current = true;
+    void prepareUserPrefs(userId);
 
     // ── Compte de démonstration : on injecte une fixture et on coupe tous
     //    les syncs Supabase (la donnée vit uniquement en mémoire + cache).
@@ -891,7 +896,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         // Préférences (avatar, mode protecteur, etc.) consommées par
         // profile.tsx et la home. On écrit avant la première lecture.
         AsyncStorage.setItem(
-          '@coton_noir_prefs',
+          `${PREFS_KEY}:${userId}`,
           JSON.stringify(buildDemoPrefs(fixture)),
         ).catch(() => {});
         // Évite que le popup pantry s'ouvre pendant la démo
@@ -1113,36 +1118,49 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, [isAppReady, userId, state.profile, state.coinHistory.length, tryGrantProfileCompleteBonus]);
 
   // ── Sync profil (sans économie — coins/streak côté serveur uniquement) ──
+  const flushProfileSync = useCallback(async (profileOverride?: HairProfile): Promise<boolean> => {
+    if (!syncReady.current || !userId || isDemo.current) return true;
+
+    const profile = profileOverride ?? state.profile;
+    const profileJson = JSON.stringify(profile);
+    if (profileJson === lastSyncedProfile.current) return true;
+
+    const onboardingDone =
+      serverOnboardingDoneRef.current ||
+      isProfileComplete(profile);
+
+    const result = await syncProfileToServer(userId, profile, onboardingDone);
+    if (result.ok) {
+      lastSyncedProfile.current = profileJson;
+      if (onboardingDone) serverOnboardingDoneRef.current = true;
+      return true;
+    }
+    return false;
+  }, [userId, state.profile]);
+
   useEffect(() => {
     if (!syncReady.current || !userId || isDemo.current) return;
 
     const profileJson = JSON.stringify(state.profile);
     if (profileJson === lastSyncedProfile.current) return;
 
-    lastSyncedProfile.current = profileJson;
-
     const onboardingDone =
       serverOnboardingDoneRef.current ||
       isProfileComplete(state.profile);
 
-    supabase.from('profiles').upsert({
-      id:               userId,
-      name:             state.profile.name,
-      hair_type:        state.profile.hairType,
-      porosity:         state.profile.porosity,
-      density:          state.profile.density,
-      length:           state.profile.length       ?? '',
-      objective:        normalizeObjectiveId(state.profile.objective    ?? ''),
-      target_length:    state.profile.targetLength ?? '',
-      target_goal_date: state.profile.objectiveTargetDate ?? '',
-      routine_type:     state.profile.routineType  ?? '',
-      problematics:     state.profile.problematics ?? [],
-      region:           state.profile.region       ?? '',
-      climate:          state.profile.climate      ?? '',
-      budget:           state.profile.budget       ?? '',
-      care_style:       state.profile.careStyle    ?? '',
-      onboarding_done:  onboardingDone,
-    });
+    let cancelled = false;
+    void (async () => {
+      const result = await syncProfileToServer(userId, state.profile, onboardingDone);
+      if (cancelled) return;
+      if (result.ok) {
+        lastSyncedProfile.current = profileJson;
+        if (onboardingDone) serverOnboardingDoneRef.current = true;
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
   }, [state.profile, userId]);
 
   // ── Sync nouvelles mesures growth_history → Supabase ──
@@ -1186,6 +1204,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         refreshEconomySecure,
         grantJournalEntrySecure,
         applyReferralCodeSecure,
+        flushProfileSync,
       }}
     >
       {children}

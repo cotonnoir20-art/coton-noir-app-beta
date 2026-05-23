@@ -27,6 +27,15 @@ import {
   trialDaysRemaining,
   type PremiumTrialState,
 } from '../lib/premiumTrial';
+import {
+  getPremiumPurchasesBlockReason,
+  isPremiumPurchasesEnabled,
+} from '../lib/premiumPaymentsGate';
+import {
+  configureRevenueCat,
+  fetchRevenueCatPremiumActive,
+  logOutRevenueCat,
+} from '../lib/revenueCat';
 import { trackProductEvent } from '../lib/productAnalytics';
 import { supabase } from '../lib/supabase';
 import { useAuth } from './AuthContext';
@@ -35,6 +44,8 @@ import { useApp } from './AppContext';
 type PremiumContextValue = {
   isPremium: boolean;
   hasAccess: boolean;
+  purchasesEnabled: boolean;
+  purchasesBlockReason: string | null;
   trial: PremiumTrialState | null;
   trialDaysLeft: number;
   refreshPremium: () => Promise<void>;
@@ -70,16 +81,23 @@ export function PremiumProvider({ children }: { children: ReactNode }) {
     if (!uid) {
       setIsPremium(false);
       setPremiumExpiresAt(null);
+      await logOutRevenueCat();
       return;
     }
 
-    const { data } = await supabase
-      .from('profiles')
-      .select('is_premium, premium_expires_at')
-      .eq('id', uid)
-      .maybeSingle();
+    await configureRevenueCat(uid);
 
-    const premium = !!data?.is_premium;
+    const [profileResult, rcPremium] = await Promise.all([
+      supabase
+        .from('profiles')
+        .select('is_premium, premium_expires_at')
+        .eq('id', uid)
+        .maybeSingle(),
+      fetchRevenueCatPremiumActive(),
+    ]);
+
+    const { data } = profileResult;
+    const premium = !!data?.is_premium || rcPremium;
     const expires = (data?.premium_expires_at as string) ?? null;
     const notExpired =
       !expires || new Date(expires).getTime() > Date.now();
@@ -95,6 +113,8 @@ export function PremiumProvider({ children }: { children: ReactNode }) {
   const trialActive = isTrialActive(trial);
   const hasAccess = isPremium || trialActive;
   const trialDaysLeft = trialDaysRemaining(trial);
+  const purchasesEnabled = isPremiumPurchasesEnabled();
+  const purchasesBlockReason = getPremiumPurchasesBlockReason();
 
   const openPremium = useCallback(
     (moment?: PremiumMomentId) => {
@@ -157,6 +177,8 @@ export function PremiumProvider({ children }: { children: ReactNode }) {
     () => ({
       isPremium,
       hasAccess,
+      purchasesEnabled,
+      purchasesBlockReason,
       trial,
       trialDaysLeft,
       refreshPremium,
@@ -168,6 +190,8 @@ export function PremiumProvider({ children }: { children: ReactNode }) {
     [
       isPremium,
       hasAccess,
+      purchasesEnabled,
+      purchasesBlockReason,
       trial,
       trialDaysLeft,
       refreshPremium,
@@ -184,6 +208,8 @@ export function PremiumProvider({ children }: { children: ReactNode }) {
       <PremiumPaywallModal
         visible={paywallMoment != null}
         momentId={paywallMoment}
+        purchasesEnabled={purchasesEnabled}
+        purchasesBlockReason={purchasesBlockReason}
         onClose={() => setPaywallMoment(null)}
         onStartTrial={() => void startTrialFlow()}
         onSeePlans={() => {

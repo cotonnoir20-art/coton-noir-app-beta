@@ -9,8 +9,8 @@ import { AppHeader } from '../src/components/AppHeader';
 import { DemoPopin } from '../src/components/DemoPopin';
 import { useAuth } from '../src/context/AuthContext';
 import { getDemoPopinContent, isDemoEmail } from '../src/data/demoUsers';
-import { startPremiumCheckout } from '../src/lib/premiumPurchase';
-import type { PremiumPlanId } from '../src/lib/premiumIap';
+import { startPremiumCheckout, restorePremiumPurchases } from '../src/lib/premiumPurchase';
+import type { PremiumPlanId } from '../src/lib/premiumPlans';
 import { usePremium } from '../src/context/PremiumContext';
 import { PREMIUM_MOMENTS, type PremiumMomentId } from '../src/data/premiumMoments';
 import { getPremiumFirstValues, markPremiumFirstValue, TRIAL_DAYS } from '../src/lib/premiumTrial';
@@ -135,7 +135,7 @@ const FAQ = [
 
 export default function PremiumScreen() {
   const { session } = useAuth();
-  const { hasAccess, trialDaysLeft, startTrial, refreshPremium } = usePremium();
+  const { hasAccess, trialDaysLeft, startTrial, refreshPremium, purchasesEnabled, purchasesBlockReason } = usePremium();
   const params = useLocalSearchParams<{ moment?: string; trial?: string }>();
   const momentParam = typeof params.moment === 'string' ? params.moment : undefined;
   const momentConfig =
@@ -164,13 +164,20 @@ export default function PremiumScreen() {
       setDemoPopinOpen(true);
       return;
     }
+    if (!purchasesEnabled) {
+      Alert.alert('Premium bientôt disponible', purchasesBlockReason ?? undefined);
+      return;
+    }
     setCheckoutLoading(true);
     try {
-      await startPremiumCheckout(selectedPlan);
+      const result = await startPremiumCheckout(selectedPlan);
+      if (result.ok) {
+        await refreshPremium();
+      }
     } finally {
       setCheckoutLoading(false);
     }
-  }, [isDemo, demoPopin, selectedPlan]);
+  }, [isDemo, demoPopin, selectedPlan, purchasesEnabled, purchasesBlockReason, refreshPremium]);
 
   return (
     <SafeAreaView style={S.safe} edges={['top']}>
@@ -185,6 +192,22 @@ export default function PremiumScreen() {
             <Text style={S.contextLabel}>POUR TOI MAINTENANT</Text>
             <Text style={S.contextTitle}>{momentConfig.title}</Text>
             <Text style={S.contextSub}>{momentConfig.subtitle}</Text>
+          </View>
+        ) : null}
+
+        {!purchasesEnabled ? (
+          <View style={S.comingSoonCard}>
+            <Ionicons name="time-outline" size={22} color={Colors.amberDark} />
+            <View style={S.comingSoonTextWrap}>
+              <Text style={S.comingSoonTitle}>Abonnements bientôt disponibles</Text>
+              <Text style={S.comingSoonSub}>
+                {purchasesBlockReason ??
+                  'Les paiements s’ouvriront quand toutes les fonctionnalités Premium seront livrées.'}
+              </Text>
+              <Text style={S.comingSoonHint}>
+                En attendant, profite de l’essai gratuit de {TRIAL_DAYS} jours pour découvrir Premium.
+              </Text>
+            </View>
           </View>
         ) : null}
 
@@ -229,12 +252,14 @@ export default function PremiumScreen() {
           <Text style={S.priceSub}>Puis 9,99€/mois · Annulable à tout moment</Text>
 
           <TouchableOpacity
-            style={[S.heroBtn, checkoutLoading && S.btnDisabled]}
+            style={[S.heroBtn, (checkoutLoading || (!hasAccess && !purchasesEnabled && !freeTrial)) && S.btnDisabled]}
             onPress={() => {
               if (!hasAccess && freeTrial) {
                 void startTrial();
-              } else {
+              } else if (purchasesEnabled || hasAccess) {
                 void onSubscribe();
+              } else {
+                Alert.alert('Premium bientôt disponible', purchasesBlockReason ?? undefined);
               }
             }}
             activeOpacity={0.85}
@@ -244,7 +269,11 @@ export default function PremiumScreen() {
               <ActivityIndicator color={Colors.ink} />
             ) : (
               <Text style={S.heroBtnText}>
-                {hasAccess ? '✨ Gérer mon abonnement' : `✨ Commencer l'essai ${TRIAL_DAYS} jours`}
+                {hasAccess
+                  ? purchasesEnabled
+                    ? '✨ Gérer mon abonnement'
+                    : '✨ Essai Premium actif'
+                  : `✨ Commencer l'essai ${TRIAL_DAYS} jours`}
               </Text>
             )}
           </TouchableOpacity>
@@ -293,20 +322,35 @@ export default function PremiumScreen() {
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[S.subscribeBtn, checkoutLoading && S.btnDisabled]}
+          style={[S.subscribeBtn, (checkoutLoading || !purchasesEnabled) && S.btnDisabled]}
           onPress={onSubscribe}
           activeOpacity={0.85}
-          disabled={checkoutLoading}
+          disabled={checkoutLoading || !purchasesEnabled}
         >
           {checkoutLoading ? (
             <ActivityIndicator color={Colors.white} />
           ) : (
-            <Text style={S.subscribeBtnText}>S'abonner</Text>
+            <Text style={S.subscribeBtnText}>
+              {purchasesEnabled ? "S'abonner" : 'Bientôt disponible'}
+            </Text>
           )}
         </TouchableOpacity>
-        {freeTrial && (
+        {purchasesEnabled && freeTrial && (
           <Text style={S.subscribeHint}>7 jours gratuits · puis {PLANS[selectedPlan].priceLabel}</Text>
         )}
+        {purchasesEnabled ? (
+          <TouchableOpacity
+            style={S.restoreBtn}
+            onPress={() => {
+              void restorePremiumPurchases().then(r => {
+                if (r.ok) void refreshPremium();
+              });
+            }}
+            activeOpacity={0.7}
+          >
+            <Text style={S.restoreBtnText}>Restaurer mes achats</Text>
+          </TouchableOpacity>
+        ) : null}
 
         {/* ── Ce qui t'attend ── */}
         <Text style={S.secTitle}>Ce qui t'attend</Text>
@@ -403,18 +447,33 @@ export default function PremiumScreen() {
           <Text style={S.bottomCtaTitle}>Prête à transformer ta routine ?</Text>
           <Text style={S.bottomCtaSub}>Rejoins +2 000 femmes qui ont franchi le cap.</Text>
           <TouchableOpacity
-            style={[S.bottomCtaBtn, checkoutLoading && S.btnDisabled]}
-            onPress={onSubscribe}
+            style={[S.bottomCtaBtn, (checkoutLoading || !purchasesEnabled) && S.btnDisabled]}
+            onPress={() => {
+              if (!purchasesEnabled) {
+                if (!hasAccess) void startTrial();
+                else Alert.alert('Premium bientôt disponible', purchasesBlockReason ?? undefined);
+                return;
+              }
+              void onSubscribe();
+            }}
             activeOpacity={0.85}
             disabled={checkoutLoading}
           >
             {checkoutLoading ? (
               <ActivityIndicator color={Colors.amber} />
             ) : (
-              <Text style={S.bottomCtaBtnText}>✨ Commencer l'essai gratuit</Text>
+              <Text style={S.bottomCtaBtnText}>
+                {purchasesEnabled
+                  ? "✨ Commencer l'essai gratuit"
+                  : `✨ Essai ${TRIAL_DAYS} jours — paiement bientôt`}
+              </Text>
             )}
           </TouchableOpacity>
-          <Text style={S.bottomCtaLegal}>7 jours gratuits · Sans engagement</Text>
+          <Text style={S.bottomCtaLegal}>
+            {purchasesEnabled
+              ? '7 jours gratuits · Sans engagement'
+              : 'Abonnements activés quand Premium sera complet'}
+          </Text>
         </LinearGradient>
 
         <View style={{ height: 20 }} />
@@ -457,6 +516,38 @@ const S = StyleSheet.create({
   },
   contextTitle: { fontSize: 16, fontFamily: 'Poppins_600SemiBold', color: Colors.ink, marginBottom: 4 },
   contextSub: { fontSize: 13, fontFamily: 'DMSans_400Regular', color: Colors.warmGray, lineHeight: 18 },
+
+  comingSoonCard: {
+    flexDirection: 'row',
+    gap: 12,
+    backgroundColor: Colors.amberLight,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: Colors.amber,
+    padding: 14,
+    marginBottom: 14,
+    alignItems: 'flex-start',
+  },
+  comingSoonTextWrap: { flex: 1 },
+  comingSoonTitle: {
+    fontSize: 14,
+    fontFamily: 'DMSans_700Bold',
+    color: Colors.ink,
+    marginBottom: 4,
+  },
+  comingSoonSub: {
+    fontSize: 12,
+    fontFamily: 'DMSans_400Regular',
+    color: Colors.warmGray,
+    lineHeight: 17,
+    marginBottom: 6,
+  },
+  comingSoonHint: {
+    fontSize: 11,
+    fontFamily: 'DMSans_500Medium',
+    color: Colors.amberDark,
+    lineHeight: 16,
+  },
 
   trialActiveCard: {
     backgroundColor: Colors.sageLight,
@@ -636,7 +727,14 @@ const S = StyleSheet.create({
     fontFamily: 'DMSans_400Regular',
     color: Colors.warmGray,
     textAlign: 'center',
-    marginBottom: 20,
+    marginBottom: 8,
+  },
+  restoreBtn: { alignItems: 'center', paddingVertical: 10, marginBottom: 16 },
+  restoreBtnText: {
+    fontSize: 12,
+    fontFamily: 'DMSans_600SemiBold',
+    color: Colors.warmGray,
+    textDecorationLine: 'underline',
   },
 
   // ── Section title ──

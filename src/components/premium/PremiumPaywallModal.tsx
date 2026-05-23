@@ -7,6 +7,8 @@ import { TRIAL_DAYS } from '../../lib/premiumTrial';
 type Props = {
   visible: boolean;
   momentId: PremiumMomentId | null;
+  purchasesEnabled?: boolean;
+  purchasesBlockReason?: string | null;
   onClose: () => void;
   onStartTrial: () => void;
   onSeePlans: () => void;
@@ -15,6 +17,8 @@ type Props = {
 export function PremiumPaywallModal({
   visible,
   momentId,
+  purchasesEnabled = true,
+  purchasesBlockReason,
   onClose,
   onStartTrial,
   onSeePlans,
@@ -47,9 +51,18 @@ export function PremiumPaywallModal({
             <Text style={S.primaryText}>{config.cta}</Text>
           </TouchableOpacity>
           <TouchableOpacity style={S.secondaryBtn} onPress={onSeePlans}>
-            <Text style={S.secondaryText}>Voir les offres · {TRIAL_DAYS}j gratuits</Text>
+            <Text style={S.secondaryText}>
+              {purchasesEnabled
+                ? `Voir les offres · ${TRIAL_DAYS}j gratuits`
+                : 'Découvrir Premium'}
+            </Text>
           </TouchableOpacity>
-          <Text style={S.hint}>{config.trialHint}</Text>
+          <Text style={S.hint}>
+            {purchasesEnabled
+              ? config.trialHint
+              : purchasesBlockReason ??
+                'Les paiements s’ouvriront quand toutes les fonctionnalités Premium seront prêtes.'}
+          </Text>
         </Pressable>
       </Pressable>
     </Modal>

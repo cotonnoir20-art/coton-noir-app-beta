@@ -10,7 +10,9 @@ import {
   type Purchase,
 } from 'expo-iap';
 
-export type PremiumPlanId = 'annual' | 'monthly';
+import type { PremiumPlanId } from './premiumPlans';
+
+export type { PremiumPlanId };
 
 export type IapPurchaseResult =
   | { ok: true; purchase: Purchase }

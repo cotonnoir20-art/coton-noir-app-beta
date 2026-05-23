@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Alert, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -26,7 +26,7 @@ const HAIR_GROUPS: OptionGroup[] = [
 
 export default function HairProfileScreen() {
   const router = useRouter();
-  const { state, dispatch } = useApp();
+  const { state, dispatch, flushProfileSync } = useApp();
   const { profile } = state;
 
   const [localProfile, setLocalProfile] = useState(() => ({
@@ -43,9 +43,16 @@ export default function HairProfileScreen() {
     setSaved(false);
   }
 
-  function handleSave() {
+  async function handleSave() {
     dispatch({ type: 'updateProfile', payload: localProfile });
-    setSaved(true);
+    const synced = await flushProfileSync(localProfile);
+    setSaved(synced);
+    if (!synced) {
+      Alert.alert(
+        'Enregistrement',
+        'Modifications enregistrées localement, mais la synchronisation en ligne a échoué. Vérifie ta connexion.',
+      );
+    }
   }
 
   return (

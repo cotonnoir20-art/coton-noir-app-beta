@@ -1,15 +1,21 @@
 import { Alert, Platform } from 'react-native';
 import Constants from 'expo-constants';
+import type { PremiumPlanId } from './premiumPlans';
 import {
-  getPremiumSku,
-  isPremiumIapConfigured,
-  purchasePremiumWithIap,
-  type PremiumPlanId,
-} from './premiumIap';
+  canStartNativePurchase,
+  canStartWebCheckout,
+  getPremiumPurchasesBlockReason,
+  isPremiumPurchasesEnabled,
+} from './premiumPaymentsGate';
+import {
+  isRevenueCatConfigured,
+  purchasePremiumPackage,
+  restoreRevenueCatPurchases,
+} from './revenueCat';
 import { openSafeUrl, validateExternalUrl } from './safeLinking';
 
 export type PremiumCheckoutResult =
-  | { ok: true; channel: 'iap' | 'web' }
+  | { ok: true; channel: 'revenuecat' | 'web' }
   | { ok: false; error: string; cancelled?: boolean };
 
 function readCheckoutUrl(): string | null {
@@ -52,73 +58,109 @@ async function openWebCheckout(plan: PremiumPlanId): Promise<PremiumCheckoutResu
   return opened ? { ok: true, channel: 'web' } : { ok: false, error: 'url_blocked' };
 }
 
-function alertIapNotReady(): void {
+function alertPurchasesNotReady(): void {
+  Alert.alert(
+    'Premium bientôt disponible',
+    getPremiumPurchasesBlockReason() ??
+      "Les abonnements seront activés dès que toutes les fonctionnalités Premium seront prêtes.",
+  );
+}
+
+function alertRevenueCatNotConfigured(): void {
   Alert.alert(
     'Abonnement Premium',
-    "Les achats intégrés (App Store / Google Play) nécessitent une build de développement ou production avec les identifiants produits configurés (EXPO_PUBLIC_IAP_PREMIUM_MONTHLY et EXPO_PUBLIC_IAP_PREMIUM_ANNUAL).",
+    'RevenueCat n’est pas encore configuré. Ajoute EXPO_PUBLIC_REVENUECAT_API_KEY_IOS et EXPO_PUBLIC_REVENUECAT_API_KEY_ANDROID, puis rebuild avec EAS (development build).',
   );
 }
 
 function alertCheckoutNotConfigured(): void {
   Alert.alert(
     'Abonnement Premium',
-    "Paiement non configuré. Sur mobile, configure les SKU in-app. Sur le web, définis EXPO_PUBLIC_PREMIUM_CHECKOUT_URL vers une page Stripe / site Coton Noir allowlistée.",
+    'Paiement web non configuré. Définis EXPO_PUBLIC_PREMIUM_CHECKOUT_URL vers une page Stripe allowlistée.',
   );
 }
 
 /**
- * Point d’entrée unique pour souscrire : IAP natif sur iOS/Android, checkout web allowlisté sur web uniquement.
+ * Point d’entrée unique pour souscrire : RevenueCat sur iOS/Android, checkout web allowlisté sur web.
+ * Bloqué tant que le catalogue Premium n’est pas entièrement livré.
  */
 export async function startPremiumCheckout(
   plan: PremiumPlanId,
 ): Promise<PremiumCheckoutResult> {
+  if (!isPremiumPurchasesEnabled()) {
+    alertPurchasesNotReady();
+    return { ok: false, error: 'purchases_gated' };
+  }
+
   const isNative = Platform.OS === 'ios' || Platform.OS === 'android';
 
   if (isNative) {
-    if (!isPremiumIapConfigured()) {
-      alertIapNotReady();
-      return { ok: false, error: 'iap_not_configured' };
+    if (!canStartNativePurchase()) {
+      if (!isRevenueCatConfigured()) {
+        alertRevenueCatNotConfigured();
+        return { ok: false, error: 'revenuecat_not_configured' };
+      }
+      alertPurchasesNotReady();
+      return { ok: false, error: 'purchases_gated' };
     }
 
-    const sku = getPremiumSku(plan);
-    if (!sku) {
-      alertIapNotReady();
-      return { ok: false, error: 'iap_sku_missing' };
-    }
-
-    const result = await purchasePremiumWithIap(plan);
+    const result = await purchasePremiumPackage(plan);
     if (result.ok) {
       Alert.alert(
         'Merci !',
-        "Ton achat est enregistré. L'activation Premium sur ton compte sera confirmée après vérification serveur.",
+        'Ton abonnement Premium est actif. Profite de toutes les fonctionnalités incluses.',
       );
-      return { ok: true, channel: 'iap' };
+      return { ok: true, channel: 'revenuecat' };
     }
 
     if (result.cancelled) {
       return { ok: false, error: 'cancelled', cancelled: true };
     }
 
-    if (result.error === 'iap_native_unavailable') {
+    if (result.error === 'offering_not_found') {
       Alert.alert(
         'Premium',
-        "Les achats in-app ne sont pas disponibles dans Expo Go. Utilise une development build (eas build).",
+        'Offre introuvable dans RevenueCat. Vérifie l’offering « default » et les packages mensuel / annuel.',
       );
-    } else if (result.error === 'product_not_found') {
-      Alert.alert(
-        'Premium',
-        `Produit « ${sku} » introuvable dans la boutique. Vérifie App Store Connect / Play Console.`,
-      );
+    } else if (result.error === 'revenuecat_not_configured') {
+      alertRevenueCatNotConfigured();
     } else {
       Alert.alert('Premium', "L'achat n'a pas pu être finalisé. Réessaie plus tard.");
     }
     return { ok: false, error: result.error };
   }
 
-  // Web : pas d’IAP ici — uniquement URL allowlistée (jamais de lien arbitraire)
+  if (!canStartWebCheckout()) {
+    alertCheckoutNotConfigured();
+    return { ok: false, error: 'checkout_not_configured' };
+  }
+
   const webResult = await openWebCheckout(plan);
   if (!webResult.ok && webResult.error === 'checkout_not_configured') {
     alertCheckoutNotConfigured();
   }
   return webResult;
+}
+
+export async function restorePremiumPurchases(): Promise<{
+  ok: boolean;
+  isPremium: boolean;
+  error?: string;
+}> {
+  if (!isPremiumPurchasesEnabled()) {
+    alertPurchasesNotReady();
+    return { ok: false, isPremium: false, error: 'purchases_gated' };
+  }
+
+  const result = await restoreRevenueCatPurchases();
+  if (result.ok && result.isPremium) {
+    Alert.alert('Restauré', 'Ton abonnement Premium a été retrouvé sur cet appareil.');
+  } else if (result.ok) {
+    Alert.alert('Restauration', 'Aucun abonnement actif trouvé pour ce compte.');
+  } else if (result.error === 'revenuecat_not_configured') {
+    alertRevenueCatNotConfigured();
+  } else {
+    Alert.alert('Restauration', 'Impossible de restaurer les achats pour le moment.');
+  }
+  return result;
 }
