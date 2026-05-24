@@ -7,11 +7,11 @@ import {
   DMSans_700Bold,
 } from '@expo-google-fonts/dm-sans';
 import { PlayfairDisplay_700Bold } from '@expo-google-fonts/playfair-display';
-import { Stack, useRouter, useSegments } from 'expo-router';
+import { Stack, usePathname, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect, useState } from 'react';
-import { View } from 'react-native';
+import { Platform, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import 'react-native-reanimated';
 import { AppProvider } from '../src/context/AppContext';
@@ -41,27 +41,34 @@ SplashScreen.preventAutoHideAsync();
 function RootLayoutNav() {
   const { session, loading } = useAuth();
   const segments = useSegments();
+  const pathname = usePathname();
   const router   = useRouter();
+
+  const isLanding =
+    pathname === '/' ||
+    pathname === '' ||
+    (segments.length === 0 && !segments[0]);
 
   useEffect(() => {
     if (loading) return;
     const inAuthGroup = segments[0] === '(auth)';
     const isPublicLegal =
       segments[0] === 'privacy' || segments[0] === 'cgv' || segments[0] === 'legal';
-    if (!session && !inAuthGroup && !isPublicLegal) {
-      router.replace('/(auth)/welcome');
+    if (!session && !inAuthGroup && !isPublicLegal && !isLanding) {
+      router.replace(Platform.OS === 'web' ? '/' : '/(auth)/welcome');
     }
     // Redirection post-login avec profil incomplet : OnboardingAuthGate
-  }, [session, loading, segments]);
+  }, [session, loading, segments, pathname, isLanding]);
 
   const inAuthGroup = segments[0] === '(auth)';
   const isPublicLegal =
     segments[0] === 'privacy' || segments[0] === 'cgv' || segments[0] === 'legal';
-  const showTabBar  = !!session && !loading && !inAuthGroup && !isPublicLegal;
+  const showTabBar  = !!session && !loading && !inAuthGroup && !isPublicLegal && !isLanding;
 
   return (
     <View style={{ flex: 1 }}>
       <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="index" options={{ animation: 'fade' }} />
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="(auth)" />
         <Stack.Screen name="recipes"       options={{ presentation: 'card', animation: 'slide_from_right' }} />

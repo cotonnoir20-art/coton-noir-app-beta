@@ -8,10 +8,13 @@ import {
 } from '../lib/webAuthPolicy';
 import { openSafeUrl, validateExternalUrl } from '../lib/safeLinking';
 
-const PUBLIC_WEB_PATHS = ['/privacy', '/cgv', '/legal'] as const;
+const PUBLIC_WEB_PATHS = ['/', '/privacy', '/cgv', '/legal'] as const;
 
 function isPublicLegalWebPath(pathname: string): boolean {
-  return PUBLIC_WEB_PATHS.some(p => pathname === p || pathname.startsWith(`${p}/`));
+  const p = pathname.replace(/\/$/, '') || '/';
+  return PUBLIC_WEB_PATHS.some(
+    route => p === route || (route !== '/' && p.startsWith(`${route}/`)),
+  );
 }
 
 function readStoreUrl(): string | null {

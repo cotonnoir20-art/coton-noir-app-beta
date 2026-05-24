@@ -15,13 +15,77 @@ export const MARKETING_HERO_SUBTITLE =
 export const MARKETING_TAGLINE =
   'Ton copilote capillaire — pour mieux prendre soin de tes cheveux.';
 
-/** CTA welcome — entrée onboarding. */
-export const MARKETING_CTA_PRIMARY = 'Commencer mon diagnostic';
+/** CTA landing web — entrée onboarding (étape 1). */
+export const MARKETING_LANDING_CTA_PRIMARY = 'Commencer mon diagnostic';
 
-/** CTA secondaire — login. */
-export const MARKETING_CTA_SECONDARY = "J'ai déjà un compte";
+/** CTA landing web — connexion. */
+export const MARKETING_LANDING_CTA_SECONDARY = 'Connexion';
 
-/** Blocs « tout ce qu'il te faut » — forces réelles livrées en app. */
+/** CTA welcome app native. */
+export const MARKETING_WELCOME_CTA_PRIMARY = 'Commencer mon diagnostic';
+
+export const MARKETING_WELCOME_CTA_SECONDARY = "J'ai déjà un compte";
+
+/** Titre section features — landing web. */
+export const MARKETING_LANDING_FEATURES_TITLE = 'Tout ce dont tes cheveux ont besoin';
+
+/** Cartes landing (style IrunCoil) — forces Coton Noir. */
+export const MARKETING_LANDING_FEATURES = [
+  {
+    icon: 'scan-outline' as const,
+    iconBg: '#FDE9D0',
+    iconColor: '#D07A12',
+    title: 'Diagnostic capillaire',
+    subtitle:
+      'Un parcours guidé pour les cheveux texturés : analyse, profil et routine personnalisée.',
+  },
+  {
+    icon: 'calendar-outline' as const,
+    iconBg: '#D9EBE5',
+    iconColor: '#3D6B5C',
+    title: 'Routines et coaching capillaire',
+    subtitle:
+      'Programmes wash day, rappels et conseils Black Cotton adaptés à ta texture.',
+  },
+  {
+    icon: 'bag-outline' as const,
+    iconBg: '#FDE9D0',
+    iconColor: '#D07A12',
+    title: 'Produits et recettes',
+    subtitle:
+      'Recommandations dans ton budget — produits du commerce, DIY ou mixte.',
+  },
+  {
+    icon: 'medical-outline' as const,
+    iconBg: '#DCE4E8',
+    iconColor: '#2F4B59',
+    title: 'Accompagnement Black Cotton',
+    subtitle:
+      'Ta coach dans l’app : réponses concrètes sur hydratation, casse, cuir chevelu et pousse.',
+  },
+  {
+    icon: 'sparkles-outline' as const,
+    iconBg: '#D9EBE5',
+    iconColor: '#3D6B5C',
+    title: 'Passer au naturel',
+    subtitle: 'Un plan progressif pour renouer avec tes cheveux naturels à ton rythme.',
+  },
+  {
+    icon: 'people-outline' as const,
+    iconBg: '#DCE4E8',
+    iconColor: '#2F4B59',
+    title: 'Communauté',
+    subtitle:
+      'Partage, défis et échanges avec d’autres femmes qui vivent la même expérience capillaire.',
+  },
+] as const;
+
+/** Footer landing. */
+export const MARKETING_LANDING_FOOTER_LINE =
+  'Conçu avec amour pour les cheveux texturés.';
+export const MARKETING_LANDING_COPYRIGHT = `© ${new Date().getFullYear()} Coton Noir. Tous droits réservés.`;
+
+/** Blocs « tout ce qu'il te faut » — welcome in-app (3 cartes compactes). */
 export const MARKETING_WELCOME_FEATURES = [
   {
     icon: 'sparkles-outline' as const,

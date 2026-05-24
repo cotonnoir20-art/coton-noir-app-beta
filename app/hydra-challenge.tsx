@@ -86,7 +86,7 @@ export default function HydraChallengeScreen() {
 
   async function handleJoin() {
     if (!session?.user?.id) {
-      router.push('/(auth)/welcome' as any);
+      router.push('/' as any);
       return;
     }
     const next = await joinHydraChallenge(true);

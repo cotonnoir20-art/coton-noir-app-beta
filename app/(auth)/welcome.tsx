@@ -6,15 +6,21 @@ import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../../src/theme/colors';
 import { Fonts } from '../../src/theme/typography';
 import {
-  MARKETING_CTA_PRIMARY,
-  MARKETING_CTA_SECONDARY,
   MARKETING_HERO_SUBTITLE,
   MARKETING_HERO_TITLE,
+  MARKETING_WELCOME_CTA_PRIMARY,
+  MARKETING_WELCOME_CTA_SECONDARY,
   MARKETING_WELCOME_FEATURES,
 } from '../../src/constants/marketingCopy';
+import { resetOnboardingForNewDiagnostic } from '../../src/lib/startOnboardingDiagnostic';
 
 export default function WelcomeScreen() {
   const router = useRouter();
+
+  async function onStartDiagnostic() {
+    await resetOnboardingForNewDiagnostic();
+    router.push('/(auth)/onboarding');
+  }
 
   return (
     <SafeAreaView style={S.safe}>
@@ -62,11 +68,11 @@ export default function WelcomeScreen() {
         <View style={S.ctaZone}>
           <TouchableOpacity
             style={S.primaryBtn}
-            onPress={() => router.push('/(auth)/onboarding')}
+            onPress={() => void onStartDiagnostic()}
             activeOpacity={0.88}
           >
             <Text style={S.primaryBtnText}>
-              {MARKETING_CTA_PRIMARY}{' '}
+              {MARKETING_WELCOME_CTA_PRIMARY}{' '}
               <Text style={S.primaryBtnAccent}>→</Text>
             </Text>
           </TouchableOpacity>
@@ -76,7 +82,7 @@ export default function WelcomeScreen() {
             onPress={() => router.push('/(auth)/login')}
             activeOpacity={0.88}
           >
-            <Text style={S.secondaryBtnText}>{MARKETING_CTA_SECONDARY}</Text>
+            <Text style={S.secondaryBtnText}>{MARKETING_WELCOME_CTA_SECONDARY}</Text>
           </TouchableOpacity>
 
           <Text style={S.footerNote}>Fait avec amour pour les cheveux texturés.</Text>
