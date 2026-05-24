@@ -29,6 +29,13 @@ export const MARKETING_WELCOME_CTA_SECONDARY = "J'ai déjà un compte";
 /** Titre section features — landing web. */
 export const MARKETING_LANDING_FEATURES_TITLE = 'Tout ce dont tes cheveux ont besoin';
 
+/** Proposition de valeur — hero landing web (sous le logo, avant les CTAs). */
+export const MARKETING_LANDING_HERO_TITLE =
+  'La copilote n°1 pensée pour les cheveux afros et texturés.';
+
+export const MARKETING_LANDING_HERO_SUBTITLE =
+  'Pour celles qui recherchent une routine claire, plus adaptée et des cheveux en meilleure santé — types 3A à 4C.';
+
 /** Cartes landing (style IrunCoil) — forces Coton Noir. */
 export const MARKETING_LANDING_FEATURES = [
   {
@@ -54,6 +61,14 @@ export const MARKETING_LANDING_FEATURES = [
     title: 'Produits et recettes',
     subtitle:
       'Recommandations dans ton budget — produits du commerce, DIY ou mixte.',
+  },
+  {
+    icon: 'trophy-outline' as const,
+    iconBg: '#F5D8DA',
+    iconColor: '#631617',
+    title: 'Récompenses et CotonCoins',
+    subtitle:
+      'Gagne des CC en suivant ta routine, tes wash days et tes défis — débloque des récompenses au fil de ta progression.',
   },
   {
     icon: 'medical-outline' as const,

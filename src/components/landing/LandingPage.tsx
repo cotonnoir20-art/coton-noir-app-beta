@@ -1,4 +1,3 @@
-import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import {
   ScrollView,
@@ -19,7 +18,10 @@ import {
   MARKETING_LANDING_FEATURES,
   MARKETING_LANDING_FEATURES_TITLE,
   MARKETING_LANDING_FOOTER_LINE,
+  MARKETING_LANDING_HERO_SUBTITLE,
+  MARKETING_LANDING_HERO_TITLE,
 } from '../../constants/marketingCopy';
+import { AuthBrandLogo } from '../auth/AuthBrandLogo';
 import { resetOnboardingForNewDiagnostic } from '../../lib/startOnboardingDiagnostic';
 
 type FeatureIcon = (typeof MARKETING_LANDING_FEATURES)[number]['icon'];
@@ -52,7 +54,7 @@ function FeatureCard({
   );
 }
 
-/** Landing web appcotonnoir.com — 6 blocs + CTAs (sans accroche « copilote »). */
+/** Landing web appcotonnoir.com — proposition de valeur + CTAs + 7 blocs. */
 export function LandingPage() {
   const router = useRouter();
 
@@ -69,14 +71,11 @@ export function LandingPage() {
         bounces={false}
       >
         <View style={s.header}>
-          <Image
-            source={require('../../../assets/brand/auth-logo.png')}
-            style={s.logo}
-            contentFit="contain"
-            accessibilityLabel="Coton Noir"
-          />
-          <Text style={s.brandName}>Coton Noir</Text>
+          <AuthBrandLogo width={96} variant="rounded" />
         </View>
+
+        <Text style={s.heroTitle}>{MARKETING_LANDING_HERO_TITLE}</Text>
+        <Text style={s.heroSub}>{MARKETING_LANDING_HERO_SUBTITLE}</Text>
 
         <View style={s.ctaBlock}>
           <TouchableOpacity
@@ -138,15 +137,26 @@ const s = StyleSheet.create({
   },
   header: {
     alignItems: 'center',
-    paddingTop: 16,
-    paddingBottom: 24,
+    paddingTop: 45,
+    paddingBottom: 20,
   },
-  logo: { width: 52, height: 52, marginBottom: 10 },
-  brandName: {
-    fontSize: 22,
-    fontFamily: Fonts.display,
+  heroTitle: {
+    fontSize: 26,
+    fontFamily: Fonts.displayBold,
     color: Colors.ink,
-    letterSpacing: 0.2,
+    textAlign: 'center',
+    lineHeight: 34,
+    marginBottom: 12,
+    paddingHorizontal: 4,
+  },
+  heroSub: {
+    fontSize: 15,
+    fontFamily: 'DMSans_400Regular',
+    color: Colors.warmGray,
+    textAlign: 'center',
+    lineHeight: 22,
+    marginBottom: 28,
+    paddingHorizontal: 8,
   },
   ctaBlock: { marginBottom: 36 },
   primaryBtn: {
