@@ -258,7 +258,7 @@ const S = StyleSheet.create({
     marginBottom: 10,
   },
   liveText: { fontSize: 10, fontFamily: 'DMSans_700Bold', color: Colors.amber },
-  heroTitle: { fontSize: 22, fontFamily: 'Poppins_700Bold', color: '#fff', marginBottom: 6 },
+  heroTitle: { fontSize: 22, fontFamily: 'Satoshi_500Medium', color: '#fff', marginBottom: 6 },
   heroSub: {
     fontSize: 13,
     fontFamily: 'DMSans_400Regular',
@@ -279,7 +279,7 @@ const S = StyleSheet.create({
   },
   statBox: { flex: 1, alignItems: 'center', paddingVertical: 14 },
   statBorder: { borderLeftWidth: 1, borderRightWidth: 1, borderColor: Colors.border },
-  statVal: { fontSize: 18, fontFamily: 'Poppins_700Bold', color: Colors.ink },
+  statVal: { fontSize: 18, fontFamily: 'Satoshi_500Medium', color: Colors.ink },
   statLabel: { fontSize: 10, fontFamily: 'DMSans_400Regular', color: Colors.warmGray, marginTop: 2 },
 
   progressCard: {
@@ -327,7 +327,7 @@ const S = StyleSheet.create({
   },
   secondaryBtnText: { fontSize: 14, fontFamily: 'DMSans_600SemiBold', color: Colors.ink },
 
-  secTitle: { fontSize: 18, fontFamily: 'Poppins_600SemiBold', color: Colors.ink, marginBottom: 4 },
+  secTitle: { fontSize: 18, fontFamily: 'Satoshi_500Medium', color: Colors.ink, marginBottom: 4 },
   secHint: {
     fontSize: 12,
     fontFamily: 'DMSans_400Regular',
@@ -353,7 +353,7 @@ const S = StyleSheet.create({
   rankInfo: { flex: 1 },
   rankName: { fontSize: 14, fontFamily: 'DMSans_600SemiBold', color: Colors.ink },
   rankSub: { fontSize: 11, fontFamily: 'DMSans_400Regular', color: Colors.warmGray, marginTop: 2 },
-  rankScore: { fontSize: 16, fontFamily: 'Poppins_700Bold', color: Colors.ink },
+  rankScore: { fontSize: 16, fontFamily: 'Satoshi_500Medium', color: Colors.ink },
 
   emptyBox: {
     padding: 20,

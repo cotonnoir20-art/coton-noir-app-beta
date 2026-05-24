@@ -174,13 +174,13 @@ const S = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
   },
   headerCenter:    { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  headerTitle:     { fontSize: 18, fontFamily: 'Poppins_600SemiBold', color: Colors.ink },
+  headerTitle:     { fontSize: 18, fontFamily: 'Satoshi_500Medium', color: Colors.ink },
   headerBadge:     { backgroundColor: Colors.alert, borderRadius: 999, paddingHorizontal: 7, paddingVertical: 2 },
   headerBadgeText: { fontSize: 11, fontFamily: 'DMSans_700Bold', color: '#fff' },
   markAllText:     { fontSize: 13, fontFamily: 'DMSans_500Medium', color: Colors.amber, width: 60, textAlign: 'right' },
 
   emptyBox:  { alignItems: 'center', paddingTop: 80, paddingHorizontal: 32 },
-  emptyTitle:{ fontSize: 18, fontFamily: 'Poppins_600SemiBold', color: Colors.ink, marginBottom: 8 },
+  emptyTitle:{ fontSize: 18, fontFamily: 'Satoshi_500Medium', color: Colors.ink, marginBottom: 8 },
   emptyBody: { fontSize: 14, fontFamily: 'DMSans_400Regular', color: Colors.warmGray, textAlign: 'center', lineHeight: 21 },
 
   prefsHint: {
@@ -266,7 +266,7 @@ const S = StyleSheet.create({
   },
   tipTitle: {
     fontSize: 18,
-    fontFamily: 'Poppins_600SemiBold',
+    fontFamily: 'Satoshi_500Medium',
     color: Colors.ink,
     marginBottom: 10,
     lineHeight: 24,

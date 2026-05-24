@@ -171,7 +171,7 @@ const s = StyleSheet.create({
   },
   calMonth: {
     fontSize: 14,
-    fontFamily: 'Poppins_600SemiBold',
+    fontFamily: 'Satoshi_500Medium',
     color: Colors.ink,
   },
   legendRow: {

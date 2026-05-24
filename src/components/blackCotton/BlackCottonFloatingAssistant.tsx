@@ -318,7 +318,7 @@ const s = StyleSheet.create({
   },
   popupTitle: {
     fontSize: 21,
-    fontFamily: 'Poppins_700Bold',
+    fontFamily: 'Satoshi_500Medium',
     color: Colors.ink,
     textAlign: 'center',
     lineHeight: 28,

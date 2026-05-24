@@ -1,7 +1,10 @@
 import { Ionicons } from '@expo/vector-icons';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import {
+  getOnboardingProblematics,
+  getProblematicDisplayLabel,
   HAIR_PROBLEMATICS,
+  MAX_HAIR_PROBLEMATICS,
   normalizeProblematicLabels,
 } from '../../constants/hairProblematics';
 import { Colors } from '../../theme/colors';
@@ -20,15 +23,18 @@ export function HairProblematicsPicker({
   variant = 'profile',
 }: Props) {
   const normalized = normalizeProblematicLabels(selected);
+  const isOnboarding = variant === 'onboarding';
+  const items = isOnboarding ? getOnboardingProblematics() : HAIR_PROBLEMATICS;
+  const atMax = normalized.length >= MAX_HAIR_PROBLEMATICS;
 
   function toggle(label: string) {
-    const next = normalized.includes(label)
-      ? normalized.filter(x => x !== label)
-      : [...normalized, label];
-    onChange(next);
+    if (normalized.includes(label)) {
+      onChange(normalized.filter(x => x !== label));
+      return;
+    }
+    if (atMax) return;
+    onChange([...normalized, label]);
   }
-
-  const isOnboarding = variant === 'onboarding';
 
   return (
     <View style={[styles.wrap, isOnboarding && styles.wrapOnboarding]}>
@@ -38,7 +44,7 @@ export function HairProblematicsPicker({
           isOnboarding ? styles.titleOnboarding : styles.titleProfile,
         ]}
       >
-        Problématiques capillaires
+        {isOnboarding ? 'Quel est le plus gros problème avec tes cheveux ?' : 'Problématiques capillaires'}
       </Text>
       <Text
         style={[
@@ -46,33 +52,73 @@ export function HairProblematicsPicker({
           isOnboarding ? styles.subtitleOnboarding : styles.subtitleProfile,
         ]}
       >
-        Sélectionnez vos préoccupations pour des routines ciblées
+        {isOnboarding
+          ? 'Choisis ce qui te parle le plus — tu pourras en ajouter d’autres dans ton profil.'
+          : 'Sélectionne tes préoccupations pour des routines ciblées'}
       </Text>
-      <View style={[styles.card, isOnboarding && styles.cardOnboarding]}>
-        <View style={styles.chips}>
-          {HAIR_PROBLEMATICS.map(p => {
+
+      {isOnboarding ? (
+        <View style={styles.pillList}>
+          {items.map(p => {
             const isActive = normalized.includes(p.label);
+            const isDisabled = atMax && !isActive;
+            const display = getProblematicDisplayLabel(p);
             return (
               <TouchableOpacity
                 key={p.id}
-                style={[styles.chip, isActive && styles.chipActive]}
+                style={[
+                  styles.pill,
+                  isActive && styles.pillActive,
+                  isDisabled && styles.pillDisabled,
+                ]}
                 onPress={() => toggle(p.label)}
+                disabled={isDisabled}
+                activeOpacity={isDisabled ? 1 : 0.88}
                 accessibilityRole="button"
                 accessibilityState={{ selected: isActive }}
               >
-                <Ionicons
-                  name={p.icon}
-                  size={16}
-                  color={isActive ? Colors.amber : Colors.warmGray}
-                />
-                <Text style={[styles.chipText, isActive && styles.chipTextActive]}>
-                  {p.label}
+                {p.emoji ? <Text style={styles.pillEmoji}>{p.emoji}</Text> : null}
+                <Text style={[styles.pillLabel, isActive && styles.pillLabelActive]}>
+                  {display}
                 </Text>
+                {isActive ? (
+                  <Ionicons name="checkmark-circle" size={20} color={Colors.amber} />
+                ) : null}
               </TouchableOpacity>
             );
           })}
         </View>
-      </View>
+      ) : (
+        <View style={styles.card}>
+          <View style={styles.chips}>
+            {items.map(p => {
+              const isActive = normalized.includes(p.label);
+              return (
+                <TouchableOpacity
+                  key={p.id}
+                  style={[styles.chip, isActive && styles.chipActive]}
+                  onPress={() => toggle(p.label)}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: isActive }}
+                >
+                  {p.emoji ? (
+                    <Text style={styles.chipEmoji}>{p.emoji}</Text>
+                  ) : (
+                    <Ionicons
+                      name={p.icon}
+                      size={16}
+                      color={isActive ? Colors.amber : Colors.warmGray}
+                    />
+                  )}
+                  <Text style={[styles.chipText, isActive && styles.chipTextActive]}>
+                    {p.label}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </View>
+      )}
     </View>
   );
 }
@@ -91,7 +137,7 @@ const styles = StyleSheet.create({
   titleOnboarding: {
     marginHorizontal: 0,
     fontSize: 22,
-    fontFamily: 'Poppins_700Bold',
+    fontFamily: 'Satoshi_500Medium',
     color: Colors.ink,
     marginBottom: 8,
   },
@@ -106,12 +152,51 @@ const styles = StyleSheet.create({
   },
   subtitleOnboarding: {
     marginHorizontal: 0,
-    marginBottom: 16,
+    marginBottom: 8,
     fontSize: 13,
     fontFamily: 'DMSans_400Regular',
     color: Colors.warmGray,
     lineHeight: 19,
   },
+  counter: {
+    marginBottom: 12,
+    marginHorizontal: 20,
+    fontSize: 12,
+    fontFamily: 'DMSans_500Medium',
+    color: Colors.amberDark,
+  },
+  counterOnboarding: {
+    marginHorizontal: 0,
+    marginBottom: 14,
+  },
+  pillList: { gap: 10 },
+  pill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: Colors.surface,
+    borderRadius: 999,
+    borderWidth: 1.5,
+    borderColor: Colors.border,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+  },
+  pillActive: {
+    borderColor: Colors.amber,
+    backgroundColor: Colors.amberLight,
+  },
+  pillDisabled: {
+    opacity: 0.45,
+  },
+  pillEmoji: { fontSize: 20 },
+  pillLabel: {
+    flex: 1,
+    fontSize: 14,
+    fontFamily: 'Satoshi_500Medium',
+    color: Colors.ink,
+    lineHeight: 20,
+  },
+  pillLabelActive: { color: Colors.amberDark },
   card: {
     marginHorizontal: 20,
     backgroundColor: Colors.surface,
@@ -119,9 +204,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.border,
     padding: 14,
-  },
-  cardOnboarding: {
-    marginHorizontal: 0,
   },
   chips: {
     flexDirection: 'row',
@@ -143,6 +225,10 @@ const styles = StyleSheet.create({
     borderColor: Colors.amber,
     backgroundColor: Colors.amberLight,
   },
+  chipDisabled: {
+    opacity: 0.45,
+  },
+  chipEmoji: { fontSize: 14 },
   chipText: {
     fontSize: 13,
     fontFamily: 'DMSans_500Medium',

@@ -215,7 +215,7 @@ const S = StyleSheet.create({
     backgroundColor: Colors.surface, borderWidth: 1, borderColor: Colors.border,
     alignItems: 'center', justifyContent: 'center',
   },
-  headerTitle: { fontSize: 18, fontFamily: 'Poppins_600SemiBold', color: Colors.ink },
+  headerTitle: { fontSize: 18, fontFamily: 'Satoshi_500Medium', color: Colors.ink },
   headerSub:   { fontSize: 11, fontFamily: 'DMSans_400Regular', color: Colors.warmGray, marginTop: 1 },
   addBtn: {
     width: 36, height: 36, borderRadius: 18,
@@ -244,7 +244,7 @@ const S = StyleSheet.create({
   row: { flexDirection: 'row', gap: 14, marginBottom: 12 },
 
   dateCol:  { width: 44, alignItems: 'center', paddingTop: 12 },
-  dateDay:  { fontSize: 20, fontFamily: 'Poppins_700Bold', color: Colors.ink, lineHeight: 24 },
+  dateDay:  { fontSize: 20, fontFamily: 'Satoshi_500Medium', color: Colors.ink, lineHeight: 24 },
   dateMon:  { fontSize: 10, fontFamily: 'DMSans_400Regular', color: Colors.warmGray },
   dateLine: { flex: 1, width: 2, backgroundColor: Colors.border, marginTop: 6, minHeight: 20 },
 

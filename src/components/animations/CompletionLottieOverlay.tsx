@@ -186,7 +186,7 @@ const styles = StyleSheet.create({
   },
   reduceTitle: {
     fontSize: 22,
-    fontFamily: 'Poppins_700Bold',
+    fontFamily: 'Satoshi_500Medium',
     color: Colors.surface,
     marginBottom: 4,
   },

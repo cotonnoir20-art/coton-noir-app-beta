@@ -463,7 +463,7 @@ const S = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  headerTitle: { flex: 1, fontSize: 20, fontFamily: 'Poppins_700Bold', color: Colors.ink },
+  headerTitle: { flex: 1, fontSize: 20, fontFamily: 'Satoshi_500Medium', color: Colors.ink },
   coinsBadge: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -501,7 +501,7 @@ const S = StyleSheet.create({
   },
   levelName: {
     fontSize: 24,
-    fontFamily: 'Poppins_700Bold',
+    fontFamily: 'Satoshi_500Medium',
     color: '#fff',
     marginBottom: 12,
   },
@@ -535,13 +535,13 @@ const S = StyleSheet.create({
   },
   statBoxValue: {
     fontSize: 22,
-    fontFamily: 'Poppins_700Bold',
+    fontFamily: 'Satoshi_500Medium',
     color: Colors.amber,
     marginBottom: 4,
   },
   statBoxValueCc: {
     fontSize: 22,
-    fontFamily: 'Poppins_700Bold',
+    fontFamily: 'Satoshi_500Medium',
     color: '#fff',
   },
   statCcRow: {
@@ -596,7 +596,7 @@ const S = StyleSheet.create({
   secRow:   { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
   secTitle: {
     fontSize: 18,
-    fontFamily: 'Poppins_600SemiBold',
+    fontFamily: 'Satoshi_500Medium',
     color: Colors.ink,
     marginBottom: 12,
   },
@@ -619,7 +619,7 @@ const S = StyleSheet.create({
     padding: 16, backgroundColor: Colors.cream,
     borderBottomWidth: 1, borderBottomColor: Colors.border,
   },
-  tipsHeaderTitle: { fontSize: 15, fontFamily: 'Poppins_600SemiBold', color: Colors.ink },
+  tipsHeaderTitle: { fontSize: 15, fontFamily: 'Satoshi_500Medium', color: Colors.ink },
   tipsHeaderSub:   { fontSize: 11, fontFamily: 'DMSans_400Regular', color: Colors.warmGray, marginTop: 2 },
   tipRow:       { flexDirection: 'row', gap: 12, padding: 14 },
   tipRowBorder: { borderBottomWidth: 1, borderBottomColor: Colors.border },

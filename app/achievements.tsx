@@ -186,13 +186,13 @@ const S = StyleSheet.create({
   },
   heroNum: {
     fontSize: 56,
-    fontFamily: 'Poppins_700Bold',
+    fontFamily: 'Satoshi_500Medium',
     color: '#fff',
     lineHeight: 60,
   },
   heroDenom: {
     fontSize: 22,
-    fontFamily: 'Poppins_500Medium',
+    fontFamily: 'Satoshi_500Medium',
     color: 'rgba(255,255,255,0.55)',
   },
   heroLabel: {
@@ -329,7 +329,7 @@ const S = StyleSheet.create({
   },
   challengeTitle: {
     fontSize: 18,
-    fontFamily: 'Poppins_700Bold',
+    fontFamily: 'Satoshi_500Medium',
     color: '#fff',
     marginBottom: 6,
   },

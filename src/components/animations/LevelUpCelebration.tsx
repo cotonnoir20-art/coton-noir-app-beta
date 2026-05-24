@@ -253,7 +253,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 28,
-    fontFamily: 'Poppins_700Bold',
+    fontFamily: 'Satoshi_500Medium',
     color: '#fff',
     textAlign: 'center',
     marginBottom: 6,

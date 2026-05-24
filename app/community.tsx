@@ -708,7 +708,7 @@ const S = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  headerTitle: { flex: 1, fontSize: 20, fontFamily: 'Poppins_700Bold', color: Colors.ink },
+  headerTitle: { flex: 1, fontSize: 20, fontFamily: 'Satoshi_500Medium', color: Colors.ink },
   coinsBadge: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -741,7 +741,7 @@ const S = StyleSheet.create({
     borderRightWidth: 1,
     borderRightColor: Colors.border,
   },
-  statValue: { fontSize: 18, fontFamily: 'Poppins_700Bold', color: Colors.ink },
+  statValue: { fontSize: 18, fontFamily: 'Satoshi_500Medium', color: Colors.ink },
   statLabel: { fontSize: 10, fontFamily: 'DMSans_400Regular', color: Colors.warmGray, marginTop: 2 },
 
   // ── Challenge ──
@@ -771,7 +771,7 @@ const S = StyleSheet.create({
   challengeTimerText: { fontSize: 10, fontFamily: 'DMSans_600SemiBold', color: Colors.amber },
   challengeTitle: {
     fontSize: 22,
-    fontFamily: 'Poppins_700Bold',
+    fontFamily: 'Satoshi_500Medium',
     color: '#fff',
     marginBottom: 6,
   },
@@ -875,7 +875,7 @@ const S = StyleSheet.create({
     justifyContent: 'space-between',
     marginBottom: 12,
   },
-  composerTitle: { fontSize: 18, fontFamily: 'Poppins_600SemiBold', color: Colors.ink },
+  composerTitle: { fontSize: 18, fontFamily: 'Satoshi_500Medium', color: Colors.ink },
   composerInput: {
     minHeight: 120,
               maxLength: MAX_POST_TEXT,
@@ -936,7 +936,7 @@ const S = StyleSheet.create({
   // ── Section title ──
   secTitle: {
     fontSize: 18,
-    fontFamily: 'Poppins_600SemiBold',
+    fontFamily: 'Satoshi_500Medium',
     color: Colors.ink,
     marginBottom: 12,
   },

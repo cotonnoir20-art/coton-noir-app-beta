@@ -218,7 +218,7 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
   },
   backBtn: { padding: 4 },
-  title: { fontSize: 20, fontFamily: 'Poppins_700Bold', color: Colors.ink },
+  title: { fontSize: 20, fontFamily: 'Satoshi_500Medium', color: Colors.ink },
   saveBtn: {
     backgroundColor: Colors.amber,
     borderRadius: 12,

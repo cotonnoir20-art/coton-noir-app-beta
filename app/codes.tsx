@@ -262,7 +262,7 @@ const S = StyleSheet.create({
     backgroundColor: Colors.surface, borderWidth: 1, borderColor: Colors.border,
     alignItems: 'center', justifyContent: 'center',
   },
-  headerTitle: { fontSize: 20, fontFamily: 'Poppins_700Bold', color: Colors.ink },
+  headerTitle: { fontSize: 20, fontFamily: 'Satoshi_500Medium', color: Colors.ink },
   coinsBadge: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
     backgroundColor: Colors.ink,
@@ -278,7 +278,7 @@ const S = StyleSheet.create({
     alignItems: 'center', gap: 16, marginBottom: 12,
   },
   soldeLabel:  { fontSize: 11, fontFamily: 'DMSans_500Medium', color: 'rgba(255,255,255,0.55)', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 2 },
-  soldeAmount: { fontSize: 28, fontFamily: 'Poppins_700Bold', color: Colors.amber },
+  soldeAmount: { fontSize: 28, fontFamily: 'Satoshi_500Medium', color: Colors.amber },
   soldeEuro:   { fontSize: 12, fontFamily: 'DMSans_400Regular', color: 'rgba(255,255,255,0.55)', marginTop: 2 },
   getCodeBtn:     { backgroundColor: Colors.ink, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 10 },
   getCodeBtnText: { fontSize: 12, fontFamily: 'DMSans_700Bold', color: '#fff' },
@@ -298,11 +298,11 @@ const S = StyleSheet.create({
     padding: 16, alignItems: 'center', gap: 6,
   },
   statIcon:  { width: 44, height: 44, borderRadius: 12, alignItems: 'center', justifyContent: 'center', marginBottom: 4 },
-  statValue: { fontSize: 26, fontFamily: 'Poppins_700Bold' },
+  statValue: { fontSize: 26, fontFamily: 'Satoshi_500Medium' },
   statLabel: { fontSize: 11, fontFamily: 'DMSans_400Regular', color: Colors.warmGray, textAlign: 'center' },
 
   secTitle: {
-    fontSize: 17, fontFamily: 'Poppins_600SemiBold',
+    fontSize: 17, fontFamily: 'Satoshi_500Medium',
     color: Colors.ink, marginBottom: 12,
   },
 
@@ -320,7 +320,7 @@ const S = StyleSheet.create({
   offText:   { fontSize: 12, fontFamily: 'DMSans_700Bold' },
 
   heroRow:  { flexDirection: 'row', alignItems: 'baseline', gap: 10, marginBottom: 12 },
-  heroOff:  { fontSize: 32, fontFamily: 'Poppins_700Bold' },
+  heroOff:  { fontSize: 32, fontFamily: 'Satoshi_500Medium' },
   heroDesc: { fontSize: 12, fontFamily: 'DMSans_400Regular', color: Colors.warmGray, flex: 1, flexWrap: 'wrap' },
 
   codeField: {

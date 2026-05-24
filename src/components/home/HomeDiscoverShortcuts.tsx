@@ -2,6 +2,7 @@ import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-nati
 import { useRouter } from 'expo-router';
 import { AppIconBox } from '../AppIconBox';
 import { Colors } from '../../theme/colors';
+import { Type } from '../../theme/typography';
 import { HOME_DISCOVER_SHORTCUTS } from '../../data/discoverModules';
 
 type Props = {
@@ -14,7 +15,7 @@ export function HomeDiscoverShortcuts({ onSeeAll }: Props) {
   return (
     <View style={s.wrap}>
       <View style={s.header}>
-        <Text style={s.title}>Découvrir</Text>
+        <Text style={s.title}>Explorer</Text>
         {onSeeAll ? (
           <TouchableOpacity onPress={onSeeAll} hitSlop={8}>
             <Text style={s.seeAll}>Tout voir →</Text>
@@ -62,8 +63,8 @@ const s = StyleSheet.create({
     marginBottom: 10,
   },
   title: {
+    ...Type.cardTitle,
     fontSize: 18,
-    fontFamily: 'Poppins_600SemiBold',
     color: Colors.ink,
   },
   seeAll: {

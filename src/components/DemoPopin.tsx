@@ -108,7 +108,7 @@ const S = StyleSheet.create({
   },
   title: {
     fontSize: 18,
-    fontFamily: 'Poppins_600SemiBold',
+    fontFamily: 'Satoshi_500Medium',
     color: Colors.ink,
     marginBottom: 10,
     lineHeight: 24,

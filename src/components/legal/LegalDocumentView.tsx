@@ -64,7 +64,7 @@ const S = StyleSheet.create({
   },
   heading: {
     fontSize: 15,
-    fontFamily: 'Poppins_600SemiBold',
+    fontFamily: 'Satoshi_500Medium',
     color: Colors.ink,
     marginBottom: 10,
     lineHeight: 22,

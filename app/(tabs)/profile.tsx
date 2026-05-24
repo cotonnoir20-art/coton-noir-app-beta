@@ -5,6 +5,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { BackButton } from '../../src/components/BackButton';
 import * as ImagePicker from 'expo-image-picker';
 import { Colors } from '../../src/theme/colors';
 import { useApp } from '../../src/context/AppContext';
@@ -36,7 +37,8 @@ const PREOCCUPATION_STYLE: Record<string, { color: string; text: string }> = {
   'Manque de brillance': { color: Colors.amberLight, text: Colors.amberDark },
   'Nœuds fréquents': { color: Colors.blush, text: Colors.rose },
   'Pousse lente': { color: Colors.sageLight, text: Colors.sage },
-  'Dommages coloration': { color: Colors.blush, text: Colors.rose },
+  'Dommages chaleur': { color: Colors.amberLight, text: Colors.amberDark },
+  'Dommages chimiques': { color: Colors.blush, text: Colors.rose },
   'Nœuds': { color: Colors.blush, text: Colors.rose },
   Fourches: { color: Colors.blush, text: Colors.rose },
   Rétraction: { color: Colors.amberLight, text: Colors.amberDark },
@@ -304,9 +306,7 @@ export default function ProfileScreen() {
 
         {/* ── Header ── */}
         <View style={S.header}>
-          <TouchableOpacity onPress={() => router.back()} hitSlop={10} style={S.backBtn}>
-            <Ionicons name="chevron-back" size={24} color={Colors.ink} />
-          </TouchableOpacity>
+          <BackButton onPress={() => router.back()} style={S.backBtn} />
           <Text style={S.headerTitle}>Profil</Text>
           <TouchableOpacity style={S.coinsBadge} onPress={() => router.push('/rewards')}>
             <CoinIcon size={16} />
@@ -970,8 +970,8 @@ const S = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingHorizontal: 20, paddingTop: 16, paddingBottom: 12,
   },
-  backBtn:     { padding: 4, marginRight: 4 },
-  headerTitle: { fontSize: 24, fontFamily: 'Poppins_700Bold', color: Colors.ink, flex: 1 },
+  backBtn:     { marginRight: 4, flexShrink: 0 },
+  headerTitle: { fontSize: 24, fontFamily: 'Satoshi_500Medium', color: Colors.ink, flex: 1 },
   coinsBadge: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
     backgroundColor: Colors.ink,
@@ -995,7 +995,7 @@ const S = StyleSheet.create({
     backgroundColor: Colors.ink, borderWidth: 2, borderColor: Colors.bg,
     alignItems: 'center', justifyContent: 'center',
   },
-  userName:     { fontSize: 22, fontFamily: 'Poppins_600SemiBold', color: Colors.ink, marginBottom: 4 },
+  userName:     { fontSize: 22, fontFamily: 'Satoshi_500Medium', color: Colors.ink, marginBottom: 4 },
   memberSince:  { fontSize: 13, fontFamily: 'DMSans_400Regular', color: Colors.warmGray },
 
   // ── Level card ──
@@ -1046,7 +1046,7 @@ const S = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center',
     justifyContent: 'space-between', marginBottom: 14,
   },
-  coinsBalance:  { fontSize: 32, fontFamily: 'Poppins_700Bold', color: Colors.amber },
+  coinsBalance:  { fontSize: 32, fontFamily: 'Satoshi_500Medium', color: Colors.amber },
   coinsLabel:    { fontSize: 12, fontFamily: 'DMSans_400Regular', color: Colors.warmGray, marginTop: 2 },
   exchangeBtn:   { backgroundColor: Colors.amber, borderRadius: 12, paddingHorizontal: 18, paddingVertical: 11 },
   exchangeBtnText: { fontSize: 13, fontFamily: 'DMSans_700Bold', color: '#fff' },
@@ -1071,7 +1071,7 @@ const S = StyleSheet.create({
     paddingHorizontal: 20, marginBottom: 12,
   },
   secTitle: {
-    fontSize: 20, fontFamily: 'Poppins_600SemiBold',
+    fontSize: 20, fontFamily: 'Satoshi_500Medium',
     color: Colors.ink, paddingHorizontal: 20, marginBottom: 12,
   },
   modifierBtn: {
@@ -1139,7 +1139,7 @@ const S = StyleSheet.create({
     backgroundColor: Colors.bg, borderTopLeftRadius: 24, borderTopRightRadius: 24,
     paddingHorizontal: 20, paddingBottom: 36, paddingTop: 12,
   },
-  protectiveSheetTitle: { fontSize: 18, fontFamily: 'Poppins_700Bold', color: Colors.ink, marginBottom: 4 },
+  protectiveSheetTitle: { fontSize: 18, fontFamily: 'Satoshi_500Medium', color: Colors.ink, marginBottom: 4 },
   protectiveSheetSub:   { fontSize: 13, fontFamily: 'DMSans_400Regular', color: Colors.warmGray, marginBottom: 20 },
   protectiveOption: {
     flexDirection: 'row', alignItems: 'center', gap: 14,
@@ -1229,7 +1229,7 @@ const S = StyleSheet.create({
     borderRadius: 16, borderWidth: 1, borderColor: Colors.border,
     padding: 14, alignItems: 'center',
   },
-  statVal:   { fontSize: 20, fontFamily: 'Poppins_700Bold', color: Colors.ink },
+  statVal:   { fontSize: 20, fontFamily: 'Satoshi_500Medium', color: Colors.ink },
   statLabel: { fontSize: 10, fontFamily: 'DMSans_400Regular', color: Colors.warmGray, marginTop: 3, textAlign: 'center' },
 
   // ── Settings ──

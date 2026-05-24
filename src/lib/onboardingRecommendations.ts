@@ -2,9 +2,13 @@ import type { CareStyleId } from '../constants/careStyles';
 import { displayObjective, normalizeObjectiveId } from '../constants/hairObjectives';
 import { resolvePorosity } from '../constants/hairProfileOptions';
 import { ROUTINE_TYPES, type RoutineStep, type RoutineType } from '../data/routines';
-import { PRODUCTS } from '../data/products';
 import { CATALOG_RECIPES } from '../data/recipesCatalog';
 import { CATALOG_ARTICLES } from '../data/articlesCatalog';
+import {
+  buildPersonalizationContext,
+  matchCatalogArticles,
+  matchCatalogProducts,
+} from './hairPersonalization';
 
 export type DiagnosticSnapshot = {
   hairType: string;
@@ -14,6 +18,11 @@ export type DiagnosticSnapshot = {
   region: string;
   budget: string;
   careStyle: CareStyleId | '';
+  problematics?: string[];
+  hairNotes?: string;
+  blockers?: string[];
+  resultsWeeks?: number;
+  hairTypeUnsure?: boolean;
 };
 
 export type RecoRoutineStep = {
@@ -148,26 +157,16 @@ export function buildOnboardingRecommendations(input: DiagnosticSnapshot): Onboa
     thumb_bg: r.thumb_bg,
   }));
 
-  const porosityArticle =
-    input.porosity === 'Élevée'
-      ? CATALOG_ARTICLES.find(a => a.id === 'cat-featured-porosity')
-      : CATALOG_ARTICLES.find(a => a.id === 'cat-lco-loc');
-
-  const articles = [
-    porosityArticle,
-    CATALOG_ARTICLES.find(a => a.category === 'Soins'),
-    CATALOG_ARTICLES.find(a => a.category === 'Coiffage'),
-  ]
-    .filter((a): a is NonNullable<typeof a> => !!a)
-    .slice(0, 3)
-    .map(a => ({
-      id: a.id,
-      title: a.title,
-      subtitle: a.subtitle,
-      read_time: a.read_time,
-      thumb_emoji: a.thumb_emoji,
-      thumb_bg: a.thumb_bg,
-    }));
+  const persoCtx = buildPersonalizationContext(input);
+  const catalogArticles = matchCatalogArticles(persoCtx, 3);
+  const articles = catalogArticles.map(a => ({
+    id: a.id,
+    title: a.title,
+    subtitle: a.subtitle,
+    read_time: a.read_time,
+    thumb_emoji: a.thumb_emoji,
+    thumb_bg: a.thumb_bg,
+  }));
 
   const profileSummary = [
     input.hairType || '3C',
@@ -183,7 +182,7 @@ export function buildOnboardingRecommendations(input: DiagnosticSnapshot): Onboa
     morning: customizeDailySteps('daily', input.hairType, input.porosity),
     evening: customizeDailySteps('night', input.hairType, input.porosity),
     weekly: weeklyStepsForHair(input.hairType),
-    products: PRODUCTS.slice(0, 4).map(p => ({
+    products: matchCatalogProducts(persoCtx, 4).map(p => ({
       brand: p.brand,
       name: p.name,
       price: p.price,
@@ -229,6 +228,7 @@ export function diagnosticSnapshotFromProfile(p: {
   region?: string;
   budget?: string;
   careStyle?: string;
+  problematics?: string[];
 }): DiagnosticSnapshot {
   return {
     hairType: p.hairType || '3C',
@@ -238,6 +238,7 @@ export function diagnosticSnapshotFromProfile(p: {
     region: p.region ?? '',
     budget: p.budget ?? '',
     careStyle: (p.careStyle || '') as CareStyleId,
+    problematics: p.problematics,
   };
 }
 

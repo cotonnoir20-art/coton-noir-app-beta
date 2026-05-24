@@ -320,7 +320,7 @@ const S = StyleSheet.create({
     padding: 18, flexDirection: 'row', alignItems: 'center', gap: 16, marginBottom: 24,
   },
   summaryLeft:    { alignItems: 'center', gap: 6 },
-  summaryScore:   { fontSize: 40, fontFamily: 'Poppins_700Bold', color: Colors.ink },
+  summaryScore:   { fontSize: 40, fontFamily: 'Satoshi_500Medium', color: Colors.ink },
   summaryCount:   { fontSize: 11, fontFamily: 'DMSans_400Regular', color: Colors.warmGray },
   summaryDivider: { width: 1, height: 80, backgroundColor: Colors.border },
   summaryRight:   { flex: 1, gap: 5 },
@@ -330,7 +330,7 @@ const S = StyleSheet.create({
   barFill:  { height: 6, backgroundColor: Colors.amber, borderRadius: 999 },
   barCount: { fontSize: 11, fontFamily: 'DMSans_400Regular', color: Colors.warmGray, width: 14, textAlign: 'right' },
 
-  secTitle: { fontSize: 17, fontFamily: 'Poppins_600SemiBold', color: Colors.ink, marginBottom: 12 },
+  secTitle: { fontSize: 17, fontFamily: 'Satoshi_500Medium', color: Colors.ink, marginBottom: 12 },
 
   card: {
     backgroundColor: Colors.surface, borderRadius: 16, borderWidth: 1, borderColor: Colors.border,
@@ -344,7 +344,7 @@ const S = StyleSheet.create({
   cardDate:   { fontSize: 11, fontFamily: 'DMSans_400Regular', color: Colors.warmGray },
 
   emptyBox:    { alignItems: 'center', paddingTop: 48, paddingHorizontal: 32 },
-  emptyTitle:  { fontSize: 17, fontFamily: 'Poppins_600SemiBold', color: Colors.ink, marginBottom: 8 },
+  emptyTitle:  { fontSize: 17, fontFamily: 'Satoshi_500Medium', color: Colors.ink, marginBottom: 8 },
   emptyBody:   { fontSize: 13, fontFamily: 'DMSans_400Regular', color: Colors.warmGray, textAlign: 'center', lineHeight: 20, marginBottom: 20 },
   emptyBtn:    { backgroundColor: Colors.ink, borderRadius: 14, paddingHorizontal: 24, paddingVertical: 13 },
   emptyBtnText:{ fontSize: 14, fontFamily: 'DMSans_700Bold', color: '#fff' },
@@ -358,7 +358,7 @@ const S = StyleSheet.create({
   },
   modalHandle: { width: 40, height: 4, borderRadius: 2, backgroundColor: Colors.border, alignSelf: 'center', marginBottom: 16 },
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
-  modalTitle:  { fontSize: 18, fontFamily: 'Poppins_600SemiBold', color: Colors.ink },
+  modalTitle:  { fontSize: 18, fontFamily: 'Satoshi_500Medium', color: Colors.ink },
   modalClose:  { width: 32, height: 32, borderRadius: 16, backgroundColor: Colors.surface, borderWidth: 1, borderColor: Colors.border, alignItems: 'center', justifyContent: 'center' },
 
   fieldLabel: { fontSize: 13, fontFamily: 'DMSans_600SemiBold', color: Colors.ink, marginBottom: 8 },

@@ -443,7 +443,7 @@ const S = StyleSheet.create({
     letterSpacing: 1.2, marginBottom: 6,
   },
   name: {
-    fontSize: 24, fontFamily: 'Poppins_700Bold', color: Colors.ink,
+    fontSize: 24, fontFamily: 'Satoshi_500Medium', color: Colors.ink,
     lineHeight: 30, marginBottom: 10,
   },
   ratingRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
@@ -481,7 +481,7 @@ const S = StyleSheet.create({
   },
   breakdownAvg: {
     fontSize: 30,
-    fontFamily: 'Poppins_700Bold',
+    fontFamily: 'Satoshi_500Medium',
     color: Colors.ink,
     lineHeight: 34,
   },

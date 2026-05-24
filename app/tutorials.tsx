@@ -139,7 +139,7 @@ const S = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  headerTitle: { flex: 1, fontSize: 20, fontFamily: 'Poppins_700Bold', color: Colors.ink },
+  headerTitle: { flex: 1, fontSize: 20, fontFamily: 'Satoshi_500Medium', color: Colors.ink },
   coinsBadge: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -196,7 +196,7 @@ const S = StyleSheet.create({
     position: 'absolute',
     bottom: 12, left: 14,
   },
-  featuredTitle: { fontSize: 18, fontFamily: 'Poppins_700Bold', color: '#fff' },
+  featuredTitle: { fontSize: 18, fontFamily: 'Satoshi_500Medium', color: '#fff' },
   featuredSub:   { fontSize: 11, fontFamily: 'DMSans_400Regular', color: 'rgba(255,255,255,0.7)', marginTop: 2 },
 
   // ── Filters ──
@@ -226,7 +226,7 @@ const S = StyleSheet.create({
   // ── Section title ──
   secTitle: {
     fontSize: 17,
-    fontFamily: 'Poppins_600SemiBold',
+    fontFamily: 'Satoshi_500Medium',
     color: Colors.ink,
     marginBottom: 12,
   },

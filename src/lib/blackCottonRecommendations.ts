@@ -116,15 +116,45 @@ function buildPriorities(profile: HairProfile, reco: OnboardingRecommendations):
         Colors.amberInk,
       ),
     );
-  } else if (objective === 'Casse' || objective === 'Pointes') {
+  } else if (
+    objective === 'Casse_et_chute' ||
+    objective === 'Fibre' ||
+    objective === 'Casse' ||
+    objective === 'Dommages' ||
+    objective === 'Pointes'
+  ) {
     items.push(
       priority(
         'obj-strength',
-        'Renforcement & pointes',
+        'Renforcement & réparation',
         'Masque hebdo + huile sur pointes seulement. Démêle toujours avec douceur, jamais sur cheveux secs.',
         'shield-checkmark-outline',
         Colors.growthLight,
         Colors.growth,
+      ),
+    );
+  } else if (objective === 'Transition') {
+    items.push(
+      priority(
+        'obj-transition',
+        'Transition capillaire',
+        'Hydrate les longueurs naturelles et protège les jonctions : masque doux, démêlage patient, pas de chaleur sur les zones fragiles.',
+        'git-merge-outline',
+        Colors.amberPowder,
+        Colors.amberInk,
+      ),
+    );
+  } else if (objective === 'Brillance' || objective === 'Densite') {
+    items.push(
+      priority(
+        'obj-shine-density',
+        objective === 'Brillance' ? 'Objectif brillance' : 'Objectif densité',
+        objective === 'Brillance'
+          ? 'Huile légère sur pointes et rinçage frais pour garder de l’éclat sans alourdir.'
+          : 'Routine équilibrée + soins légers sur racines pour du volume sans casser la fibre.',
+        'sunny-outline',
+        Colors.amberPowder,
+        Colors.amberInk,
       ),
     );
   }

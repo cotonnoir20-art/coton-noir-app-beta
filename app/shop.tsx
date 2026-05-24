@@ -582,7 +582,7 @@ const S = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  headerTitle: { flex: 1, fontSize: 20, fontFamily: 'Poppins_700Bold', color: Colors.ink },
+  headerTitle: { flex: 1, fontSize: 20, fontFamily: 'Satoshi_500Medium', color: Colors.ink },
   coinsBadge: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -658,7 +658,7 @@ const S = StyleSheet.create({
   },
   featuredTitle: {
     fontSize: 20,
-    fontFamily: 'Poppins_700Bold',
+    fontFamily: 'Satoshi_500Medium',
     color: Colors.ink,
   },
   featuredCount: {
@@ -721,7 +721,7 @@ const S = StyleSheet.create({
   },
   slideName: {
     fontSize: 18,
-    fontFamily: 'Poppins_700Bold',
+    fontFamily: 'Satoshi_500Medium',
     lineHeight: 23,
   },
 
@@ -805,7 +805,7 @@ const S = StyleSheet.create({
   secTitle: {
     flex: 1,
     fontSize: 18,
-    fontFamily: 'Poppins_600SemiBold',
+    fontFamily: 'Satoshi_500Medium',
     color: Colors.ink,
   },
 
@@ -849,7 +849,7 @@ const S = StyleSheet.create({
   },
   sortTitle: {
     fontSize: 17,
-    fontFamily: 'Poppins_700Bold',
+    fontFamily: 'Satoshi_500Medium',
     color: Colors.ink,
     marginBottom: 12,
   },

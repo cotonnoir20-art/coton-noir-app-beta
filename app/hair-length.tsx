@@ -245,7 +245,7 @@ const S = StyleSheet.create({
     backgroundColor: Colors.surface, borderWidth: 1, borderColor: Colors.border,
     alignItems: 'center', justifyContent: 'center',
   },
-  headerTitle: { fontSize: 18, fontFamily: 'Poppins_700Bold', color: Colors.ink },
+  headerTitle: { fontSize: 18, fontFamily: 'Satoshi_500Medium', color: Colors.ink },
   graphBtn: {
     backgroundColor: Colors.cream, borderRadius: 999,
     borderWidth: 1, borderColor: Colors.border,
@@ -263,7 +263,7 @@ const S = StyleSheet.create({
     color: 'rgba(255,255,255,0.45)', letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 6,
   },
   summaryValue: {
-    fontSize: 42, fontFamily: 'Poppins_700Bold', color: Colors.amber, lineHeight: 48,
+    fontSize: 42, fontFamily: 'Satoshi_500Medium', color: Colors.amber, lineHeight: 48,
   },
   summarySub: {
     fontSize: 11, fontFamily: 'DMSans_400Regular', color: 'rgba(255,255,255,0.5)', marginTop: 4,
@@ -284,7 +284,7 @@ const S = StyleSheet.create({
   },
 
   // Section
-  secTitle: { fontSize: 18, fontFamily: 'Poppins_600SemiBold', color: Colors.ink, marginTop: 24, marginBottom: 4 },
+  secTitle: { fontSize: 18, fontFamily: 'Satoshi_500Medium', color: Colors.ink, marginTop: 24, marginBottom: 4 },
   secSub:   { fontSize: 12, fontFamily: 'DMSans_400Regular', color: Colors.warmGray, lineHeight: 18, marginBottom: 8 },
   guideLink: {
     fontSize: 13,

@@ -1,10 +1,10 @@
 import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View, ViewStyle } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useApp } from '../context/AppContext';
 import { Colors } from '../theme/colors';
 import { Fonts, Type } from '../theme/typography';
+import { BackButton } from './BackButton';
 import { CoinIcon } from './CoinIcon';
 
 type AppHeaderProps = {
@@ -52,17 +52,7 @@ export function AppHeader({
   return (
     <View style={[styles.container, style]}>
       <View style={styles.side}>
-        {!hideBack && (
-          <TouchableOpacity
-            onPress={handleBack}
-            hitSlop={10}
-            style={styles.backBtn}
-            accessibilityRole="button"
-            accessibilityLabel="Retour"
-          >
-            <Ionicons name="chevron-back" size={22} color={Colors.ink} />
-          </TouchableOpacity>
-        )}
+        {!hideBack && <BackButton onPress={handleBack} />}
       </View>
 
       <View style={styles.center}>
@@ -114,22 +104,12 @@ const styles = StyleSheet.create({
     minHeight: 56,
   },
   side: {
-    minWidth: 40,
+    minWidth: 92,
     flexDirection: 'row',
     alignItems: 'center',
   },
   sideRight: {
     justifyContent: 'flex-end',
-  },
-  backBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: Colors.surface,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   center: {
     flex: 1,

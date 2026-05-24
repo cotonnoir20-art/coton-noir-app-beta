@@ -65,7 +65,7 @@ const S = StyleSheet.create({
     marginBottom: 14,
   },
   wrapCompact: { marginHorizontal: 0 },
-  title: { fontSize: 16, fontFamily: 'Poppins_600SemiBold', color: Colors.ink, marginBottom: 4 },
+  title: { fontSize: 16, fontFamily: 'Satoshi_500Medium', color: Colors.ink, marginBottom: 4 },
   sub: {
     fontSize: 12,
     fontFamily: 'DMSans_400Regular',
@@ -84,7 +84,7 @@ const S = StyleSheet.create({
   rowToday: { borderWidth: 1.5 },
   dayCol: { width: 28, alignItems: 'center' },
   dayLabel: { fontSize: 10, fontFamily: 'DMSans_700Bold', color: Colors.warmGray },
-  dayNum: { fontSize: 14, fontFamily: 'Poppins_700Bold', color: Colors.ink },
+  dayNum: { fontSize: 14, fontFamily: 'Satoshi_500Medium', color: Colors.ink },
   dot: { width: 8, height: 8, borderRadius: 4 },
   body: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8 },
   emoji: { fontSize: 18 },

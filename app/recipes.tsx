@@ -678,7 +678,7 @@ const S = StyleSheet.create({
   heroTitle: {
     fontSize: 24,
     lineHeight: 30,
-    fontFamily: 'Poppins_700Bold',
+    fontFamily: 'Satoshi_500Medium',
     color: '#1A3D12',
     marginBottom: 8,
   },
@@ -741,7 +741,7 @@ const S = StyleSheet.create({
 
   sectionTitle: {
     fontSize: 20,
-    fontFamily: 'Poppins_700Bold',
+    fontFamily: 'Satoshi_500Medium',
     color: Colors.ink,
     paddingHorizontal: 16,
     marginBottom: 14,
@@ -803,7 +803,7 @@ const S = StyleSheet.create({
   featuredTitle: {
     fontSize: 18,
     lineHeight: 24,
-    fontFamily: 'Poppins_700Bold',
+    fontFamily: 'Satoshi_500Medium',
     color: Colors.ink,
     marginBottom: 8,
   },
@@ -951,7 +951,7 @@ const S = StyleSheet.create({
   modalBody: { paddingHorizontal: 20, paddingTop: 20 },
   modalTitle: {
     fontSize: 22,
-    fontFamily: 'Poppins_700Bold',
+    fontFamily: 'Satoshi_500Medium',
     color: Colors.ink,
     lineHeight: 28,
     marginBottom: 12,

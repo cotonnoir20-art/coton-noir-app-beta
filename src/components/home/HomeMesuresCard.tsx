@@ -161,12 +161,12 @@ export function HomeMesuresCard({ profile, growthHistory }: Props) {
           </View>
           <TouchableOpacity
             style={s.bcBtn}
-            onPress={() => router.push('/(tabs)/analyze' as any)}
+            onPress={() => router.push('/(tabs)/shortcuts' as any)}
             activeOpacity={0.9}
             accessibilityRole="button"
-            accessibilityLabel="Discuter avec Black Cotton"
+            accessibilityLabel="Ouvrir Explorer"
           >
-            <Text style={s.bcBtnText}>Parlons-en !</Text>
+            <Text style={s.bcBtnText}>Découvrir</Text>
           </TouchableOpacity>
         </View>
 
@@ -295,8 +295,8 @@ const s = StyleSheet.create({
     backgroundColor: Colors.cream,
   },
   bcTitle: {
+    ...Type.cardTitle,
     fontSize: 15,
-    fontFamily: 'DMSans_700Bold',
     color: Colors.ink,
     marginBottom: 12,
   },

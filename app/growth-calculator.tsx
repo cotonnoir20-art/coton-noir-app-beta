@@ -342,7 +342,7 @@ const S = StyleSheet.create({
     padding: 16,
     alignItems: 'center',
   },
-  statVal: { fontSize: 22, fontFamily: 'Poppins_700Bold', color: Colors.ink },
+  statVal: { fontSize: 22, fontFamily: 'Satoshi_500Medium', color: Colors.ink },
   statLabel: {
     fontSize: 11,
     fontFamily: 'DMSans_400Regular',
@@ -366,7 +366,7 @@ const S = StyleSheet.create({
     letterSpacing: 0.8,
     marginBottom: 4,
   },
-  paceVal: { fontSize: 18, fontFamily: 'Poppins_700Bold', color: Colors.ink },
+  paceVal: { fontSize: 18, fontFamily: 'Satoshi_500Medium', color: Colors.ink },
   paceSub: {
     fontSize: 12,
     fontFamily: 'DMSans_400Regular',
@@ -446,7 +446,7 @@ const S = StyleSheet.create({
     borderRadius: 20,
     padding: 22,
   },
-  objTitle: { fontSize: 18, fontFamily: 'Poppins_700Bold', color: Colors.ink, marginBottom: 16 },
+  objTitle: { fontSize: 18, fontFamily: 'Satoshi_500Medium', color: Colors.ink, marginBottom: 16 },
   objLabel: { fontSize: 12, fontFamily: 'DMSans_700Bold', color: Colors.warmGray, marginBottom: 6 },
   objInput: {
     backgroundColor: Colors.bg,

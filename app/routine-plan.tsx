@@ -494,11 +494,11 @@ const S = StyleSheet.create({
     marginBottom: 20,
   },
   introBody: { flex: 1 },
-  introTitle: { fontFamily: 'Poppins_600SemiBold', fontSize: 14, color: Colors.ink, marginBottom: 4 },
+  introTitle: { fontFamily: 'Satoshi_500Medium', fontSize: 14, color: Colors.ink, marginBottom: 4 },
   introText: { fontFamily: 'DMSans_400Regular', fontSize: 13, color: Colors.warmGray, lineHeight: 19 },
 
   label: {
-    fontFamily: 'Poppins_600SemiBold',
+    fontFamily: 'Satoshi_500Medium',
     fontSize: 13,
     color: Colors.ink,
     marginBottom: 8,
@@ -523,7 +523,7 @@ const S = StyleSheet.create({
   },
   modeBtnActive: { borderColor: Colors.amber, backgroundColor: Colors.amberLight },
   modeEmoji: { fontSize: 20, marginBottom: 4 },
-  modeTitle: { fontFamily: 'Poppins_600SemiBold', fontSize: 14, color: Colors.ink },
+  modeTitle: { fontFamily: 'Satoshi_500Medium', fontSize: 14, color: Colors.ink },
   modeTitleActive: { color: Colors.ink },
   modeSub: { fontFamily: 'DMSans_400Regular', fontSize: 12, color: Colors.warmGray, marginTop: 2 },
 
@@ -603,7 +603,7 @@ const S = StyleSheet.create({
     marginBottom: 12,
   },
   stepHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
-  stepNum: { fontFamily: 'Poppins_600SemiBold', fontSize: 13, color: Colors.amber },
+  stepNum: { fontFamily: 'Satoshi_500Medium', fontSize: 13, color: Colors.amber },
 
   saveBtn: {
     backgroundColor: Colors.ink,
@@ -612,7 +612,7 @@ const S = StyleSheet.create({
     alignItems: 'center',
     marginTop: 8,
   },
-  saveBtnText: { fontFamily: 'Poppins_600SemiBold', fontSize: 15, color: '#fff' },
+  saveBtnText: { fontFamily: 'Satoshi_500Medium', fontSize: 15, color: '#fff' },
   resetBtn: { alignItems: 'center', paddingVertical: 16 },
   resetBtnText: { fontFamily: 'DMSans_500Medium', fontSize: 13, color: Colors.warmGray },
 });

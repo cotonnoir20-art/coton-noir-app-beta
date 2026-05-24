@@ -158,8 +158,8 @@ const S = StyleSheet.create({
   timeRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 16 },
   timeCol: { alignItems: 'center' },
   timeBtn: { padding: 6 },
-  timeVal: { fontSize: 28, fontFamily: 'Poppins_700Bold', color: Colors.ink, minWidth: 56, textAlign: 'center' },
-  timeSep: { fontSize: 28, fontFamily: 'Poppins_700Bold', color: Colors.ink },
+  timeVal: { fontSize: 28, fontFamily: 'Satoshi_500Medium', color: Colors.ink, minWidth: 56, textAlign: 'center' },
+  timeSep: { fontSize: 28, fontFamily: 'Satoshi_500Medium', color: Colors.ink },
   hint: {
     marginTop: 10,
     fontSize: 11,

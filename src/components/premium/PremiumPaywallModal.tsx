@@ -93,7 +93,7 @@ const S = StyleSheet.create({
     marginBottom: 10,
   },
   badgeText: { fontSize: 10, fontFamily: 'DMSans_700Bold', color: Colors.amberDark },
-  title: { fontSize: 20, fontFamily: 'Poppins_700Bold', color: Colors.ink, marginBottom: 6 },
+  title: { fontSize: 20, fontFamily: 'Satoshi_500Medium', color: Colors.ink, marginBottom: 6 },
   subtitle: {
     fontSize: 14,
     fontFamily: 'DMSans_400Regular',

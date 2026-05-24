@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { BackButton } from '../../src/components/BackButton';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Colors } from '../../src/theme/colors';
@@ -205,9 +206,7 @@ export default function RoutineScreen() {
     <SafeAreaView style={S.safe} edges={['top']}>
       {/* Header fixe */}
       <View style={S.header}>
-        <TouchableOpacity onPress={() => router.back()} hitSlop={10} style={S.backBtn}>
-          <Ionicons name="chevron-back" size={24} color={Colors.ink} />
-        </TouchableOpacity>
+        <BackButton onPress={() => router.back()} style={S.backBtn} />
         <Text style={S.headerTitle}>Ma Routine</Text>
         <TouchableOpacity style={S.coinsBadge} onPress={() => router.push('/rewards' as any)}>
           <CoinIcon size={16} />
@@ -602,8 +601,8 @@ const S = StyleSheet.create({
     paddingVertical: 14,
     backgroundColor: Colors.bg,
   },
-  backBtn:     { padding: 4, marginRight: 4 },
-  headerTitle: { fontSize: 22, fontFamily: 'Poppins_700Bold', color: Colors.ink, flex: 1 },
+  backBtn:     { marginRight: 4, flexShrink: 0 },
+  headerTitle: { fontSize: 22, fontFamily: 'Satoshi_500Medium', color: Colors.ink, flex: 1 },
   coinsBadge: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -725,7 +724,7 @@ const S = StyleSheet.create({
     padding: 14,
   },
   planCardLeft: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 },
-  planCardTitle: { fontFamily: 'Poppins_600SemiBold', fontSize: 14, color: Colors.ink },
+  planCardTitle: { fontFamily: 'Satoshi_500Medium', fontSize: 14, color: Colors.ink },
   planCardSub: { fontFamily: 'DMSans_400Regular', fontSize: 12, color: Colors.warmGray, marginTop: 2 },
 
   notesCard: {
@@ -738,7 +737,7 @@ const S = StyleSheet.create({
     padding: 14,
   },
   notesHeader: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 10 },
-  notesTitle: { fontFamily: 'Poppins_600SemiBold', fontSize: 14, color: Colors.ink },
+  notesTitle: { fontFamily: 'Satoshi_500Medium', fontSize: 14, color: Colors.ink },
   notesText: { fontFamily: 'DMSans_400Regular', fontSize: 13, color: Colors.ink, lineHeight: 19 },
   notesBold: { fontFamily: 'DMSans_700Bold' },
 
@@ -759,7 +758,7 @@ const S = StyleSheet.create({
     pointerEvents: 'none',
   },
   darkSub:   { fontSize: 12, fontFamily: 'DMSans_400Regular', color: 'rgba(255,255,255,0.55)' },
-  darkTitle: { fontSize: 24, fontFamily: 'Poppins_700Bold', color: '#fff', marginTop: 4, marginBottom: 14 },
+  darkTitle: { fontSize: 24, fontFamily: 'Satoshi_500Medium', color: '#fff', marginTop: 4, marginBottom: 14 },
   barBg: {
     height: 6,
     backgroundColor: 'rgba(255,255,255,0.15)',
@@ -812,7 +811,7 @@ const S = StyleSheet.create({
   // ── Section title ──
   secTitle: {
     fontSize: 17,
-    fontFamily: 'Poppins_600SemiBold',
+    fontFamily: 'Satoshi_500Medium',
     color: Colors.ink,
     marginHorizontal: 20,
     marginTop: 16,
@@ -908,7 +907,7 @@ const S = StyleSheet.create({
     padding: 16,
   },
   usedHeader:      { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 },
-  usedTitle:       { fontSize: 15, fontFamily: 'Poppins_600SemiBold', color: Colors.ink },
+  usedTitle:       { fontSize: 15, fontFamily: 'Satoshi_500Medium', color: Colors.ink },
   usedChips:       { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   usedChip: {
     backgroundColor: Colors.cream,
@@ -940,7 +939,7 @@ const S = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: Colors.border,
   },
-  tipsHeaderTitle: { fontSize: 15, fontFamily: 'Poppins_600SemiBold', color: Colors.ink },
+  tipsHeaderTitle: { fontSize: 15, fontFamily: 'Satoshi_500Medium', color: Colors.ink },
   tipsHeaderSub:   { fontSize: 11, fontFamily: 'DMSans_400Regular', color: Colors.warmGray, marginTop: 2 },
   tipRow:       { flexDirection: 'row', gap: 12, padding: 14, alignItems: 'flex-start' },
   tipRowBorder: { borderBottomWidth: 1, borderBottomColor: Colors.border },
@@ -1025,7 +1024,7 @@ const S = StyleSheet.create({
   },
   historySectionTitle: {
     fontSize: 15,
-    fontFamily: 'Poppins_600SemiBold',
+    fontFamily: 'Satoshi_500Medium',
     color: Colors.ink,
     padding: 16,
     paddingBottom: 12,

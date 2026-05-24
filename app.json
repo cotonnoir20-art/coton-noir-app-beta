@@ -5,7 +5,7 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "description": "Ton copilote capillaire pour mieux prendre soin de tes cheveux — routines, suivi, récompenses et conseils.",
+    "description": "Ta copilote capillaire dans ton smartphone — diagnostic, routines, wash day, pousse en cm et communauté pour cheveux afro & texturés.",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "splash": {
@@ -55,7 +55,13 @@
           "defaultChannel": "default"
         }
       ],
-      "expo-iap"
+      "expo-iap",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Coton Noir utilise la caméra pour scanner tes cheveux (racines, longueurs, pointes)."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true

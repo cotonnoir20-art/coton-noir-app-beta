@@ -47,10 +47,31 @@ const BY_OBJECTIVE: Record<string, ProblemBundle> = {
     ],
   },
   Pousse: {
-    main: problem('main-growth', 'Pousse lente ou stagnante', 'fitness-outline', '#DCE4E8', '#2F4B59'),
+    main: problem('main-growth', 'Longueur qui stagne', 'fitness-outline', '#DCE4E8', '#2F4B59'),
     related: [
-      problem('rel-scalp', 'Cuir chevelu fragile', 'leaf-outline', '#D9EBE5', '#3D6B5C'),
+      problem('rel-scalp', 'Cuir chevelu à stimuler', 'leaf-outline', '#D9EBE5', '#3D6B5C'),
       problem('rel-ends', 'Pointes abîmées', 'cut-outline', '#F5D8DA', '#C45A62'),
+    ],
+  },
+  Casse_et_chute: {
+    main: problem('main-break-shed', 'Casse et chute', 'heart-dislike-outline', '#F5D8DA', '#C45A62'),
+    related: [
+      problem('rel-scalp', 'Cuir chevelu sensible', 'leaf-outline', '#D9EBE5', '#3D6B5C'),
+      problem('rel-weak', 'Fibres fragilisées', 'shield-outline', '#DCE4E8', '#2F4B59'),
+    ],
+  },
+  Fibre: {
+    main: problem('main-fiber', 'Fibres fragiles', 'shield-outline', '#F5D8DA', '#C45A62'),
+    related: [
+      problem('rel-protein', 'Manque de force', 'barbell-outline', '#DCE4E8', '#2F4B59'),
+      problem('rel-ends', 'Pointes abîmées', 'cut-outline', '#FDE9D0', '#8A4E0A'),
+    ],
+  },
+  Chute: {
+    main: problem('main-shedding', 'Chute ou amincissement', 'heart-dislike-outline', '#F5D8DA', '#C45A62'),
+    related: [
+      problem('rel-scalp', 'Cuir chevelu sensible', 'leaf-outline', '#D9EBE5', '#3D6B5C'),
+      problem('rel-stress', 'Fibres fragilisées', 'shield-outline', '#DCE4E8', '#2F4B59'),
     ],
   },
   Définition: {
@@ -79,6 +100,41 @@ const BY_OBJECTIVE: Record<string, ProblemBundle> = {
     related: [
       problem('rel-dry', 'Sécheresse post-coloration', 'water-outline', '#D9EBE5', '#3D6B5C'),
       problem('rel-dull', 'Manque d’éclat', 'sunny-outline', '#FDE9D0', '#8A4E0A'),
+    ],
+  },
+  Densite: {
+    main: problem('main-density', 'Densité ou épaisseur insuffisante', 'resize-outline', '#FDE9D0', '#8A4E0A'),
+    related: [
+      problem('rel-volume', 'Manque de volume', 'cloud-outline', '#DCE4E8', '#2F4B59'),
+      problem('rel-weak', 'Fibres fragiles', 'shield-outline', '#F5D8DA', '#C45A62'),
+    ],
+  },
+  Epaisseur: {
+    main: problem('main-thickness', 'Cheveux fins ou peu denses', 'resize-outline', '#FDE9D0', '#8A4E0A'),
+    related: [
+      problem('rel-volume', 'Manque de volume', 'cloud-outline', '#DCE4E8', '#2F4B59'),
+      problem('rel-weak', 'Fibres fragiles', 'shield-outline', '#F5D8DA', '#C45A62'),
+    ],
+  },
+  Dommages: {
+    main: problem('main-damage', 'Cheveux abîmés', 'bandage-outline', '#F5D8DA', '#C45A62'),
+    related: [
+      problem('rel-ends', 'Pointes fourchues', 'cut-outline', '#FDE9D0', '#8A4E0A'),
+      problem('rel-dry', 'Sécheresse liée aux agressions', 'water-outline', '#D9EBE5', '#3D6B5C'),
+    ],
+  },
+  Transition: {
+    main: problem('main-transition', 'Deux textures à harmoniser', 'git-merge-outline', '#FDE9D0', '#8A4E0A'),
+    related: [
+      problem('rel-breakage', 'Casse aux jonctions', 'shield-outline', '#F5D8DA', '#C45A62'),
+      problem('rel-hydration', 'Hydratation inégale', 'water-outline', '#D9EBE5', '#3D6B5C'),
+    ],
+  },
+  Cuir_chevelu: {
+    main: problem('main-scalp', 'Cuir chevelu inconfortable', 'leaf-outline', '#D9EBE5', '#3D6B5C'),
+    related: [
+      problem('rel-itch', 'Démangeaisons', 'medical-outline', '#F5D8DA', '#C45A62'),
+      problem('rel-flakes', 'Pellicules ou sécheresse', 'snow-outline', '#DCE4E8', '#2F4B59'),
     ],
   },
   Brillance: {

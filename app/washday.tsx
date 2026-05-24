@@ -1188,7 +1188,7 @@ const S = StyleSheet.create({
   },
   planCardLeft: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 },
   planCardEmoji: { fontSize: 28 },
-  planCardTitle: { fontFamily: 'Poppins_600SemiBold', fontSize: 14, color: Colors.ink },
+  planCardTitle: { fontFamily: 'Satoshi_500Medium', fontSize: 14, color: Colors.ink },
   planCardSub: { fontFamily: 'DMSans_400Regular', fontSize: 12, color: Colors.warmGray, marginTop: 2 },
   notesCard: {
     marginBottom: 8,
@@ -1199,13 +1199,13 @@ const S = StyleSheet.create({
     padding: 14,
   },
   notesHeader: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 10 },
-  notesTitle: { fontFamily: 'Poppins_600SemiBold', fontSize: 14, color: Colors.ink },
+  notesTitle: { fontFamily: 'Satoshi_500Medium', fontSize: 14, color: Colors.ink },
   notesText: { fontFamily: 'DMSans_400Regular', fontSize: 13, color: Colors.ink, lineHeight: 19 },
   notesBold: { fontFamily: 'DMSans_700Bold' },
 
   header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12, gap: 8 },
   backBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: Colors.surface, borderWidth: 1, borderColor: Colors.border, alignItems: 'center', justifyContent: 'center' },
-  headerTitle: { flex: 1, fontSize: 20, fontFamily: 'Poppins_700Bold', color: Colors.ink },
+  headerTitle: { flex: 1, fontSize: 20, fontFamily: 'Satoshi_500Medium', color: Colors.ink },
   coinsBadge: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: Colors.ink, borderRadius: 999, paddingHorizontal: 14, paddingVertical: 7 },
   coinsEmoji: { fontSize: 15 },
   coinsText:  { fontSize: 15, fontFamily: 'DMSans_700Bold', color: Colors.amber },
@@ -1232,7 +1232,7 @@ const S = StyleSheet.create({
   calNav:     { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
   calNavBtn:  { width: 32, height: 32, borderRadius: 16, backgroundColor: Colors.surface, borderWidth: 1, borderColor: Colors.border, alignItems: 'center', justifyContent: 'center' },
   calNavArrow:{ fontSize: 18, color: Colors.ink, fontFamily: 'DMSans_600SemiBold' },
-  calMonth:   { fontSize: 18, fontFamily: 'Poppins_700Bold', color: Colors.ink },
+  calMonth:   { fontSize: 18, fontFamily: 'Satoshi_500Medium', color: Colors.ink },
   weekRow:    { flexDirection: 'row', flexWrap: 'nowrap', marginBottom: 8, alignSelf: 'center' },
   weekCell:   { alignItems: 'center' },
   weekLabel:  { fontSize: 10, fontFamily: 'DMSans_500Medium', color: Colors.warmGray },
@@ -1276,7 +1276,7 @@ const S = StyleSheet.create({
   nextCard:  { backgroundColor: Colors.ink, borderRadius: 18, padding: 18, marginTop: 14, flexDirection: 'row', alignItems: 'center', gap: 14 },
   nextEmoji: { fontSize: 28 },
   nextInfo:  { flex: 1, minWidth: 0 },
-  nextDate:  { fontSize: 20, fontFamily: 'Poppins_700Bold', color: '#fff' },
+  nextDate:  { fontSize: 20, fontFamily: 'Satoshi_500Medium', color: '#fff' },
   nextSub:   { fontSize: 12, fontFamily: 'DMSans_400Regular', color: 'rgba(255,255,255,0.55)', marginTop: 2 },
   gererBtn:  { backgroundColor: Colors.amber, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 10, flexShrink: 0 },
   gererBtnText: { fontSize: 12, fontFamily: 'DMSans_700Bold', color: '#fff' },
@@ -1285,7 +1285,7 @@ const S = StyleSheet.create({
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'flex-end' },
   modalSheet:   { backgroundColor: Colors.surface, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, paddingBottom: 40, gap: 16 },
   modalHandle:  { width: 40, height: 4, borderRadius: 999, backgroundColor: Colors.border, alignSelf: 'center', marginBottom: 8 },
-  modalTitle:   { fontSize: 18, fontFamily: 'Poppins_700Bold', color: Colors.ink },
+  modalTitle:   { fontSize: 18, fontFamily: 'Satoshi_500Medium', color: Colors.ink },
   modalEmpty:   { fontSize: 13, fontFamily: 'DMSans_400Regular', color: Colors.warmGray, textAlign: 'center', paddingVertical: 16 },
   modalRow:     { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: Colors.cream, borderRadius: 14, padding: 14 },
   modalRowInfo: { flex: 1, minWidth: 0 },
@@ -1346,7 +1346,7 @@ const S = StyleSheet.create({
   reminderSaveBtnText: { fontSize: 13, fontFamily: 'DMSans_700Bold', color: '#fff' },
 
   // Section title
-  secTitle: { fontSize: 17, fontFamily: 'Poppins_600SemiBold', color: Colors.ink, marginTop: 22, marginBottom: 12 },
+  secTitle: { fontSize: 17, fontFamily: 'Satoshi_500Medium', color: Colors.ink, marginTop: 22, marginBottom: 12 },
 
   emptyBlock: {
     backgroundColor: Colors.surface,
@@ -1360,7 +1360,7 @@ const S = StyleSheet.create({
   emptyEmoji: { fontSize: 32, marginBottom: 10 },
   emptyTitle: {
     fontSize: 15,
-    fontFamily: 'Poppins_600SemiBold',
+    fontFamily: 'Satoshi_500Medium',
     color: Colors.ink,
     textAlign: 'center',
     marginBottom: 6,
@@ -1459,7 +1459,7 @@ const S = StyleSheet.create({
   // History
   histRow:   { flexDirection: 'row', gap: 12 },
   histDate:  { width: 50, alignItems: 'center' },
-  histDay:   { fontSize: 22, fontFamily: 'Poppins_700Bold', color: Colors.ink },
+  histDay:   { fontSize: 22, fontFamily: 'Satoshi_500Medium', color: Colors.ink },
   histMonth: { fontSize: 10, fontFamily: 'DMSans_400Regular', color: Colors.warmGray },
   histLine:  { flex: 1, width: 2, backgroundColor: Colors.border, minHeight: 30, marginTop: 6 },
   histCard:  { flex: 1, backgroundColor: Colors.cream, borderRadius: 16, padding: 14, marginBottom: 10 },
@@ -1476,7 +1476,7 @@ const S = StyleSheet.create({
   // Stats
   statsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   statCard:  { width: '47%', backgroundColor: Colors.surface, borderWidth: 1, borderColor: Colors.border, borderRadius: 16, padding: 14 },
-  statVal:   { fontSize: 22, fontFamily: 'Poppins_700Bold', color: Colors.ink },
+  statVal:   { fontSize: 22, fontFamily: 'Satoshi_500Medium', color: Colors.ink },
   statLabel: { fontSize: 12, fontFamily: 'DMSans_600SemiBold', color: Colors.ink, marginTop: 2 },
   statSub:   { fontSize: 10, fontFamily: 'DMSans_400Regular', color: Colors.warmGray, marginTop: 2 },
 
@@ -1527,7 +1527,7 @@ const S = StyleSheet.create({
     padding: 16, backgroundColor: Colors.cream,
     borderBottomWidth: 1, borderBottomColor: Colors.border,
   },
-  tipsHeaderTitle: { fontSize: 15, fontFamily: 'Poppins_600SemiBold', color: Colors.ink },
+  tipsHeaderTitle: { fontSize: 15, fontFamily: 'Satoshi_500Medium', color: Colors.ink },
   tipsHeaderSub:   { fontSize: 11, fontFamily: 'DMSans_400Regular', color: Colors.warmGray, marginTop: 2 },
   tipRow:       { flexDirection: 'row', gap: 12, padding: 14 },
   tipRowBorder: { borderBottomWidth: 1, borderBottomColor: Colors.border },

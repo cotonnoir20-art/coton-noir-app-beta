@@ -625,7 +625,7 @@ const S = StyleSheet.create({
 
   sectionTitle: {
     fontSize: 20,
-    fontFamily: 'Poppins_700Bold',
+    fontFamily: 'Satoshi_500Medium',
     color: Colors.ink,
     paddingHorizontal: 20,
     marginBottom: 14,
@@ -695,7 +695,7 @@ const S = StyleSheet.create({
   featuredTitle: {
     fontSize: 18,
     lineHeight: 24,
-    fontFamily: 'Poppins_700Bold',
+    fontFamily: 'Satoshi_500Medium',
     color: Colors.ink,
     marginBottom: 8,
   },

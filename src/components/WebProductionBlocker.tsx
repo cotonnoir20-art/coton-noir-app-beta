@@ -88,7 +88,7 @@ const S = StyleSheet.create({
   emoji: { fontSize: 48, marginBottom: 16 },
   title: {
     fontSize: 22,
-    fontFamily: 'Poppins_700Bold',
+    fontFamily: 'Satoshi_500Medium',
     color: Colors.ink,
     textAlign: 'center',
     marginBottom: 12,

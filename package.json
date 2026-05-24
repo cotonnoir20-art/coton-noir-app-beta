@@ -23,7 +23,6 @@
   "dependencies": {
     "@expo-google-fonts/dm-sans": "^0.4.2",
     "@expo-google-fonts/playfair-display": "^0.4.2",
-    "@expo-google-fonts/poppins": "^0.4.1",
     "@expo/app-integrity": "^55.0.13",
     "@expo/vector-icons": "^15.0.3",
     "@lottiefiles/dotlottie-react": "^0.13.5",
@@ -34,6 +33,7 @@
     "@supabase/supabase-js": "^2.105.3",
     "expo": "~54.0.33",
     "expo-blur": "~15.0.8",
+    "expo-camera": "~17.0.10",
     "expo-clipboard": "~8.0.8",
     "expo-constants": "~18.0.13",
     "expo-crypto": "~15.0.9",

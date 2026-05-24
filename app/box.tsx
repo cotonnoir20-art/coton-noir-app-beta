@@ -162,7 +162,7 @@ const S = StyleSheet.create({
     backgroundColor: Colors.surface, borderWidth: 1, borderColor: Colors.border,
     alignItems: 'center', justifyContent: 'center',
   },
-  headerTitle: { flex: 1, fontSize: 20, fontFamily: 'Poppins_700Bold', color: Colors.ink },
+  headerTitle: { flex: 1, fontSize: 20, fontFamily: 'Satoshi_500Medium', color: Colors.ink },
   coinsBadge: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
     backgroundColor: Colors.ink,
@@ -184,7 +184,7 @@ const S = StyleSheet.create({
   },
   boxPillText:     { fontSize: 10, fontFamily: 'DMSans_600SemiBold', color: Colors.amber },
   darkTitle: {
-    fontSize: 26, fontFamily: 'Poppins_700Bold', color: '#fff',
+    fontSize: 26, fontFamily: 'Satoshi_500Medium', color: '#fff',
     marginBottom: 4,
   },
   darkSub: {
@@ -257,7 +257,7 @@ const S = StyleSheet.create({
     padding: 22, alignItems: 'center',
   },
   soonEmoji: { fontSize: 28, marginBottom: 8 },
-  soonTitle: { fontSize: 18, fontFamily: 'Poppins_600SemiBold', color: Colors.ink },
+  soonTitle: { fontSize: 18, fontFamily: 'Satoshi_500Medium', color: Colors.ink },
   soonSub:   { fontSize: 12, fontFamily: 'DMSans_400Regular', color: Colors.warmGray, marginTop: 4 },
 
   // ── Countdown dashed ──
@@ -267,6 +267,6 @@ const S = StyleSheet.create({
     backgroundColor: Colors.cream, alignItems: 'center',
   },
   countdownEmoji: { fontSize: 22, marginBottom: 6 },
-  countdownTitle: { fontSize: 16, fontFamily: 'Poppins_600SemiBold', color: Colors.ink },
+  countdownTitle: { fontSize: 16, fontFamily: 'Satoshi_500Medium', color: Colors.ink },
   countdownSub:   { fontSize: 11, fontFamily: 'DMSans_400Regular', color: Colors.warmGray, marginTop: 3 },
 });

@@ -281,10 +281,10 @@ export default function PremiumScreen() {
         </LinearGradient>
 
         {/* ── Choix abonnement (ancienne homepage) ── */}
-        <Text style={S.planSecTitle}>Choisissez votre abonnement</Text>
+        <Text style={S.planSecTitle}>Choisis ton abonnement</Text>
 
         <View style={S.trialToggleCard}>
-          <Text style={S.trialToggleText}>Vous avez des doutes ? Activez l'essai gratuit.</Text>
+          <Text style={S.trialToggleText}>Tu as des doutes ? Active l'essai gratuit.</Text>
           <Switch
             value={freeTrial}
             onValueChange={setFreeTrial}
@@ -514,7 +514,7 @@ const S = StyleSheet.create({
     letterSpacing: 0.6,
     marginBottom: 6,
   },
-  contextTitle: { fontSize: 16, fontFamily: 'Poppins_600SemiBold', color: Colors.ink, marginBottom: 4 },
+  contextTitle: { fontSize: 16, fontFamily: 'Satoshi_500Medium', color: Colors.ink, marginBottom: 4 },
   contextSub: { fontSize: 13, fontFamily: 'DMSans_400Regular', color: Colors.warmGray, lineHeight: 18 },
 
   comingSoonCard: {
@@ -586,7 +586,7 @@ const S = StyleSheet.create({
     backgroundColor: Colors.surface, borderWidth: 1, borderColor: Colors.border,
     alignItems: 'center', justifyContent: 'center',
   },
-  headerTitle: { flex: 1, fontSize: 20, fontFamily: 'Poppins_700Bold', color: Colors.ink },
+  headerTitle: { flex: 1, fontSize: 20, fontFamily: 'Satoshi_500Medium', color: Colors.ink },
   coinsBadge: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
     backgroundColor: Colors.ink,
@@ -605,7 +605,7 @@ const S = StyleSheet.create({
   },
   trialPillText: { fontSize: 11, fontFamily: 'DMSans_700Bold', color: '#fff', letterSpacing: 0.8 },
   heroTitle: {
-    fontSize: 26, fontFamily: 'Poppins_700Bold', color: '#fff',
+    fontSize: 26, fontFamily: 'Satoshi_500Medium', color: '#fff',
     textAlign: 'center', lineHeight: 34, marginBottom: 10,
   },
   heroSub: {
@@ -613,7 +613,7 @@ const S = StyleSheet.create({
     color: 'rgba(255,255,255,0.6)', textAlign: 'center', lineHeight: 20, marginBottom: 20,
   },
   priceRow: { flexDirection: 'row', alignItems: 'baseline', marginBottom: 4 },
-  priceAmount: { fontSize: 36, fontFamily: 'Poppins_700Bold', color: '#fff' },
+  priceAmount: { fontSize: 36, fontFamily: 'Satoshi_500Medium', color: '#fff' },
   pricePer:    { fontSize: 16, fontFamily: 'DMSans_400Regular', color: 'rgba(255,255,255,0.7)' },
   priceSub:    { fontSize: 11, fontFamily: 'DMSans_400Regular', color: 'rgba(255,255,255,0.45)', marginBottom: 20 },
   heroBtn: {
@@ -627,7 +627,7 @@ const S = StyleSheet.create({
   // ── Plans ──
   planSecTitle: {
     fontSize: 22,
-    fontFamily: 'Poppins_700Bold',
+    fontFamily: 'Satoshi_500Medium',
     color: Colors.ink,
     marginBottom: 14,
   },
@@ -739,7 +739,7 @@ const S = StyleSheet.create({
 
   // ── Section title ──
   secTitle: {
-    fontSize: 20, fontFamily: 'Poppins_600SemiBold',
+    fontSize: 20, fontFamily: 'Satoshi_500Medium',
     color: Colors.ink, marginBottom: 14,
   },
 
@@ -819,7 +819,7 @@ const S = StyleSheet.create({
     alignItems: 'center', marginTop: 10,
   },
   bottomCtaTitle: {
-    fontSize: 18, fontFamily: 'Poppins_700Bold',
+    fontSize: 18, fontFamily: 'Satoshi_500Medium',
     color: '#fff', textAlign: 'center', marginBottom: 6,
   },
   bottomCtaSub: {

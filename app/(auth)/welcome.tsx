@@ -1,153 +1,231 @@
 import { Image } from 'expo-image';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../../src/theme/colors';
+import { Fonts } from '../../src/theme/typography';
+import {
+  MARKETING_CTA_PRIMARY,
+  MARKETING_CTA_SECONDARY,
+  MARKETING_HERO_SUBTITLE,
+  MARKETING_HERO_TITLE,
+  MARKETING_WELCOME_FEATURES,
+} from '../../src/constants/marketingCopy';
 
 export default function WelcomeScreen() {
   const router = useRouter();
 
   return (
     <SafeAreaView style={S.safe}>
-
-      <View style={S.logoZone}>
-        <View style={S.avatarShell}>
-          <View style={S.avatarRing}>
-            <Image
-              source={require('../../assets/welcome-avatar.png')}
-              style={S.avatar}
-              contentFit="cover"
-              accessibilityLabel="Black Cotton, mascotte Coton Noir"
-            />
+      <ScrollView
+        contentContainerStyle={S.scroll}
+        showsVerticalScrollIndicator={false}
+        bounces={false}
+      >
+        <View style={S.logoZone}>
+          <View style={S.avatarShell}>
+            <View style={S.avatarRing}>
+              <Image
+                source={require('../../assets/welcome-avatar.png')}
+                style={S.avatar}
+                contentFit="cover"
+                accessibilityLabel="Black Cotton, mascotte Coton Noir"
+              />
+            </View>
           </View>
         </View>
-      </View>
 
-      {/* Tagline */}
-      <View style={S.taglineZone}>
-        <Text style={S.tagline}>La routine capillaire{'\n'}faite pour toi.</Text>
-        <Text style={S.sub}>
-          Personnalisée, gamifiée et pensée{'\n'}pour les cheveux afro & bouclés.
-        </Text>
-      </View>
+        <View style={S.taglineZone}>
+          <Text style={S.tagline}>{MARKETING_HERO_TITLE}</Text>
+          <Text style={S.sub}>{MARKETING_HERO_SUBTITLE}</Text>
+        </View>
 
-      {/* Stats sociales */}
-      <View style={S.statsRow}>
-        {[
-          { val: '+2 000', label: 'utilisatrices' },
-          { val: '4.9 ★', label: 'note moyenne'  },
-          { val: '100%', label: 'naturel'         },
-        ].map((s, i) => (
-          <View key={i} style={S.statBox}>
-            <Text style={S.statVal}>{s.val}</Text>
-            <Text style={S.statLabel}>{s.label}</Text>
-          </View>
-        ))}
-      </View>
+        <Text style={S.featuresHeading}>Tout ce qu'il te faut</Text>
+        <View style={S.featuresCard}>
+          {MARKETING_WELCOME_FEATURES.map((f, i) => (
+            <View
+              key={f.title}
+              style={[S.featureRow, i < MARKETING_WELCOME_FEATURES.length - 1 && S.featureRowBorder]}
+            >
+              <View style={S.featureIconWrap}>
+                <Ionicons name={f.icon} size={18} color={Colors.amberDark} />
+              </View>
+              <View style={S.featureTextWrap}>
+                <Text style={S.featureTitle}>{f.title}</Text>
+                <Text style={S.featureSub}>{f.subtitle}</Text>
+              </View>
+            </View>
+          ))}
+        </View>
 
-      {/* CTAs */}
-      <View style={S.ctaZone}>
-        <TouchableOpacity
-          style={S.primaryBtn}
-          onPress={() => router.push('/(auth)/onboarding')}
-        >
-          <Text style={S.primaryBtnText}>
-            Commencer mon diagnostic{' '}
-            <Text style={S.primaryBtnAccent}>→</Text>
-          </Text>
-        </TouchableOpacity>
+        <View style={S.ctaZone}>
+          <TouchableOpacity
+            style={S.primaryBtn}
+            onPress={() => router.push('/(auth)/onboarding')}
+            activeOpacity={0.88}
+          >
+            <Text style={S.primaryBtnText}>
+              {MARKETING_CTA_PRIMARY}{' '}
+              <Text style={S.primaryBtnAccent}>→</Text>
+            </Text>
+          </TouchableOpacity>
 
-        <TouchableOpacity
-          style={S.secondaryBtn}
-          onPress={() => router.push('/(auth)/login')}
-        >
-          <Text style={S.secondaryBtnText}>J'ai déjà un compte</Text>
-        </TouchableOpacity>
-      </View>
+          <TouchableOpacity
+            style={S.secondaryBtn}
+            onPress={() => router.push('/(auth)/login')}
+            activeOpacity={0.88}
+          >
+            <Text style={S.secondaryBtnText}>{MARKETING_CTA_SECONDARY}</Text>
+          </TouchableOpacity>
 
+          <Text style={S.footerNote}>Fait avec amour pour les cheveux texturés.</Text>
+        </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }
 
 const S = StyleSheet.create({
-  safe: {
-    flex: 1, backgroundColor: Colors.bg,
-    justifyContent: 'space-between', paddingHorizontal: 28,
+  safe: { flex: 1, backgroundColor: Colors.bg },
+  scroll: {
+    flexGrow: 1,
+    paddingHorizontal: 28,
+    paddingBottom: 24,
+    justifyContent: 'space-between',
   },
 
   logoZone: {
-    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingTop: 12,
+    paddingTop: 8,
+    paddingBottom: 8,
   },
   avatarShell: {
-    width: 214,
-    height: 214,
-    borderRadius: 107,
+    width: 168,
+    height: 168,
+    borderRadius: 84,
     backgroundColor: Colors.border,
-    padding: 7,
+    padding: 6,
     alignItems: 'center',
     justifyContent: 'center',
   },
   avatarRing: {
-    width: 200,
-    height: 200,
-    borderRadius: 100,
+    width: 156,
+    height: 156,
+    borderRadius: 78,
     overflow: 'hidden',
     backgroundColor: Colors.bg,
   },
   avatar: {
-    width: 200,
-    height: 200,
+    width: 156,
+    height: 156,
     transform: [{ scale: 1.12 }],
   },
 
-  taglineZone: { alignItems: 'center', marginBottom: 28 },
+  taglineZone: { alignItems: 'center', marginBottom: 20 },
   tagline: {
-    fontSize: 30, fontFamily: 'Poppins_700Bold',
-    color: Colors.ink, textAlign: 'center', lineHeight: 38, marginBottom: 12,
+    fontSize: 24,
+    fontFamily: Fonts.display,
+    color: Colors.ink,
+    textAlign: 'center',
+    lineHeight: 32,
+    marginBottom: 10,
   },
   sub: {
-    fontSize: 14, fontFamily: 'DMSans_400Regular',
-    color: Colors.warmGray, textAlign: 'center', lineHeight: 22,
+    fontSize: 14,
+    fontFamily: 'DMSans_400Regular',
+    color: Colors.warmGray,
+    textAlign: 'center',
+    lineHeight: 21,
+    maxWidth: 320,
   },
 
-  statsRow: {
-    flexDirection: 'row', justifyContent: 'space-between',
+  featuresHeading: {
+    fontSize: 12,
+    fontFamily: 'DMSans_700Bold',
+    color: Colors.warmGray,
+    letterSpacing: 0.6,
+    textTransform: 'uppercase',
+    marginBottom: 10,
+    textAlign: 'center',
+  },
+  featuresCard: {
     backgroundColor: Colors.surface,
-    borderWidth: 1, borderColor: Colors.border,
-    borderRadius: 18, paddingVertical: 16, paddingHorizontal: 20,
-    marginBottom: 28,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: 18,
+    marginBottom: 22,
+    overflow: 'hidden',
   },
-  statBox:  { alignItems: 'center', flex: 1 },
-  statVal:  { fontSize: 18, fontFamily: 'DMSans_700Bold', color: Colors.ink, marginBottom: 2 },
-  statLabel:{ fontSize: 11, fontFamily: 'DMSans_400Regular', color: Colors.warmGray },
+  featureRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 13,
+  },
+  featureRowBorder: {
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: Colors.border,
+  },
+  featureIconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: Colors.amberLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 1,
+  },
+  featureTextWrap: { flex: 1, minWidth: 0 },
+  featureTitle: {
+    fontSize: 14,
+    fontFamily: Fonts.display,
+    color: Colors.ink,
+    marginBottom: 3,
+  },
+  featureSub: {
+    fontSize: 12,
+    fontFamily: 'DMSans_400Regular',
+    color: Colors.warmGray,
+    lineHeight: 17,
+  },
 
-  ctaZone: { paddingBottom: 20, gap: 12 },
+  ctaZone: { gap: 12, paddingTop: 4 },
   primaryBtn: {
     backgroundColor: Colors.ink,
     borderRadius: 18,
-    paddingVertical: 18,
+    paddingVertical: 17,
     alignItems: 'center',
   },
   primaryBtnText: {
     fontSize: 16,
-    fontFamily: 'DMSans_700Bold',
+    fontFamily: Fonts.display,
     color: Colors.white,
   },
   primaryBtnAccent: {
     color: Colors.amber,
-    fontFamily: 'DMSans_700Bold',
+    fontFamily: Fonts.display,
   },
-
   secondaryBtn: {
-    borderRadius: 18, paddingVertical: 14,
-    alignItems: 'center', borderWidth: 1,
+    borderRadius: 18,
+    paddingVertical: 14,
+    alignItems: 'center',
+    borderWidth: 1,
     borderColor: Colors.border,
+    backgroundColor: Colors.surface,
   },
   secondaryBtnText: {
-    fontSize: 14, fontFamily: 'DMSans_500Medium',
+    fontSize: 14,
+    fontFamily: 'DMSans_600SemiBold',
+    color: Colors.ink,
+  },
+  footerNote: {
+    fontSize: 11,
+    fontFamily: 'DMSans_400Regular',
     color: Colors.warmGray,
+    textAlign: 'center',
+    marginTop: 4,
   },
 });

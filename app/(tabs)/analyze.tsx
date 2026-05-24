@@ -5,6 +5,7 @@ import * as ImageManipulator from 'expo-image-manipulator';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { BackButton } from '../../src/components/BackButton';
 import { Colors } from '../../src/theme/colors';
 import { useApp } from '../../src/context/AppContext';
 import { usePremium } from '../../src/context/PremiumContext';
@@ -20,14 +21,19 @@ import type { HairAnalysis, HairQuestionnaire } from '../../src/services/coachAp
 import { hapticLight, hapticMedium, hapticSelection, hapticSuccess } from '../../src/lib/haptics';
 import { CC_ANALYSIS_COMPLETE, PTS_ANALYSIS_COMPLETE } from '../../src/lib/cotonCoins';
 import { EmptyAnimation } from '../../src/components/animations/EmptyAnimation';
-import { PRODUCTS, type Product } from '../../src/data/products';
 import {
   fetchHairAnalysisHistory,
   formatAnalysisDate,
   type HairAnalysisSummary,
 } from '../../src/lib/hairAnalysisHistory';
 import { saveAnalysisDraft } from '../../src/lib/analysisDraftStorage';
-import { matchRecipesFromTags } from '../../src/lib/matchRecipesFromTags';
+import {
+  buildPersonalizationContext,
+  matchCatalogProducts,
+  matchCatalogRecipes,
+  PERSONALIZATION_RECO_DISCLAIMER,
+  sanitizeAnalysisTags,
+} from '../../src/lib/hairPersonalization';
 import { trackProductEvent } from '../../src/lib/productAnalytics';
 import {
   analysisJourneyProgress,
@@ -36,20 +42,24 @@ import {
   type AnalysisJourney,
 } from '../../src/lib/analysisJourney';
 import { scheduleAnalysisFollowUpReminder } from '../../src/lib/analysisFollowUpReminder';
-import { applyAnalysisRoutineNow } from '../../src/lib/applyRoutinePlan';
+import { applyProfileRoutineNow } from '../../src/lib/applyRoutinePlan';
+import { ScanEntryCard } from '../../src/components/hairScan/ScanEntryCard';
+import { HairZoneScanner, type ScanPhoto } from '../../src/components/hairScan/HairZoneScanner';
+import { HAIR_SCAN_ZONES } from '../../src/constants/hairScanZones';
+import { Fonts } from '../../src/theme/typography';
 
 const MIN_PHOTOS = 2;
 
-type Phase = 'empty' | 'questions' | 'loading' | 'results';
+type Phase = 'empty' | 'scan' | 'questions' | 'loading' | 'results';
 type Tab   = 'problems' | 'advice' | 'routine' | 'ingredients';
 
-type PhotoSlot = { uri: string; base64: string; mimeType: string } | null;
+type PhotoSlot = ScanPhoto | null;
 
-const PHOTO_SLOTS = [
-  { label: 'Racines',    sub: 'Cuir chevelu',        emoji: '🌱' },
-  { label: 'Longueurs',  sub: 'Milieu des mèches',   emoji: '💇' },
-  { label: 'Pointes',    sub: 'Extrémités',           emoji: '✂️' },
-];
+const PHOTO_SLOTS = HAIR_SCAN_ZONES.map(z => ({
+  label: z.label,
+  sub: z.title,
+  emoji: z.emoji,
+}));
 
 // ── Questionnaire ────────────────────────────────────────────────────────
 type QId = keyof HairQuestionnaire;
@@ -181,35 +191,6 @@ const TIPS = [
   { e: '🌿', title: 'Cheveux propres',    tip: "Analyse toujours sur cheveux propres et sans produits." },
 ];
 
-// Mapping tag → catégorie produit pour générer des recommandations locales.
-const TAG_TO_CAT: Record<string, Product['cat'][]> = {
-  hydratation:        ['mask', 'leave', 'cond'],
-  sécheresse:         ['mask', 'oil', 'leave'],
-  casse:              ['mask', 'oil', 'leave'],
-  protéines:          ['mask', 'leave'],
-  scellage:           ['oil'],
-  frisottis:          ['style', 'oil', 'leave'],
-  brillance:          ['oil', 'style'],
-  pousse:             ['oil', 'compl'],
-  scalp:              ['oil', 'sham'],
-  'anti-buildup':     ['sham'],
-  'leave-in':         ['leave'],
-  'après-shampoing':  ['cond'],
-  masque:             ['mask'],
-  huile:              ['oil'],
-};
-
-function matchProducts(tags: string[] | undefined, limit = 4): Product[] {
-  if (!tags || tags.length === 0) return [];
-  const wantedCats = new Set<Product['cat']>();
-  for (const t of tags) {
-    const cats = TAG_TO_CAT[t.toLowerCase()];
-    if (cats) cats.forEach(c => wantedCats.add(c));
-  }
-  if (wantedCats.size === 0) return PRODUCTS.slice(0, limit);
-  return PRODUCTS.filter(p => wantedCats.has(p.cat)).slice(0, limit);
-}
-
 export default function AnalyzeScreen() {
   const router = useRouter();
   const { state, dispatch, grantCoinsSecure, queueBcTrigger } = useApp();
@@ -219,6 +200,7 @@ export default function AnalyzeScreen() {
   const [tab, setTab]             = useState<Tab>('problems');
   const [shared, setShared]       = useState(false);
   const [photos, setPhotos]       = useState<PhotoSlot[]>([null, null, null]);
+  const [showManualSlots, setShowManualSlots] = useState(false);
   const [analysis, setAnalysis]   = useState<HairAnalysis | null>(null);
   const [analysisError, setError] = useState<string | null>(null);
 
@@ -262,9 +244,18 @@ export default function AnalyzeScreen() {
   const mainPhotoUri = displayPhotos.find(Boolean)?.uri ?? null;
   const journeyProg = analysisJourneyProgress(journey);
 
+  const personalizationCtx = useMemo(
+    () =>
+      buildPersonalizationContext(
+        state.profile,
+        sanitizeAnalysisTags(analysis?.recommendedTags),
+      ),
+    [state.profile, analysis?.recommendedTags],
+  );
+
   const recommendedRecipes = useMemo(
-    () => matchRecipesFromTags(analysis?.recommendedTags, 4),
-    [analysis?.recommendedTags],
+    () => matchCatalogRecipes(personalizationCtx, 4),
+    [personalizationCtx],
   );
 
   const scoreDelta = useMemo(() => {
@@ -489,17 +480,18 @@ export default function AnalyzeScreen() {
   const synthesis = analysis?.synthesis ?? 'Bonne base bouclée mais sécheresse marquée. Une routine hydratation + scellage devrait remonter ton score à 80+ en 6 semaines.';
 
   const recommendedProducts = useMemo(
-    () => matchProducts(analysis?.recommendedTags),
-    [analysis?.recommendedTags],
+    () => matchCatalogProducts(personalizationCtx, 4),
+    [personalizationCtx],
   );
 
   function handleApplyRoutineNow() {
-    if (!analysis?.routine?.length) {
-      Alert.alert('Routine indisponible', 'Relance une analyse pour obtenir des étapes.');
-      return;
-    }
     hapticSuccess();
-    const err = applyAnalysisRoutineNow(dispatch, analysis.routine, analysis.synthesis, 'daily');
+    const err = applyProfileRoutineNow(
+      dispatch,
+      state.profile,
+      analysis?.synthesis,
+      'daily',
+    );
     if (err) {
       Alert.alert('Routine incomplète', err);
       return;
@@ -524,10 +516,31 @@ export default function AnalyzeScreen() {
     setQIndex(0);
     setCoinsAwarded(false);
     setPreviousScore(null);
+    setShowManualSlots(false);
+  };
+
+  const handleScanPhoto = (index: number, photo: ScanPhoto) => {
+    const next = [...photos];
+    next[index] = photo;
+    setPhotos(next);
   };
 
   return (
     <SafeAreaView style={s.safe} edges={['top']}>
+      {phase === 'scan' ? (
+        <HairZoneScanner
+          photos={photos}
+          onPhoto={handleScanPhoto}
+          onClose={() => setPhase('empty')}
+          onComplete={() => {
+            setShowManualSlots(false);
+            setPhase('empty');
+            hapticMedium();
+          }}
+          minPhotos={MIN_PHOTOS}
+        />
+      ) : null}
+
       <View style={s.topbar}>
         <Text style={s.topbarTitle}>Analyse Black Cotton</Text>
         <TouchableOpacity style={s.coinsBadge} onPress={() => router.push('/rewards')}>
@@ -575,67 +588,90 @@ export default function AnalyzeScreen() {
               </View>
             </View>
 
-            <View style={s.emptyCard}>
-              <Text style={s.emptyTitle}>Étape 1 — Ajoute tes photos</Text>
-              <Text style={s.emptyDesc}>
-                3 photos idéales (racines, longueurs, pointes) — minimum {MIN_PHOTOS} pour lancer l'analyse.
-                Cheveux propres, lumière naturelle.
+            <ScanEntryCard onStartScan={() => setPhase('scan')} />
+
+            {!hasAccess ? (
+              <Text style={s.quotaHintStandalone}>
+                {FREE_ANALYSES_PER_MONTH} analyses gratuites / mois · illimité avec Premium
               </Text>
-              {!hasAccess ? (
-                <Text style={s.quotaHint}>
-                  {FREE_ANALYSES_PER_MONTH} analyses gratuites / mois · illimité avec Premium
-                </Text>
-              ) : null}
+            ) : null}
 
-              <View style={s.photoSlots}>
-                {PHOTO_SLOTS.map((slot, i) => (
-                  <TouchableOpacity
-                    key={i}
-                    style={[s.photoSlot, photos[i] && s.photoSlotFilled]}
-                    onPress={() => pickPhoto(i)}
-                    activeOpacity={0.75}
-                  >
-                    {photos[i] ? (
-                      <>
-                        <Image source={{ uri: photos[i]!.uri }} style={s.photoSlotImg} />
-                        <View style={s.photoSlotCheck}>
-                          <Text style={{ fontSize: 11, color: '#fff' }}>✓</Text>
-                        </View>
-                      </>
-                    ) : (
-                      <>
-                        <Text style={s.photoSlotEmoji}>{slot.emoji}</Text>
-                        <Text style={s.photoSlotLabel}>{slot.label}</Text>
-                        <Text style={s.photoSlotSub}>{slot.sub}</Text>
-                        <View style={s.photoSlotPlus}>
-                          <Text style={{ fontSize: 16, color: Colors.warmGray }}>+</Text>
-                        </View>
-                      </>
-                    )}
-                  </TouchableOpacity>
-                ))}
-              </View>
-
-              {filledCount > 0 && filledCount < 3 && (
-                <Text style={s.photoHint}>
-                  {filledCount === 1
-                    ? '💡 Ajoute longueurs ou pointes pour un diagnostic plus précis.'
-                    : '💡 Une 3ᵉ photo (pointes) affine encore le score.'}
-                </Text>
-              )}
-
+            {filledCount === 0 && !showManualSlots ? (
               <TouchableOpacity
-                style={[s.analyzeBtn, filledCount < MIN_PHOTOS && s.analyzeBtnDisabled]}
-                onPress={startQuestionnaire}
-                disabled={filledCount < MIN_PHOTOS}
+                style={s.galleryLink}
+                onPress={() => setShowManualSlots(true)}
               >
-                <Text style={s.analyzeBtnText}>
-                  {filledCount < MIN_PHOTOS
-                    ? `📸 ${MIN_PHOTOS} photos minimum (${filledCount}/${MIN_PHOTOS})`
-                    : `Continuer · ${filledCount}/3 photo${filledCount > 1 ? 's' : ''}  →`}
-                </Text>
+                <Text style={s.galleryLinkText}>Importer depuis la galerie sans le scan</Text>
               </TouchableOpacity>
-            </View>
+            ) : null}
+
+            {(filledCount > 0 || showManualSlots) ? (
+              <View style={s.emptyCard}>
+                <Text style={s.emptyTitle}>
+                  {filledCount > 0 ? 'Tes zones capturées' : 'Importer tes 3 zones'}
+                </Text>
+                <Text style={s.emptyDesc}>
+                  Racines, longueurs, pointes — minimum {MIN_PHOTOS} pour le diagnostic.
+                </Text>
+
+                <View style={s.photoSlots}>
+                  {PHOTO_SLOTS.map((slot, i) => (
+                    <TouchableOpacity
+                      key={i}
+                      style={[s.photoSlot, photos[i] && s.photoSlotFilled]}
+                      onPress={() => {
+                        if (photos[i] || showManualSlots) pickPhoto(i);
+                        else setPhase('scan');
+                      }}
+                      activeOpacity={0.75}
+                    >
+                      {photos[i] ? (
+                        <>
+                          <Image source={{ uri: photos[i]!.uri }} style={s.photoSlotImg} />
+                          <View style={s.photoSlotCheck}>
+                            <Text style={{ fontSize: 11, color: '#fff' }}>✓</Text>
+                          </View>
+                        </>
+                      ) : (
+                        <>
+                          <Text style={s.photoSlotEmoji}>{slot.emoji}</Text>
+                          <Text style={s.photoSlotLabel}>{slot.label}</Text>
+                          <View style={s.photoSlotPlus}>
+                            <Text style={{ fontSize: 16, color: Colors.warmGray }}>+</Text>
+                          </View>
+                        </>
+                      )}
+                    </TouchableOpacity>
+                  ))}
+                </View>
+
+                {filledCount > 0 && filledCount < 3 ? (
+                  <Text style={s.photoHint}>
+                    {filledCount === 1
+                      ? '💡 Ajoute longueurs ou pointes pour un diagnostic plus précis.'
+                      : '💡 Une 3ᵉ photo (pointes) affine encore le score.'}
+                  </Text>
+                ) : null}
+
+                {filledCount > 0 ? (
+                  <TouchableOpacity style={s.rescanLink} onPress={() => setPhase('scan')}>
+                    <Text style={s.rescanLinkText}>Refaire le scan guidé</Text>
+                  </TouchableOpacity>
+                ) : null}
+
+                <TouchableOpacity
+                  style={[s.analyzeBtn, filledCount < MIN_PHOTOS && s.analyzeBtnDisabled]}
+                  onPress={startQuestionnaire}
+                  disabled={filledCount < MIN_PHOTOS}
+                >
+                  <Text style={s.analyzeBtnText}>
+                    {filledCount < MIN_PHOTOS
+                      ? `📸 ${MIN_PHOTOS} photos minimum (${filledCount}/${MIN_PHOTOS})`
+                      : `Continuer · ${filledCount}/3 photo${filledCount > 1 ? 's' : ''}  →`}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            ) : null}
 
             <View style={s.tipCard}>
               <Text style={s.tipText}>💡 Plus tu fournis de photos et de réponses précises, plus le diagnostic Black Cotton sera fiable.</Text>
@@ -732,10 +768,12 @@ export default function AnalyzeScreen() {
 
             {/* Nav buttons */}
             <View style={s.qNavRow}>
-              <TouchableOpacity style={s.qNavBack} onPress={goPrevQuestion}>
-                <Ionicons name="chevron-back" size={16} color={Colors.ink} />
-                <Text style={s.qNavBackText}>{qIndex === 0 ? 'Photos' : 'Retour'}</Text>
-              </TouchableOpacity>
+              <BackButton
+                compact
+                style={s.qNavBack}
+                label={qIndex === 0 ? 'Photos' : 'Retour'}
+                onPress={goPrevQuestion}
+              />
 
               {currentQuestion.optional && !answers[currentQuestion.id] && (
                 <TouchableOpacity style={s.qNavSkip} onPress={skipQuestion}>
@@ -948,44 +986,52 @@ export default function AnalyzeScreen() {
               ))}
             </View>
 
-            {tab === 'problems' && problems.map((p, i) => {
-              const st = SEV_STYLES[p.sev] ?? SEV_STYLES.low;
-              return (
-                <View key={i} style={[s.problemCard, { backgroundColor: st.bg, marginBottom: 10 }]}>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 6 }}>
-                    <Text style={{ fontSize: 18 }}>{p.emoji}</Text>
-                    <Text style={[s.problemName, { color: st.text, flex: 1 }]}>{p.name}</Text>
-                    <View style={[s.sevBadge, { backgroundColor: st.dot }]}>
-                      <Text style={s.sevBadgeText}>{st.label}</Text>
-                    </View>
-                  </View>
-                  <Text style={[s.problemDesc, { color: st.text }]}>{p.desc}</Text>
-                </View>
-              );
-            })}
-
-            {tab === 'advice' && advice.map((a, i) => {
-              const c = ADVICE_COLORS[a.type] ?? ADVICE_COLORS.soin;
-              return (
-                <View key={i} style={[s.card, { padding: 12, marginBottom: 10 }]}>
-                  <View style={{ flexDirection: 'row', gap: 12, alignItems: 'flex-start' }}>
-                    <View style={s.adviceIconBox}><Text style={{ fontSize: 20 }}>{a.icon}</Text></View>
-                    <View style={{ flex: 1 }}>
-                      <View style={[s.adviceTypeBadge, { backgroundColor: c.bg }]}>
-                        <Text style={[s.adviceTypeText, { color: c.text }]}>{a.type.toUpperCase()}</Text>
+            {tab === 'problems' && (
+              <View style={s.insightList}>
+                {problems.map((p, i) => {
+                  const st = SEV_STYLES[p.sev] ?? SEV_STYLES.low;
+                  return (
+                    <View key={i} style={s.insightCard}>
+                      <View style={s.insightHeader}>
+                        <Text style={s.insightEmoji}>{p.emoji}</Text>
+                        <Text style={s.insightTitle}>{p.name}</Text>
+                        <View style={[s.sevPill, { borderColor: st.dot }]}>
+                          <Text style={[s.sevPillText, { color: st.dot }]}>{st.label}</Text>
+                        </View>
                       </View>
-                      <Text style={s.adviceTitle}>{a.t}</Text>
-                      <Text style={s.adviceDesc}>{a.d}</Text>
+                      <Text style={s.insightBody}>{p.desc}</Text>
                     </View>
-                  </View>
-                  {a.type === 'produit' && (
-                    <TouchableOpacity style={s.shopBtn} onPress={() => router.push('/shop')}>
-                      <Text style={s.shopBtnText}>🛍️ Voir dans la boutique</Text>
-                    </TouchableOpacity>
-                  )}
-                </View>
-              );
-            })}
+                  );
+                })}
+              </View>
+            )}
+
+            {tab === 'advice' && (
+              <View style={s.insightList}>
+                {advice.map((a, i) => {
+                  const c = ADVICE_COLORS[a.type] ?? ADVICE_COLORS.soin;
+                  return (
+                    <View key={i} style={s.insightCard}>
+                      <View style={s.insightHeader}>
+                        <Text style={s.insightEmoji}>{a.icon}</Text>
+                        <View style={{ flex: 1 }}>
+                          <Text style={[s.insightKicker, { color: c.text }]}>
+                            {a.type.toUpperCase()}
+                          </Text>
+                          <Text style={s.insightTitle}>{a.t}</Text>
+                        </View>
+                      </View>
+                      <Text style={s.insightBody}>{a.d}</Text>
+                      {a.type === 'produit' ? (
+                        <TouchableOpacity style={s.shopBtn} onPress={() => router.push('/shop')}>
+                          <Text style={s.shopBtnText}>Voir dans la boutique →</Text>
+                        </TouchableOpacity>
+                      ) : null}
+                    </View>
+                  );
+                })}
+              </View>
+            )}
 
             {tab === 'routine' && (
               <View>
@@ -1066,7 +1112,7 @@ export default function AnalyzeScreen() {
                     <Text style={s.recoSeeAll}>Voir tout →</Text>
                   </TouchableOpacity>
                 </View>
-                <Text style={s.recoSub}>Sélectionnés selon ton diagnostic.</Text>
+                <Text style={s.recoSub}>{PERSONALIZATION_RECO_DISCLAIMER}</Text>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12, paddingVertical: 4 }}>
                   {recommendedProducts.map((p, i) => (
                     <TouchableOpacity
@@ -1176,10 +1222,10 @@ const s = StyleSheet.create({
 
   topbar: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    paddingHorizontal: 20, paddingVertical: 12,
+    paddingHorizontal: 20, paddingTop: 12, paddingBottom: 16,
     backgroundColor: Colors.bg, borderBottomWidth: 1, borderBottomColor: Colors.border,
   },
-  topbarTitle: { fontSize: 20, fontFamily: 'Poppins_700Bold', color: Colors.ink },
+  topbarTitle: { fontSize: 20, fontFamily: 'Satoshi_500Medium', color: Colors.ink },
   coinsBadge:  { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: Colors.ink, borderRadius: 999, paddingHorizontal: 14, paddingVertical: 7 },
   coinsText:   { fontSize: 15, fontFamily: 'DMSans_700Bold', color: Colors.amber },
 
@@ -1187,7 +1233,7 @@ const s = StyleSheet.create({
   errorText:   { fontSize: 13, fontFamily: 'DMSans_400Regular', color: '#7A1F1F', lineHeight: 18 },
 
   /* Stepper */
-  stepper:       { paddingHorizontal: 8, marginTop: 14, marginBottom: 4 },
+  stepper:       { paddingHorizontal: 8, marginTop: 22, marginBottom: 28 },
   stepperRow:    { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   stepDot:       { width: 26, height: 26, borderRadius: 13, backgroundColor: Colors.cream, borderWidth: 1.5, borderColor: Colors.border, alignItems: 'center', justifyContent: 'center' },
   stepDotActive: { backgroundColor: Colors.ink, borderColor: Colors.ink },
@@ -1207,7 +1253,7 @@ const s = StyleSheet.create({
     borderRadius: 24, backgroundColor: Colors.cream,
     padding: 20, alignItems: 'center', marginTop: 14,
   },
-  emptyTitle: { fontSize: 20, fontFamily: 'Poppins_700Bold', color: Colors.ink, marginBottom: 6, textAlign: 'center' },
+  emptyTitle: { fontSize: 20, fontFamily: 'Satoshi_500Medium', color: Colors.ink, marginBottom: 6, textAlign: 'center' },
   emptyDesc:  { fontSize: 13, fontFamily: 'DMSans_400Regular', color: Colors.warmGray, textAlign: 'center', lineHeight: 20, marginBottom: 10, maxWidth: 300 },
   quotaHint: {
     fontSize: 12,
@@ -1215,6 +1261,27 @@ const s = StyleSheet.create({
     color: Colors.amberDark,
     textAlign: 'center',
     marginBottom: 14,
+  },
+  quotaHintStandalone: {
+    fontSize: 12,
+    fontFamily: 'DMSans_600SemiBold',
+    color: Colors.amberDark,
+    textAlign: 'center',
+    marginTop: 12,
+    marginBottom: 8,
+  },
+  galleryLink: { alignItems: 'center', paddingVertical: 12, marginBottom: 8 },
+  galleryLinkText: {
+    fontSize: 13,
+    fontFamily: 'DMSans_500Medium',
+    color: Colors.warmGray,
+    textDecorationLine: 'underline',
+  },
+  rescanLink: { alignItems: 'center', marginBottom: 12 },
+  rescanLinkText: {
+    fontSize: 13,
+    fontFamily: Fonts.display,
+    color: Colors.amberDark,
   },
 
   /* Photo slots */
@@ -1248,7 +1315,7 @@ const s = StyleSheet.create({
   tipCard:  { backgroundColor: Colors.cream, borderRadius: 16, borderWidth: 1, borderColor: Colors.border, padding: 14, marginTop: 14 },
   tipText:  { fontSize: 12, fontFamily: 'DMSans_400Regular', color: Colors.warmGray, lineHeight: 18 },
 
-  secTitle: { fontSize: 20, fontFamily: 'Poppins_600SemiBold', color: Colors.ink, marginTop: 22, marginBottom: 12 },
+  secTitle: { fontSize: 20, fontFamily: 'Satoshi_500Medium', color: Colors.ink, marginTop: 22, marginBottom: 12 },
 
   emptyHistory:       { backgroundColor: Colors.cream, borderRadius: 18, padding: 28, alignItems: 'center' },
   emptyHistoryTitle:  { fontSize: 15, fontFamily: 'DMSans_700Bold', color: Colors.ink, marginBottom: 6, textAlign: 'center' },
@@ -1292,7 +1359,7 @@ const s = StyleSheet.create({
   qProgressBarFill:{ height: 6, borderRadius: 999, backgroundColor: Colors.amber },
 
   qCard:     { backgroundColor: '#fff', borderRadius: 20, borderWidth: 1, borderColor: Colors.border, padding: 18 },
-  qTitle:    { fontSize: 18, fontFamily: 'Poppins_700Bold', color: Colors.ink, marginBottom: 4 },
+  qTitle:    { fontSize: 18, fontFamily: 'Satoshi_500Medium', color: Colors.ink, marginBottom: 4 },
   qSubtitle: { fontSize: 12, fontFamily: 'DMSans_400Regular', color: Colors.warmGray, lineHeight: 18, marginBottom: 14 },
   qOptions:  { gap: 8 },
   qOption: {
@@ -1317,8 +1384,7 @@ const s = StyleSheet.create({
   qOptionRadioDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: Colors.ink },
 
   qNavRow:   { flexDirection: 'row', gap: 10, marginTop: 16, alignItems: 'center' },
-  qNavBack:  { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: Colors.cream, borderWidth: 1, borderColor: Colors.border, borderRadius: 14, paddingHorizontal: 14, paddingVertical: 12 },
-  qNavBackText: { fontSize: 13, fontFamily: 'DMSans_600SemiBold', color: Colors.ink },
+  qNavBack:  { paddingVertical: 8 },
   qNavSkip:    { paddingHorizontal: 12, paddingVertical: 12 },
   qNavSkipText:{ fontSize: 13, fontFamily: 'DMSans_500Medium', color: Colors.warmGray, textDecorationLine: 'underline' },
   qNavNext:    { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, backgroundColor: Colors.ink, borderRadius: 14, paddingHorizontal: 14, paddingVertical: 13 },
@@ -1332,7 +1398,7 @@ const s = StyleSheet.create({
   photoPh:      { height: 220, borderRadius: 20, backgroundColor: Colors.cream, borderWidth: 1, borderColor: Colors.border, alignItems: 'center', justifyContent: 'center', marginTop: 12, overflow: 'hidden' },
   photoPhText:  { fontSize: 12, fontFamily: 'DMSans_400Regular', color: Colors.warmGray },
   loadingCard:  { backgroundColor: Colors.cream, borderRadius: 16, borderWidth: 1, borderColor: Colors.border, padding: 22, marginTop: 14, alignItems: 'center' },
-  loadingTitle: { fontSize: 20, fontFamily: 'Poppins_600SemiBold', color: Colors.ink, marginBottom: 16 },
+  loadingTitle: { fontSize: 20, fontFamily: 'Satoshi_500Medium', color: Colors.ink, marginBottom: 16 },
   loadingStep:  { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 12, width: '100%' },
   loadingDot:   { width: 14, height: 14, borderRadius: 7 },
   loadingLabel: { fontSize: 13, fontFamily: 'DMSans_400Regular' },
@@ -1345,7 +1411,7 @@ const s = StyleSheet.create({
     backgroundColor: Colors.amberDark, alignItems: 'center', justifyContent: 'center',
     shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 8, elevation: 4,
   },
-  scoreRingVal: { fontSize: 18, fontFamily: 'Poppins_700Bold', color: '#fff', lineHeight: 20 },
+  scoreRingVal: { fontSize: 18, fontFamily: 'Satoshi_500Medium', color: '#fff', lineHeight: 20 },
   scoreRingSub: { fontSize: 9,  fontFamily: 'DMSans_400Regular', color: 'rgba(255,255,255,0.9)' },
 
   compareRow:   { flexDirection: 'row', gap: 10, marginTop: 12 },
@@ -1393,19 +1459,58 @@ const s = StyleSheet.create({
   segTextActive: { color: Colors.ink, fontFamily: 'DMSans_600SemiBold' },
 
   card:         { backgroundColor: Colors.surface, borderRadius: 16, borderWidth: 1, borderColor: Colors.border },
-  problemCard:  { borderRadius: 14, padding: 14 },
-  problemName:  { fontSize: 14, fontFamily: 'DMSans_600SemiBold' },
-  problemDesc:  { fontSize: 12, fontFamily: 'DMSans_400Regular', opacity: 0.85, lineHeight: 18 },
-  sevBadge:     { borderRadius: 999, paddingHorizontal: 8, paddingVertical: 3 },
-  sevBadgeText: { fontSize: 10, fontFamily: 'DMSans_600SemiBold', color: '#fff' },
-
-  adviceIconBox:   { width: 44, height: 44, borderRadius: 12, backgroundColor: '#fff', borderWidth: 1, borderColor: Colors.border, alignItems: 'center', justifyContent: 'center' },
-  adviceTypeBadge: { borderRadius: 999, paddingHorizontal: 8, paddingVertical: 2, alignSelf: 'flex-start', marginBottom: 4 },
-  adviceTypeText:  { fontSize: 10, fontFamily: 'DMSans_600SemiBold', letterSpacing: 0.4 },
-  adviceTitle:     { fontSize: 14, fontFamily: 'DMSans_600SemiBold', color: Colors.ink },
-  adviceDesc:      { fontSize: 12, fontFamily: 'DMSans_400Regular', color: Colors.warmGray, marginTop: 2 },
-  shopBtn:         { marginTop: 12, backgroundColor: Colors.ink, borderRadius: 10, paddingVertical: 9, alignItems: 'center' },
-  shopBtnText:     { fontSize: 12, fontFamily: 'DMSans_600SemiBold', color: '#fff' },
+  insightList:  { gap: 10, marginTop: 4 },
+  insightCard: {
+    backgroundColor: Colors.surface,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    padding: 16,
+  },
+  insightHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+    marginBottom: 8,
+  },
+  insightEmoji: { fontSize: 20, marginTop: 2 },
+  insightKicker: {
+    fontSize: 10,
+    fontFamily: Fonts.bodyBold,
+    letterSpacing: 0.8,
+    marginBottom: 2,
+  },
+  insightTitle: {
+    flex: 1,
+    fontSize: 15,
+    fontFamily: Fonts.display,
+    color: Colors.ink,
+    lineHeight: 21,
+  },
+  insightBody: {
+    fontSize: 13,
+    fontFamily: 'DMSans_400Regular',
+    color: Colors.warmGray,
+    lineHeight: 19,
+  },
+  sevPill: {
+    borderRadius: 999,
+    borderWidth: 1,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    alignSelf: 'flex-start',
+  },
+  sevPillText: { fontSize: 10, fontFamily: Fonts.bodyBold },
+  shopBtn: {
+    marginTop: 12,
+    alignSelf: 'flex-start',
+    paddingVertical: 4,
+  },
+  shopBtnText: {
+    fontSize: 13,
+    fontFamily: Fonts.display,
+    color: Colors.amberDark,
+  },
 
   routineNum:       { width: 28, height: 28, borderRadius: 14, backgroundColor: Colors.ink, alignItems: 'center', justifyContent: 'center' },
   routineNumText:   { fontSize: 12, fontFamily: 'DMSans_600SemiBold', color: '#fff' },
@@ -1448,7 +1553,7 @@ const s = StyleSheet.create({
     padding: 16,
   },
   recoHeader:  { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 2 },
-  recoTitle:   { fontSize: 15, fontFamily: 'Poppins_700Bold', color: Colors.ink, flexShrink: 1 },
+  recoTitle:   { fontSize: 15, fontFamily: 'Satoshi_500Medium', color: Colors.ink, flexShrink: 1 },
   recoSeeAll:  { fontSize: 12, fontFamily: 'DMSans_600SemiBold', color: Colors.ink },
   recoSub:     { fontSize: 11, fontFamily: 'DMSans_400Regular', color: '#5C3D08', marginBottom: 10 },
   recoCard:    { width: 140, backgroundColor: '#fff', borderRadius: 14, borderWidth: 1, borderColor: 'rgba(0,0,0,0.05)', padding: 8 },
@@ -1471,7 +1576,7 @@ const s = StyleSheet.create({
     padding: 16, backgroundColor: Colors.cream,
     borderBottomWidth: 1, borderBottomColor: Colors.border,
   },
-  tipsHeaderTitle: { fontSize: 15, fontFamily: 'Poppins_600SemiBold', color: Colors.ink },
+  tipsHeaderTitle: { fontSize: 15, fontFamily: 'Satoshi_500Medium', color: Colors.ink },
   tipsHeaderSub:   { fontSize: 11, fontFamily: 'DMSans_400Regular', color: Colors.warmGray, marginTop: 2 },
   tipRow:          { flexDirection: 'row', gap: 12, padding: 14 },
   tipRowBorder:    { borderBottomWidth: 1, borderBottomColor: Colors.border },

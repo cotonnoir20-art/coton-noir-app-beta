@@ -51,7 +51,7 @@ const S = StyleSheet.create({
   cardCompact: { marginHorizontal: 20 },
   top: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
   title: { flex: 1, fontSize: 14, fontFamily: 'DMSans_700Bold', color: Colors.ink, marginRight: 8 },
-  pct: { fontSize: 16, fontFamily: 'Poppins_700Bold', color: Colors.amberDark },
+  pct: { fontSize: 16, fontFamily: 'Satoshi_500Medium', color: Colors.amberDark },
   barBg: {
     height: 6,
     borderRadius: 999,

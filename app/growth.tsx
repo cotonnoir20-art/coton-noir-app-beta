@@ -16,6 +16,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { BackButton } from '../src/components/BackButton';
 import { Colors } from '../src/theme/colors';
 import { useApp, GrowthEntry } from '../src/context/AppContext';
 import { usePremium } from '../src/context/PremiumContext';
@@ -315,9 +316,7 @@ export default function GrowthScreen() {
 
       {/* ── Header ── */}
       <View style={S.header}>
-        <TouchableOpacity style={S.backBtn} onPress={() => router.back()}>
-          <Ionicons name="chevron-back" size={22} color={Colors.ink} />
-        </TouchableOpacity>
+        <BackButton onPress={() => router.back()} style={S.backBtn} />
         <Text style={S.headerTitle}>Progression</Text>
         <TouchableOpacity style={S.coinsBadge} onPress={() => router.push('/rewards')}>
           <CoinIcon size={16} />
@@ -677,7 +676,7 @@ export default function GrowthScreen() {
               <Ionicons name="trending-up-outline" size={20} color={Colors.rose} />
             </View>
             <Text style={S.toolTitle}>Analyser la Croissance</Text>
-            <Text style={S.toolSub}>Comparez vos photos et mesurez les progrès</Text>
+            <Text style={S.toolSub}>Compare tes photos et mesure tes progrès</Text>
           </TouchableOpacity>
           <TouchableOpacity style={S.toolCard}>
             <View style={[S.toolIcon, { backgroundColor: Colors.amberLight }]}>
@@ -712,7 +711,7 @@ export default function GrowthScreen() {
               <View style={S.sheet}>
                 <View style={S.sheetHandle} />
                 <Text style={S.sheetTitle}>Ajouter une mesure</Text>
-                <Text style={S.sheetSub}>Mesurez vos cheveux en centimètres à différents endroits</Text>
+                <Text style={S.sheetSub}>Mesure tes cheveux en centimètres à différents endroits</Text>
                 <View style={S.fieldsGrid}>
                   {([
                     { key: 'devant',     label: 'Devant (cm)'      },
@@ -852,11 +851,10 @@ const S = StyleSheet.create({
     paddingHorizontal: 20, paddingVertical: 14,
   },
   backBtn: {
-    width: 36, height: 36, borderRadius: 18,
-    backgroundColor: Colors.surface, borderWidth: 1, borderColor: Colors.border,
-    alignItems: 'center', justifyContent: 'center', marginRight: 8,
+    flexShrink: 0,
+    marginRight: 8,
   },
-  headerTitle: { fontSize: 24, fontFamily: 'Poppins_700Bold', color: Colors.ink },
+  headerTitle: { fontSize: 24, fontFamily: 'Satoshi_500Medium', color: Colors.ink },
   coinsBadge: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
     backgroundColor: Colors.ink,
@@ -884,7 +882,7 @@ const S = StyleSheet.create({
     backgroundColor: '#1E3A10', borderRadius: 20, padding: 18, marginBottom: 20,
   },
   bilanLabel: { fontSize: 10, fontFamily: 'DMSans_700Bold', color: '#7CBF5A', letterSpacing: 1.2, marginBottom: 6 },
-  bilanTitle: { fontSize: 20, fontFamily: 'Poppins_700Bold', color: '#fff', marginBottom: 14 },
+  bilanTitle: { fontSize: 20, fontFamily: 'Satoshi_500Medium', color: '#fff', marginBottom: 14 },
   bilanStats: { flexDirection: 'row', gap: 8, marginBottom: 14 },
   bilanStat: {
     flex: 1, backgroundColor: 'rgba(255,255,255,0.08)',
@@ -899,7 +897,7 @@ const S = StyleSheet.create({
 
   // Section rows
   sectionRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 },
-  secTitle: { fontSize: 18, fontFamily: 'Poppins_600SemiBold', color: Colors.ink },
+  secTitle: { fontSize: 18, fontFamily: 'Satoshi_500Medium', color: Colors.ink },
   secCount: { fontSize: 12, fontFamily: 'DMSans_400Regular', color: Colors.warmGray },
 
   // Timeline
@@ -1012,7 +1010,7 @@ const S = StyleSheet.create({
   // Objectif
   objectifCard: { backgroundColor: Colors.ink, borderRadius: 20, padding: 18, marginBottom: 16 },
   objectifLabel: { fontSize: 10, fontFamily: 'DMSans_700Bold', color: 'rgba(255,255,255,0.45)', letterSpacing: 1.2, marginBottom: 4 },
-  objectifTitle: { fontSize: 22, fontFamily: 'Poppins_600SemiBold', color: '#fff', marginBottom: 2 },
+  objectifTitle: { fontSize: 22, fontFamily: 'Satoshi_500Medium', color: '#fff', marginBottom: 2 },
   objectifDate:  { fontSize: 12, fontFamily: 'DMSans_400Regular', color: 'rgba(255,255,255,0.5)', marginBottom: 14 },
   objectifBarBg: { height: 6, backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: 999, overflow: 'hidden' },
   objectifBarFill: { height: 6, backgroundColor: Colors.sage, borderRadius: 999 },
@@ -1094,7 +1092,7 @@ const S = StyleSheet.create({
     padding: 16, backgroundColor: Colors.cream,
     borderBottomWidth: 1, borderBottomColor: Colors.border,
   },
-  tipsHeaderTitle: { fontSize: 15, fontFamily: 'Poppins_600SemiBold', color: Colors.ink },
+  tipsHeaderTitle: { fontSize: 15, fontFamily: 'Satoshi_500Medium', color: Colors.ink },
   tipsHeaderSub:   { fontSize: 11, fontFamily: 'DMSans_400Regular', color: Colors.warmGray, marginTop: 2 },
   tipRow:       { flexDirection: 'row', gap: 12, padding: 14 },
   tipRowBorder: { borderBottomWidth: 1, borderBottomColor: Colors.border },

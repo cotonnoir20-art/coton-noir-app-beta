@@ -166,7 +166,7 @@ export default function PartnersScreen() {
             <View style={{ flex: 1 }}>
               <Text style={S.bannerTitle}>Offres CotonCoins</Text>
               <Text style={S.bannerDesc}>
-                Échangez vos CotonCoins contre des avantages exclusifs
+                Échange tes CotonCoins contre des avantages exclusifs
               </Text>
             </View>
           </View>
@@ -358,7 +358,7 @@ const S = StyleSheet.create({
     backgroundColor: Colors.surface, borderWidth: 1, borderColor: Colors.border,
     alignItems: 'center', justifyContent: 'center',
   },
-  headerTitle: { flex: 1, fontSize: 20, fontFamily: 'Poppins_700Bold', color: Colors.ink },
+  headerTitle: { flex: 1, fontSize: 20, fontFamily: 'Satoshi_500Medium', color: Colors.ink },
   coinsBadge: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
     backgroundColor: Colors.ink,
@@ -403,12 +403,12 @@ const S = StyleSheet.create({
     marginBottom: 20, overflow: 'hidden',
   },
   statBox:  { flex: 1, alignItems: 'center', paddingVertical: 16 },
-  statVal:  { fontSize: 22, fontFamily: 'Poppins_700Bold', color: Colors.ink },
+  statVal:  { fontSize: 22, fontFamily: 'Satoshi_500Medium', color: Colors.ink },
   statLabel:{ fontSize: 10, fontFamily: 'DMSans_400Regular', color: Colors.warmGray, marginTop: 3 },
 
   // ── Categories ──
   secTitle: {
-    fontSize: 18, fontFamily: 'Poppins_600SemiBold',
+    fontSize: 18, fontFamily: 'Satoshi_500Medium',
     color: Colors.ink, marginBottom: 12,
   },
   catsRow: { gap: 8, paddingBottom: 16 },

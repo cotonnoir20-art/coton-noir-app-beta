@@ -3,15 +3,16 @@ import type { TextStyle } from 'react-native';
 /**
  * Coton Noir — système typographique
  *
- * • Poppins : titres, cartes, CTA, headers
+ * • Satoshi : titres, cartes, headers (Medium — moins gras qu’avant)
  * • DM Sans : corps, labels, chiffres, formulaires
  * • Playfair : hero éditorial + titre article (lecture longue) uniquement
  */
 
 export const Fonts = {
-  display: 'Poppins_700Bold',
-  displaySemi: 'Poppins_600SemiBold',
-  displayMedium: 'Poppins_500Medium',
+  display: 'Satoshi_500Medium',
+  displayBold: 'Satoshi_700Bold',
+  displaySemi: 'Satoshi_500Medium',
+  displayMedium: 'Satoshi_400Regular',
   body: 'DMSans_400Regular',
   bodyMedium: 'DMSans_500Medium',
   bodySemi: 'DMSans_600SemiBold',
@@ -19,7 +20,7 @@ export const Fonts = {
   editorial: 'PlayfairDisplay_700Bold',
 } as const;
 
-/** Titres UI (accueil, cartes, routine…) — Poppins Bold */
+/** Titres UI (accueil, cartes, routine…) — Satoshi Medium */
 export const FontDisplay = Fonts.display;
 
 /** Lecture éditoriale (page Articles + détail article) */
@@ -28,8 +29,8 @@ export const FontEditorial = Fonts.editorial;
 /** Échelle fixe — privilégier ces tailles plutôt que des fontSize ad hoc */
 export const Type = {
   hero: {
-    fontSize: 28,
-    lineHeight: 36,
+    fontSize: 26,
+    lineHeight: 34,
     fontFamily: Fonts.display,
     letterSpacing: -0.3,
   },
@@ -45,24 +46,24 @@ export const Type = {
     fontFamily: Fonts.editorial,
   },
   screenTitle: {
-    fontSize: 18,
-    lineHeight: 24,
+    fontSize: 17,
+    lineHeight: 23,
     fontFamily: Fonts.display,
   },
   cardTitle: {
-    fontSize: 18,
-    lineHeight: 24,
+    fontSize: 17,
+    lineHeight: 23,
     fontFamily: Fonts.display,
   },
   greetingName: {
-    fontSize: 20,
-    lineHeight: 26,
-    fontFamily: Fonts.display,
+    fontSize: 19,
+    lineHeight: 25,
+    fontFamily: Fonts.displayBold,
     letterSpacing: -0.3,
   },
   sectionTitle: {
-    fontSize: 16,
-    lineHeight: 22,
+    fontSize: 15,
+    lineHeight: 21,
     fontFamily: Fonts.displaySemi,
   },
   body: {

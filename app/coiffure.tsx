@@ -369,7 +369,7 @@ const S = StyleSheet.create({
   // Info
   info: { padding: 20, paddingBottom: 4 },
   name: {
-    fontSize: 24, fontFamily: 'Poppins_700Bold', color: Colors.ink,
+    fontSize: 24, fontFamily: 'Satoshi_500Medium', color: Colors.ink,
     lineHeight: 30, marginBottom: 10,
   },
   metaRow: {
@@ -430,7 +430,7 @@ const S = StyleSheet.create({
     marginTop: 1,
   },
   stepBadgeText: {
-    fontSize: 12, fontFamily: 'Poppins_700Bold',
+    fontSize: 12, fontFamily: 'Satoshi_500Medium',
     color: Colors.amberDark,
   },
   stepText: {

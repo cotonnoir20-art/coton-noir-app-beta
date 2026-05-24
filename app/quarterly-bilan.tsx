@@ -125,7 +125,7 @@ const S = StyleSheet.create({
     borderColor: Colors.border,
     padding: 12,
   },
-  statVal: { fontSize: 20, fontFamily: 'Poppins_700Bold', color: Colors.ink },
+  statVal: { fontSize: 20, fontFamily: 'Satoshi_500Medium', color: Colors.ink },
   statLabel: { fontSize: 11, fontFamily: 'DMSans_400Regular', color: Colors.warmGray, marginTop: 4 },
   bcCard: {
     flexDirection: 'row',

@@ -6,6 +6,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { BackButton } from '../../src/components/BackButton';
 import { supabase } from '../../src/lib/supabase';
 import { Colors } from '../../src/theme/colors';
 import { canAttemptAuth, recordAuthAttempt } from '../../src/lib/authThrottle';
@@ -138,9 +139,7 @@ export default function LoginScreen() {
         >
 
           {/* Back */}
-          <TouchableOpacity style={S.backBtn} onPress={() => router.back()}>
-            <Ionicons name="chevron-back" size={22} color={Colors.ink} />
-          </TouchableOpacity>
+          <BackButton style={S.backBtn} onPress={() => router.back()} />
 
           {/* Logo */}
           <View style={S.logoZone}>
@@ -291,10 +290,8 @@ const S = StyleSheet.create({
   content: { paddingHorizontal: 24, paddingBottom: 40 },
 
   backBtn: {
-    width: 36, height: 36, borderRadius: 18,
-    backgroundColor: Colors.surface, borderWidth: 1, borderColor: Colors.border,
-    alignItems: 'center', justifyContent: 'center',
-    marginTop: 8, marginBottom: 8,
+    marginTop: 8,
+    marginBottom: 8,
   },
 
   logoZone: { alignItems: 'center', paddingVertical: 16, marginBottom: 4 },

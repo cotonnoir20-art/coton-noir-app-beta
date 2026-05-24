@@ -376,7 +376,7 @@ const S = StyleSheet.create({
   },
   giftEmoji:  { fontSize: 44, marginBottom: 10 },
   inviteTitle: {
-    fontSize: 22, fontFamily: 'Poppins_700Bold',
+    fontSize: 22, fontFamily: 'Satoshi_500Medium',
     color: '#fff', textAlign: 'center', marginBottom: 8,
   },
   inviteDesc: {
@@ -402,7 +402,7 @@ const S = StyleSheet.create({
   statBox:    { flex: 1, alignItems: 'center', paddingVertical: 14 },
   statBorder: { borderLeftWidth: 1, borderLeftColor: 'rgba(255,255,255,0.1)' },
   statValRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  statVal:    { fontSize: 20, fontFamily: 'Poppins_700Bold', color: '#fff' },
+  statVal:    { fontSize: 20, fontFamily: 'Satoshi_500Medium', color: '#fff' },
   statLabel:  { fontSize: 10, fontFamily: 'DMSans_400Regular', color: 'rgba(255,255,255,0.5)', marginTop: 2 },
 
   codeBox: {
@@ -461,7 +461,7 @@ const S = StyleSheet.create({
     padding: 16, backgroundColor: Colors.cream,
     borderBottomWidth: 1, borderBottomColor: Colors.border,
   },
-  howTitle:    { fontSize: 15, fontFamily: 'Poppins_600SemiBold', color: Colors.ink },
+  howTitle:    { fontSize: 15, fontFamily: 'Satoshi_500Medium', color: Colors.ink },
   howTitleSub: { fontSize: 11, fontFamily: 'DMSans_400Regular', color: Colors.warmGray, marginTop: 2 },
   howRow:      { flexDirection: 'row', alignItems: 'center', gap: 14, padding: 16 },
   howBorder:   { borderTopWidth: 1, borderTopColor: Colors.border },
@@ -499,7 +499,7 @@ const S = StyleSheet.create({
     shadowColor: '#000', shadowOpacity: 0.25, shadowRadius: 18,
     shadowOffset: { width: 0, height: 8 }, elevation: 12,
   },
-  modalTitle: { fontSize: 18, fontFamily: 'Poppins_700Bold', color: Colors.ink, marginBottom: 6 },
+  modalTitle: { fontSize: 18, fontFamily: 'Satoshi_500Medium', color: Colors.ink, marginBottom: 6 },
   modalSub:   { fontSize: 13, fontFamily: 'DMSans_400Regular', color: Colors.warmGray, marginBottom: 18, lineHeight: 19 },
   modalInput: {
     backgroundColor: Colors.cream,

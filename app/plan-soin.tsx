@@ -210,7 +210,7 @@ const S = StyleSheet.create({
   },
 
   header:   { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
-  title:    { fontSize: 18, fontFamily: 'Poppins_600SemiBold', color: Colors.ink },
+  title:    { fontSize: 18, fontFamily: 'Satoshi_500Medium', color: Colors.ink },
   closeBtn: {
     width: 32, height: 32, borderRadius: 16,
     backgroundColor: Colors.surface, borderWidth: 1, borderColor: Colors.border,

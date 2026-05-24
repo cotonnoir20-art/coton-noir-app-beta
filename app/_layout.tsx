@@ -1,14 +1,6 @@
 import 'react-native-url-polyfill/auto';
 import { useFonts } from 'expo-font';
 import {
-  Poppins_400Regular,
-  Poppins_500Medium,
-  Poppins_600SemiBold,
-  Poppins_700Bold,
-  Poppins_800ExtraBold,
-  Poppins_900Black,
-} from '@expo-google-fonts/poppins';
-import {
   DMSans_400Regular,
   DMSans_500Medium,
   DMSans_600SemiBold,
@@ -124,12 +116,9 @@ function RootLayoutNav() {
 export default function RootLayout() {
   const [brandSplashDone, setBrandSplashDone] = useState(false);
   const [loaded, error] = useFonts({
-    Poppins_400Regular,
-    Poppins_500Medium,
-    Poppins_600SemiBold,
-    Poppins_700Bold,
-    Poppins_800ExtraBold,
-    Poppins_900Black,
+    Satoshi_400Regular: require('../assets/fonts/Satoshi/Satoshi-Regular.ttf'),
+    Satoshi_500Medium: require('../assets/fonts/Satoshi/Satoshi-Medium.ttf'),
+    Satoshi_700Bold: require('../assets/fonts/Satoshi/Satoshi-Bold.ttf'),
     DMSans_400Regular,
     DMSans_500Medium,
     DMSans_600SemiBold,
@@ -139,7 +128,9 @@ export default function RootLayout() {
   });
 
   useEffect(() => {
-    if (error) throw error;
+    if (error) {
+      console.warn('[fonts] Chargement partiel des polices — l’app continue.', error);
+    }
   }, [error]);
 
   useEffect(() => {
@@ -148,7 +139,9 @@ export default function RootLayout() {
 
   const showBrandSplash = loaded && !brandSplashDone;
 
-  if (!loaded) return null;
+  if (!loaded) {
+    return <View style={{ flex: 1, backgroundColor: '#FDF8F4' }} />;
+  }
 
   return (
     <WebProductionBlocker>

@@ -27,12 +27,13 @@ Document de référence pour **Claude Design** (visuels App Store / Google Play)
 | Élément | Valeur |
 |---------|--------|
 | **Nom** | Coton Noir |
-| **Tagline** | Ton copilote capillaire — pour mieux prendre soin de tes cheveux |
-| **Accroche welcome** | La routine capillaire faite pour toi. |
+| **Tagline** | Ta copilote capillaire pour mieux prendre soin de tes cheveux |
+| **Accroche welcome** | Ta copilote capillaire pour mieux prendre soin de tes cheveux. |
+| **Sous-accroche welcome** | Diagnostic, routines, wash day et pousse — cheveux texturés de type 3 à 4 |
 | **Public** | Femmes cheveux afro, crépus, bouclés, frisés (3C–4C) |
 | **Ton** | Tutoiement, chaleureux, expert mais accessible |
 | **Couleurs charte** | Noir `#1D1D1B` · Orange `#F49423` · Sage `#79B7A1` · Fond crème `#FDF8F4` · Bordeaux `#631617` |
-| **Typo app** | Poppins (titres) · DM Sans (corps) |
+| **Typo app** | Satoshi Medium (titres) · DM Sans (corps) |
 
 ### Formats de livraison
 
@@ -50,7 +51,7 @@ Chaque screenshot = **mockup téléphone** + **capture réelle de l’app** + **
 
 ```
 ┌─────────────────────────┐
-│  ACCROCHE (1 ligne max) │  ← Poppins Bold
+│  ACCROCHE (1 ligne max) │  ← Satoshi Medium
 │  Sous-titre (1 ligne)   │  ← DM Sans
 │                         │
 │   ┌───────────────┐     │
@@ -73,7 +74,7 @@ Chaque screenshot = **mockup téléphone** + **capture réelle de l’app** + **
 
 | # | Écran | Route | Titre overlay | Sous-titre overlay |
 |---|-------|-------|---------------|-------------------|
-| 1 | Welcome | `app/(auth)/welcome.tsx` | La routine capillaire faite pour toi | Personnalisée pour les cheveux afro & bouclés |
+| 1 | Welcome | `app/(auth)/welcome.tsx` | Ta copilote capillaire | Pour mieux prendre soin de tes cheveux — diagnostic, routines & pousse |
 | 2 | Accueil | `app/(tabs)/index.tsx` | Ton copilote capillaire | Suis ta pousse et ton hydratation au quotidien |
 | 3 | Routine wash day | `app/(tabs)/routine.tsx?routine=washday` | Routines matin, soir & wash day | Étapes à cocher, minuteurs, rappels |
 | 4 | Analyse résultats | `app/(tabs)/analyze.tsx` (phase `results`) | Analyse tes cheveux en photo | Conseils personnalisés par Black Cotton |
@@ -136,7 +137,7 @@ Chaque screenshot = **mockup téléphone** + **capture réelle de l’app** + **
 | Zone | Contenu exact | Style |
 |------|---------------|-------|
 | **Logo** (haut, centré) | Composant `AuthBrandLogo` width **200px**, variant **rounded** (carré arrondi ~13%, pas cercle) | Tuile noire `#000`, logo blanc splash à 88% |
-| **Tagline** | Ligne 1 : **« La routine capillaire »** + saut de ligne + **« faite pour toi. »** | Poppins Bold 30px, ink `#1D1D1B`, centré, line-height 38 |
+| **Tagline** | Ligne 1 : **« La routine capillaire »** + saut de ligne + **« faite pour toi. »** | Satoshi Bold 30px, ink `#1D1D1B`, centré, line-height 38 |
 | **Sous-titre** | **« Personnalisée, gamifiée et pensée »** + **« pour les cheveux afro & bouclés. »** | DM Sans Regular 14px, warmGray `#5C5652` |
 | **Stats** (carte) | 3 colonnes dans carte blanche bordure `#E8DDD5`, radius 18px | |
 | | Col 1 : **+2 000** / utilisatrices | Val 18px Bold ink · label 11px warmGray |
@@ -496,7 +497,7 @@ Utiliser le compte démo dev si configuré (`EXPO_PUBLIC_DEV_DEMO_EMAIL`).
 | Champ | Texte |
 |-------|-------|
 | **Nom** | Coton Noir |
-| **Sous-titre** (30 car. max) | Ton copilote capillaire afro |
+| **Sous-titre** (30 car. max) | Copilote capillaire afro |
 | **Catégorie principale** | Santé et forme |
 | **Catégorie secondaire** | Style de vie |
 | **URL assistance** | `https://appcotonnoir.com` *(ou page /support)* |
@@ -506,7 +507,7 @@ Utiliser le compte démo dev si configuré (`EXPO_PUBLIC_DEV_DEMO_EMAIL`).
 ### Texte promotionnel (170 car. max — modifiable sans nouvelle version)
 
 ```
-Nouveau : diagnostic capillaire, wash day guidé et suivi de pousse en cm. Télécharge Coton Noir — la routine afro faite pour toi.
+Diagnostic capillaire, wash day guidé, analyse Black Cotton et pousse en cm. Ta copilote afro, dans ta poche.
 ```
 
 ### Mots-clés (100 car. max, virgules sans espace)
@@ -526,59 +527,46 @@ cheveux,afro,routine,capillaire,bouclés,crépus,washday,hydratation,pousse,4C,3
 ### Description (4000 car. max)
 
 ```
-Coton Noir — ton copilote capillaire pour les cheveux afro, crépus, bouclés et frisés.
+Coton Noir — ta copilote capillaire dans ton smartphone.
 
-Fini les routines TikTok qui ne te correspondent pas. Coton Noir t’accompagne au quotidien avec un parcours personnalisé, des outils concrets et une vraie motivation pour prendre soin de ta chevelure.
+Fini les conseils génériques qui ne collent pas à ta texture. Ici, tu comprends tes cheveux, tu sais quoi faire aujourd'hui, et tu vois ta progression semaine après semaine — routines, wash day, mesures et communauté, dans une seule app pensée pour les cheveux afro, crépus, bouclés et frisés (3C à 4C).
 
-◆ DIAGNOSTIC & PROFIL SUR MESURE
-Dès l’inscription, renseigne ton type de cheveux, ta porosité, tes problématiques (sécheresse, casse, frisottis, pellicules…) et ton objectif : hydratation, pousse, définition, brillance…
-Coton Noir adapte routines, recettes et conseils à TON profil.
+◆ DIAGNOSTIC & ROUTINE SUR MESURE
+• Diagnostic capillaire dès l'inscription (type, porosité, objectifs, problématiques)
+• Analyse photo Black Cotton — racines, longueurs, pointes + conseils actionnables
+• Routine matin, soir et wash day générées pour ton profil
 
-◆ ROUTINES QUOTIDIENNES & WASH DAY
-• Routine du matin et du soir — étapes à cocher, progression visuelle
-• Wash day complet : calendrier, planification, minuteurs (pré-poo, masque, leave-in)
-• Historique de tes soins pour ne rien oublier
+◆ TON COPILOTE AU QUOTIDIEN
+• Accueil intelligent : prochaine action du jour (routine, mesure, wash day…)
+• Wash day planifié : calendrier, minuteurs, historique de tes soins
+• Black Cotton te guide avec des conseils adaptés à ta porosité et tes objectifs
 
-◆ SUIVI DE POUSSE
-• Mesures par zones (devant, côtés, derrière)
-• Objectif de longueur en cm avec repères corporels
-• Graphiques de progression et projection
-• Anneau longueur sur l’accueil pour suivre ton évolution
+◆ SUIVI DE POUSSE CONCRET
+• Mesures par zones (devant, côtés, derrière) en centimètres
+• Objectif de longueur + repères corporels + graphiques
+• Anneau longueur sur l'accueil pour visualiser ton évolution
 
-◆ BLACK COTTON — TON COACH CAPILLAIRE
-• Analyse photo de tes cheveux
-• Recommandations personnalisées sur l’accueil
-• Conseils adaptés à ta porosité et tes objectifs
+◆ RECETTES, CONTENUS & EXPERTS
+• Recettes DIY naturelles — frigo → cheveux, filtrées selon ton profil
+• Articles et tutoriels capillaires
+• Recommandations produits et partenaires
 
-◆ CONTENUS EXPERTS
-• Articles signés par des professionnelles (trichologues, coiffeuses, dermatologues)
-• Recettes DIY naturelles — frigo → cheveux
-• Tutoriels coiffure et guides pratiques
-• Favoris articles, produits et recettes
-
-◆ GAMIFICATION & RÉCOMPENSES
-• CotonCoins (CC) : gagne des points en validant tes routines, wash days et mesures
+◆ MOTIVATION & COMMUNAUTÉ
+• CotonCoins (CC) : gagne des points en validant routines, wash days et analyses
 • 10 niveaux capillaires : de Baby Hair à Afrolicious Icon
-• Codes promo partenaires échangeables contre tes CC
-• Défis communauté (ex. Hydra Challenge)
-
-◆ COMMUNAUTÉ
-Partage ta progression, inspire et reçois du soutien entre utilisatrices engagées dans leur parcours capillaire.
+• Communauté : partage ta progression, défi Hydra, entraide entre utilisatrices
 
 ◆ PREMIUM (OPTIONNEL)
-• Black Cotton avancé — analyse photo détaillée
-• Contenu expert exclusif (masterclass, guides PDF)
-• CotonCoins × 2 sur chaque action
-• Box digitale mensuelle
-• Historique 12 mois + export PDF bilan trimestriel
+• Analyse photo avancée · contenus expert · CotonCoins × 2
+• Historique 12 mois · export bilan · box digitale
 • Essai gratuit 7 jours · 9,99 €/mois ou 39,99 €/an
 
-Coton Noir est pensé pour les cheveux texturés — 3C, 4A, 4B, 4C — avec des recommandations qui respectent ta texture, ton budget et ton rythme de vie.
+Coton Noir ne te promet pas un laboratoire dans ta poche — elle te promet une copilote qui t'aide à agir, pas seulement à scanner.
 
-Télécharge Coton Noir et construis LA routine capillaire faite pour toi.
+Télécharge Coton Noir. Black Cotton t'accompagne — de la première analyse à ta prochaine longueur.
 
 ---
-Support : contact via appcotonnoir.com
+Support : support@appcotonnoir.com · https://appcotonnoir.com
 Les achats Premium sont facturés sur ton compte Apple. Renouvellement automatique sauf annulation 24 h avant la fin de la période.
 ```
 
@@ -604,8 +592,8 @@ Bienvenue dans ton copilote capillaire !
 
 | Champ | Texte |
 |-------|-------|
-| **Titre** (30 car. max) | Coton Noir — Cheveux Afro |
-| **Description courte** (80 car. max) | Ton copilote capillaire : routines, pousse, recettes & récompenses afro. |
+| **Titre** (30 car. max) | Coton Noir — Copilote Afro |
+| **Description courte** (80 car. max) | Ta copilote capillaire : diagnostic, routines, pousse en cm & communauté. |
 | **Catégorie** | Santé et remise en forme |
 | **Tags** | Soin capillaire, Cheveux afro, Routine beauté, Wash day, Hydratation |
 | **Email développeur** | *(email pro)* |
@@ -621,15 +609,14 @@ Bienvenue dans ton copilote capillaire !
 ```
 🎉 Lancement de Coton Noir !
 
-✓ Diagnostic capillaire personnalisé (porosité, objectifs, problématiques)
-✓ Routines matin, soir & wash day avec minuteurs
-✓ Suivi de pousse par zones + objectif en cm
-✓ Analyse photo Black Cotton
-✓ CotonCoins, 10 niveaux & codes partenaires
-✓ Recettes naturelles DIY + articles experts
-✓ Communauté & défis Hydra
+✓ Ta copilote capillaire dans ton smartphone
+✓ Diagnostic + analyse photo Black Cotton
+✓ Routines matin, soir & wash day guidés
+✓ Suivi de pousse en cm par zones
+✓ CotonCoins, niveaux & communauté
+✓ Recettes DIY + articles experts
 
-La routine capillaire faite pour toi. 💜🌱
+Fait avec amour pour les cheveux texturés. 💜🌱
 ```
 
 ---
@@ -672,7 +659,7 @@ Annulable à tout moment dans les paramètres de ton compte store.
 
 - [ ] Page **politique de confidentialité** publique sur `appcotonnoir.com/privacy`
 - [ ] Page **CGU / support** ou email support visible
-- [ ] Stats marketing (+2 000 utilisatrices, 4,9 ★) **vérifiables** ou retirées des visuels
+- [ ] Ne pas afficher de stats marketing non vérifiables sur welcome / stores (retirées de l’app v1)
 - [ ] Captures d’écran = **build de production** (pas dev avec bandeau debug)
 - [ ] Compte démo pour review Apple/Google si login obligatoire
 - [ ] SKU IAP créés : Premium mensuel + annuel (App Store Connect + Play Console)

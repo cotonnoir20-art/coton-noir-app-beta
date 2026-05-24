@@ -555,7 +555,7 @@ export default function HomeScreen() {
           <HomeDiscoverShortcuts onSeeAll={() => router.push('/(tabs)/shortcuts' as any)} />
           <HomeMomentsForts
             moments={moments}
-            previewMax={1}
+            previewMax={3}
             onSeeAll={() => router.push('/highlights' as any)}
             onMomentPress={m => {
               if (m.route) router.push(m.route as any);
@@ -744,7 +744,7 @@ const p = StyleSheet.create({
   },
   handle: { width: 40, height: 4, borderRadius: 2, backgroundColor: Colors.border, alignSelf: 'center', marginBottom: 20 },
   titleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 },
-  title: { fontSize: 20, fontFamily: 'Poppins_700Bold', color: Colors.ink, flex: 1 },
+  title: { fontSize: 20, fontFamily: 'Satoshi_500Medium', color: Colors.ink, flex: 1 },
   sub: { fontSize: 13, fontFamily: 'DMSans_400Regular', color: Colors.warmGray, lineHeight: 19, marginBottom: 18 },
   searchRow: {
     flexDirection: 'row',

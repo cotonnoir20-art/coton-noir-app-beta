@@ -2,9 +2,9 @@ import { useCallback, useEffect, useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { BCEmojiAvatar } from '../blackCotton/BCEmojiAvatar';
 import { Colors } from '../../theme/colors';
-import { Type } from '../../theme/typography';
+import { Fonts, Type } from '../../theme/typography';
+import { HAIR_SCAN_ZONES } from '../../constants/hairScanZones';
 import {
   fetchHairAnalysisHistory,
   formatAnalysisDate,
@@ -26,6 +26,7 @@ export function HomeHairAnalysisCard() {
   }, [load]);
 
   const rewardLabel = formatDualEarnReward(CC_ANALYSIS_COMPLETE, PTS_ANALYSIS_COMPLETE);
+  const openAnalyze = () => router.push('/(tabs)/analyze' as any);
 
   return (
     <View style={s.section}>
@@ -34,7 +35,7 @@ export function HomeHairAnalysisCard() {
           <Text style={s.cardTitle}>Analyse capillaire</Text>
           <TouchableOpacity
             style={s.seeAll}
-            onPress={() => router.push('/(tabs)/analyze' as any)}
+            onPress={openAnalyze}
             activeOpacity={0.88}
             accessibilityRole="button"
             accessibilityLabel="Ouvrir l'analyse capillaire"
@@ -46,13 +47,10 @@ export function HomeHairAnalysisCard() {
         <View style={s.headDivider} />
 
         {latest ? (
-          <TouchableOpacity
-            style={s.lastRow}
-            onPress={() => router.push('/(tabs)/analyze' as any)}
-            activeOpacity={0.88}
-          >
+          <TouchableOpacity style={s.lastRow} onPress={openAnalyze} activeOpacity={0.88}>
             <View style={s.scoreBadge}>
               <Text style={s.scoreVal}>{latest.score}</Text>
+              <Text style={s.scoreLabel}>score</Text>
             </View>
             <View style={s.lastBody}>
               <Text style={s.lastDate}>{formatAnalysisDate(latest.createdAt)}</Text>
@@ -67,24 +65,28 @@ export function HomeHairAnalysisCard() {
             </View>
           </TouchableOpacity>
         ) : (
-          <View style={s.empty}>
-            <BCEmojiAvatar size={48} mood="coaching" />
-            <Text style={s.emptyTitle}>Diagnostic Black Cotton</Text>
-            <Text style={s.emptyHint}>
-              3 photos + questionnaire → routine et conseils personnalisés ({rewardLabel}).
+          <View style={s.scanBlock}>
+            <View style={s.scanIconCircle}>
+              <Ionicons name="camera" size={24} color={Colors.ink} />
+            </View>
+            <Text style={s.scanTitle}>Scanner mes cheveux</Text>
+            <Text style={s.scanSub}>
+              Photos guidées + questionnaire → routine et conseils catalogue ({rewardLabel}).
             </Text>
+            <View style={s.zonesRow}>
+              {HAIR_SCAN_ZONES.map(z => (
+                <View key={z.id} style={s.zoneChip}>
+                  <Text style={s.zoneEmoji}>{z.emoji}</Text>
+                  <Text style={s.zoneLabel}>{z.label}</Text>
+                </View>
+              ))}
+            </View>
           </View>
         )}
 
-        <TouchableOpacity
-          style={s.cta}
-          onPress={() => router.push('/(tabs)/analyze' as any)}
-          activeOpacity={0.88}
-        >
-          <Ionicons name="scan-outline" size={18} color="#fff" />
-          <Text style={s.ctaText}>
-            {latest ? 'Nouvelle analyse' : 'Lancer mon analyse'}
-          </Text>
+        <TouchableOpacity style={s.cta} onPress={openAnalyze} activeOpacity={0.88}>
+          <Ionicons name="scan-outline" size={18} color={Colors.amber} />
+          <Text style={s.ctaText}>{latest ? 'Nouvelle analyse' : 'Lancer le scan'}</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -114,7 +116,7 @@ const s = StyleSheet.create({
     paddingBottom: 12,
   },
   cardTitle: {
-    ...Type.sectionTitle,
+    ...Type.cardTitle,
     fontSize: 17,
     color: Colors.ink,
   },
@@ -129,24 +131,58 @@ const s = StyleSheet.create({
     backgroundColor: Colors.border,
     marginHorizontal: 16,
   },
-  empty: {
+  scanBlock: {
     paddingHorizontal: 16,
-    paddingVertical: 16,
+    paddingVertical: 18,
     alignItems: 'center',
-    gap: 8,
   },
-  emptyTitle: {
-    fontSize: 15,
-    fontFamily: 'DMSans_700Bold',
+  scanIconCircle: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: Colors.amber,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 12,
+  },
+  scanTitle: {
+    fontSize: 17,
+    fontFamily: Fonts.displayBold,
     color: Colors.ink,
     textAlign: 'center',
+    marginBottom: 6,
   },
-  emptyHint: {
+  scanSub: {
     fontSize: 12,
     fontFamily: 'DMSans_400Regular',
     color: Colors.warmGray,
     textAlign: 'center',
     lineHeight: 17,
+    marginBottom: 14,
+    paddingHorizontal: 4,
+  },
+  zonesRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  zoneChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: Colors.cream,
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  zoneEmoji: { fontSize: 12 },
+  zoneLabel: {
+    fontSize: 11,
+    fontFamily: 'DMSans_600SemiBold',
+    color: Colors.ink,
   },
   lastRow: {
     flexDirection: 'row',
@@ -155,18 +191,45 @@ const s = StyleSheet.create({
     paddingVertical: 14,
   },
   scoreBadge: {
-    width: 48,
-    height: 48,
+    width: 52,
+    height: 52,
     borderRadius: 14,
     backgroundColor: Colors.amberPowder,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  scoreVal: { fontSize: 20, fontFamily: 'Poppins_700Bold', color: Colors.amberDark },
+  scoreVal: {
+    fontSize: 18,
+    fontFamily: Fonts.displayBold,
+    color: Colors.amberDark,
+    lineHeight: 20,
+  },
+  scoreLabel: {
+    fontSize: 9,
+    fontFamily: 'DMSans_600SemiBold',
+    color: Colors.amberDark,
+    textTransform: 'uppercase',
+    letterSpacing: 0.3,
+  },
   lastBody: { flex: 1, minWidth: 0 },
-  lastDate: { fontSize: 12, fontFamily: 'DMSans_600SemiBold', color: Colors.warmGray, marginBottom: 4 },
-  lastMeta: { fontSize: 13, fontFamily: 'DMSans_600SemiBold', color: Colors.ink, marginBottom: 4 },
-  lastSynth: { fontSize: 12, fontFamily: 'DMSans_400Regular', color: Colors.warmGray, lineHeight: 16 },
+  lastDate: {
+    fontSize: 12,
+    fontFamily: 'DMSans_600SemiBold',
+    color: Colors.warmGray,
+    marginBottom: 4,
+  },
+  lastMeta: {
+    fontSize: 13,
+    fontFamily: 'DMSans_600SemiBold',
+    color: Colors.ink,
+    marginBottom: 4,
+  },
+  lastSynth: {
+    fontSize: 12,
+    fontFamily: 'DMSans_400Regular',
+    color: Colors.warmGray,
+    lineHeight: 16,
+  },
   cta: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -179,5 +242,9 @@ const s = StyleSheet.create({
     borderRadius: 14,
     backgroundColor: Colors.ink,
   },
-  ctaText: { fontSize: 14, fontFamily: 'DMSans_700Bold', color: Colors.amber },
+  ctaText: {
+    fontSize: 14,
+    fontFamily: 'Satoshi_700Bold',
+    color: Colors.amber,
+  },
 });
