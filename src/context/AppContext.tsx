@@ -80,6 +80,12 @@ import {
   loadRoutinePlans,
   saveRoutinePlans,
 } from '../lib/routinePlanStorage';
+import {
+  clearPendingOnboardingProfile,
+  isPlaceholderHairType,
+  loadPendingOnboardingProfile,
+  mergePendingOnboardingProfile,
+} from '../lib/onboardingProfile';
 
 /** Au-delà, on considère un hydrate / import batch — pas de haptique « niveau atteint ». */
 const MAX_SINGLE_GAIN_FOR_LEVEL_HAPTIC = 400;
@@ -920,9 +926,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
       const pendingGift =
         (await AsyncStorage.getItem(PENDING_ONBOARDING_GIFT_KEY)) === '1';
-      if (pendingGift) {
-        await AsyncStorage.removeItem(PENDING_ONBOARDING_GIFT_KEY);
-      }
+
+      const pendingOnboardingProfile = await loadPendingOnboardingProfile();
 
       const offlineSlice = parseOfflineSlice(await loadOfflineSliceRaw());
       const localState = mergeOfflineSlice(initialState, offlineSlice);
@@ -967,7 +972,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       }));
 
       if (profile) {
-        const hydratedProfile: HairProfile = {
+        const serverProfile: HairProfile = {
           name:         profile.name         ?? authSession?.user?.user_metadata?.name ?? 'Utilisatrice',
           hairType:     profile.hair_type    ?? '3C',
           porosity:     resolvePorosity(profile.porosity),
@@ -983,6 +988,35 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           budget:       profile.budget        ?? '',
           careStyle:    (profile.care_style   ?? '') as CareStyle,
         };
+
+        const metaHairType =
+          typeof authSession?.user?.user_metadata?.hair_type === 'string'
+            ? authSession.user.user_metadata.hair_type.trim()
+            : '';
+
+        const hydratedProfile = mergePendingOnboardingProfile(
+          serverProfile,
+          pendingOnboardingProfile,
+          metaHairType,
+        );
+
+        if (pendingOnboardingProfile || pendingGift) {
+          await clearPendingOnboardingProfile();
+        }
+
+        const hairCorrectedFromOnboarding =
+          !!pendingOnboardingProfile &&
+          isPlaceholderHairType(serverProfile.hairType) &&
+          !!hydratedProfile.hairType &&
+          hydratedProfile.hairType !== serverProfile.hairType;
+
+        if (hairCorrectedFromOnboarding && userId) {
+          void syncProfileToServer(userId, hydratedProfile, true).then(result => {
+            if (result.ok) {
+              lastSyncedProfile.current = JSON.stringify(hydratedProfile);
+            }
+          });
+        }
 
         lastSyncedProfile.current = JSON.stringify(hydratedProfile);
         lastSyncedCoins.current   = profile.coins;
@@ -1018,6 +1052,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         if (needsOnboardingGift) {
           const claim = await claimOnboardingGiftOnServer();
           if (claim.ok && claim.snapshot) {
+            if (pendingGift) {
+              await AsyncStorage.removeItem(PENDING_ONBOARDING_GIFT_KEY);
+            }
             const s = claim.snapshot;
             coins = s.coins;
             totalEarned = s.totalEarned;
@@ -1064,7 +1101,22 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           coinHistory: [],
         });
 
-        lastSyncedProfile.current = JSON.stringify(localState.profile);
+        const metaHairType =
+          typeof authSession?.user?.user_metadata?.hair_type === 'string'
+            ? authSession.user.user_metadata.hair_type.trim()
+            : '';
+
+        const fallbackProfile = mergePendingOnboardingProfile(
+          localState.profile,
+          pendingOnboardingProfile,
+          metaHairType,
+        );
+
+        if (pendingOnboardingProfile) {
+          await clearPendingOnboardingProfile();
+        }
+
+        lastSyncedProfile.current = JSON.stringify(fallbackProfile);
         lastSyncedStreak.current  = 0;
         lastSyncedCoins.current   = wallet.coins;
         syncedCoinCount.current   = wallet.coinHistory.length;
@@ -1077,6 +1129,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           type: 'hydrate',
           payload: {
             ...localState,
+            profile: fallbackProfile,
             coins: wallet.coins,
             totalEarned: wallet.totalEarned,
             coinHistory: wallet.coinHistory as CoinHistoryEntry[],

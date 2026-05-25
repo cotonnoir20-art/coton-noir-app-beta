@@ -5,6 +5,7 @@ import { ONBOARDING_TESTIMONIALS } from '../../constants/onboardingTestimonials'
 import {
   BLOCKER_OPTIONS,
   CONFIDENCE_OPTIONS,
+  MAX_ONBOARDING_BLOCKERS,
   ROUTINE_CONSISTENCY_OPTIONS,
   weeksUntilGoalDate,
   type OnboardingBlockerId,
@@ -82,16 +83,19 @@ export function OnboardingRoutineBlockersStep({
       />
 
       <Text style={[s.sectionLabel, { marginTop: 20 }]}>Qu’est-ce qui te freine le plus ?</Text>
-      <Text style={s.sectionSub}>Tu peux en choisir plusieurs.</Text>
+      <Text style={s.sectionSub}>Choisis jusqu’à 3 freins (optionnel).</Text>
       <View style={[s.pillList, { marginTop: 8 }]}>
         {BLOCKER_OPTIONS.map(o => {
           const active = blockers.includes(o.id);
+          const atMax = blockers.length >= MAX_ONBOARDING_BLOCKERS;
+          const disabled = atMax && !active;
           return (
             <TouchableOpacity
               key={o.id}
-              style={[s.pill, active && s.pillActive]}
+              style={[s.pill, active && s.pillActive, disabled && s.pillDisabled]}
               onPress={() => onToggleBlocker(o.id)}
-              activeOpacity={0.88}
+              disabled={disabled}
+              activeOpacity={disabled ? 1 : 0.88}
             >
               <Text style={s.pillEmoji}>{o.emoji}</Text>
               <Text style={[s.pillLabel, active && s.pillLabelActive]}>{o.label}</Text>
@@ -249,6 +253,7 @@ const s = StyleSheet.create({
     paddingHorizontal: 16,
   },
   pillActive: { borderColor: Colors.amber, backgroundColor: Colors.amberLight },
+  pillDisabled: { opacity: 0.45 },
   pillEmoji: { fontSize: 22 },
   pillLabel: {
     flex: 1,

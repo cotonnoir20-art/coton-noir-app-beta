@@ -150,9 +150,9 @@ begin
   values (
     new.id,
     coalesce(new.raw_user_meta_data->>'name', 'Utilisatrice'),
-    '3C',
-    'Moyenne',
-    'Moyenne',
+    coalesce(nullif(trim(new.raw_user_meta_data->>'hair_type'), ''), '3C'),
+    coalesce(nullif(trim(new.raw_user_meta_data->>'porosity'), ''), 'Moyenne'),
+    coalesce(nullif(trim(new.raw_user_meta_data->>'density'), ''), 'Moyenne'),
     50,
     50
   )

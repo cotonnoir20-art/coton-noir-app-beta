@@ -78,25 +78,10 @@ const QUESTIONS: Question[] = [
     title: 'Quelle est ta préoccupation principale ?',
     subtitle: 'Choisis celle qui te dérange le plus en ce moment.',
     options: [
-      { id: 'dryness',    label: 'Sécheresse',         emoji: '🏜️', hint: "Cheveux qui boivent vite, fils ternes" },
-      { id: 'breakage',   label: 'Casse',               emoji: '💥', hint: 'Cheveux qui cassent, fragilité'         },
-      { id: 'definition', label: 'Manque de définition',emoji: '🌀', hint: 'Boucles peu marquées, flou'             },
-      { id: 'growth',     label: 'Pousse / longueur',  emoji: '📏', hint: 'Difficulté à gagner en longueur'         },
-      { id: 'frizz',      label: 'Frisottis',           emoji: '⚡', hint: "Cheveux qui rebiquent, halo"            },
-      { id: 'scalp',      label: 'Cuir chevelu',        emoji: '🪷', hint: 'Démangeaisons, pellicules, irritation'  },
-      { id: 'volume',     label: 'Volume / densité',    emoji: '☁️', hint: 'Cheveux plats, peu denses'              },
-    ],
-  },
-  {
-    id: 'lastWash',
-    title: 'Quand as-tu lavé tes cheveux ?',
-    subtitle: "L'apparence change beaucoup avec la fraîcheur du lavage.",
-    options: [
-      { id: 'today',     label: "Aujourd'hui",            emoji: '💧' },
-      { id: '1-3d',      label: 'Il y a 1 à 3 jours',      emoji: '📅' },
-      { id: '4-7d',      label: 'Il y a 4 à 7 jours',      emoji: '🗓️' },
-      { id: 'over-week', label: 'Plus d\'une semaine',     emoji: '🕰️' },
-      { id: 'unknown',   label: 'Je ne sais plus',         emoji: '🤷' },
+      { id: 'dryness',    label: 'Sécheresse',          emoji: '🏜️', hint: 'Cheveux qui boivent vite, fils ternes' },
+      { id: 'breakage',   label: 'Casse',                emoji: '💥', hint: 'Cheveux qui cassent, fragilité' },
+      { id: 'definition', label: 'Manque de définition', emoji: '🌀', hint: 'Boucles peu marquées, flou' },
+      { id: 'frizz',      label: 'Frisottis',            emoji: '⚡', hint: 'Cheveux qui rebiquent, halo' },
     ],
   },
   {
@@ -104,35 +89,21 @@ const QUESTIONS: Question[] = [
     title: 'Quand tu touches tes cheveux, ils sont…',
     subtitle: 'Décris la sensation au toucher (le plus fiable).',
     options: [
-      { id: 'soft-supple', label: 'Souples et hydratés',  emoji: '🪶', hint: 'Glissent entre les doigts' },
-      { id: 'dry-soft',    label: 'Secs mais doux',        emoji: '🌾', hint: 'Doux mais boivent vite'   },
-      { id: 'dry-rough',   label: 'Secs et rêches',        emoji: '🌵', hint: 'Sensation paille'         },
-      { id: 'brittle',     label: 'Cassants',              emoji: '🥀', hint: 'Cassent au coiffage'      },
-      { id: 'oily',        label: 'Gras / racines lourdes',emoji: '🛢️', hint: 'Film de sébum'            },
+      { id: 'soft-supple', label: 'Souples et hydratés', emoji: '🪶', hint: 'Glissent entre les doigts' },
+      { id: 'dry-soft',    label: 'Secs mais doux',      emoji: '🌾', hint: 'Doux mais boivent vite' },
+      { id: 'dry-rough',   label: 'Secs et rêches',      emoji: '🌵', hint: 'Sensation paille' },
+      { id: 'brittle',     label: 'Cassants',            emoji: '🥀', hint: 'Cassent au coiffage' },
     ],
   },
   {
-    id: 'porosityTest',
-    title: 'As-tu déjà fait le test du verre d\'eau ?',
-    subtitle: 'On dépose un cheveu propre dans un verre d\'eau et on observe.',
+    id: 'lastWash',
+    title: 'Quand as-tu lavé tes cheveux ?',
+    subtitle: "L'apparence change beaucoup avec la fraîcheur du lavage.",
     options: [
-      { id: 'sinks-fast', label: 'Coule rapidement',     emoji: '⬇️', hint: 'Porosité haute' },
-      { id: 'sinks-slow', label: 'Coule lentement',      emoji: '🐢', hint: 'Porosité moyenne' },
-      { id: 'floats',     label: 'Reste à la surface',   emoji: '⬆️', hint: 'Porosité faible' },
-      { id: 'not-done',   label: 'Je ne l\'ai pas fait', emoji: '❓' },
-    ],
-  },
-  {
-    id: 'recentStress',
-    title: 'Une agression récente sur tes cheveux ?',
-    subtitle: 'Optionnel — utile pour cibler les soins reconstructeurs.',
-    optional: true,
-    options: [
-      { id: 'none',             label: 'Aucune',                    emoji: '✅' },
-      { id: 'heat',             label: 'Chaleur (lisseur, fer)',     emoji: '🔥' },
-      { id: 'color',            label: 'Coloration / décoloration',  emoji: '🎨' },
-      { id: 'relaxer',          label: 'Défrisage',                  emoji: '🧪' },
-      { id: 'protective-style', label: 'Coiffure protectrice',       emoji: '👑', hint: 'Tresses, weave, perruque collée' },
+      { id: 'today',     label: "Aujourd'hui",        emoji: '💧' },
+      { id: '1-3d',      label: 'Il y a 1 à 3 jours', emoji: '📅' },
+      { id: '4-7d',      label: 'Il y a 4 à 7 jours', emoji: '🗓️' },
+      { id: 'over-week', label: 'Plus d\'une semaine', emoji: '🕰️' },
     ],
   },
 ];
@@ -532,10 +503,17 @@ export default function AnalyzeScreen() {
           photos={photos}
           onPhoto={handleScanPhoto}
           onClose={() => setPhase('empty')}
-          onComplete={() => {
-            setShowManualSlots(false);
-            setPhase('empty');
+          onComplete={(captured) => {
+            setShowManualSlots(true);
             hapticMedium();
+            if (captured >= MIN_PHOTOS) {
+              setQIndex(0);
+              setAnswers({});
+              setError(null);
+              setPhase('questions');
+            } else {
+              setPhase('empty');
+            }
           }}
           minPhotos={MIN_PHOTOS}
         />
@@ -667,7 +645,7 @@ export default function AnalyzeScreen() {
                   <Text style={s.analyzeBtnText}>
                     {filledCount < MIN_PHOTOS
                       ? `📸 ${MIN_PHOTOS} photos minimum (${filledCount}/${MIN_PHOTOS})`
-                      : `Continuer · ${filledCount}/3 photo${filledCount > 1 ? 's' : ''}  →`}
+                      : 'Continuer vers les questions →'}
                   </Text>
                 </TouchableOpacity>
               </View>

@@ -52,12 +52,19 @@ import {
 import type { OnboardingBlockerId, OnboardingConfidenceId, OnboardingResultsPaceId, OnboardingRoutineConsistencyId } from '../../src/constants/onboardingEmotional';
 import {
   DEFAULT_RESULTS_PACE_WEEKS,
+  MAX_ONBOARDING_BLOCKERS,
   paceFromResultsWeeks,
   snapResultsWeeks,
   weeksFromResultsPace,
   weeksUntilGoalDate,
 } from '../../src/constants/onboardingEmotional';
 import { ONBOARDING_STORAGE_KEY, PENDING_POST_ONBOARDING_SCAN_KEY } from '../../src/lib/onboardingStorage';
+import {
+  buildOnboardingProfileRow,
+  normalizeOnboardingHairType,
+  onboardingRowToHairProfile,
+  savePendingOnboardingProfile,
+} from '../../src/lib/onboardingProfile';
 
 const SCAN_STEP = 14;
 const FINAL_STEP = 15;
@@ -123,7 +130,7 @@ const BUDGETS = [
 export default function OnboardingScreen() {
   const router = useRouter();
   const { plan, signup } = useLocalSearchParams<{ plan?: string; signup?: string }>();
-  const { dispatch } = useApp();
+  const { dispatch, claimOnboardingGiftSecure } = useApp();
   const [hydrated, setHydrated]   = useState(false);
   const [step, setStep]           = useState(0);
   const [hairType, setHairType]   = useState('');
@@ -243,7 +250,11 @@ export default function OnboardingScreen() {
   }
 
   function toggleBlocker(id: OnboardingBlockerId) {
-    setBlockers(prev => (prev.includes(id) ? prev.filter(b => b !== id) : [...prev, id]));
+    setBlockers(prev => {
+      if (prev.includes(id)) return prev.filter(b => b !== id);
+      if (prev.length >= MAX_ONBOARDING_BLOCKERS) return prev;
+      return [...prev, id];
+    });
   }
 
   function selectHairType(code: string) {
@@ -286,7 +297,16 @@ export default function OnboardingScreen() {
     const { data, error: err } = await supabase.auth.signUp({
       email: email.trim(),
       password,
-      options: { data: { name: name.trim() } },
+      options: {
+        data: {
+          name: name.trim(),
+          hair_type: normalizeOnboardingHairType(hairType, hairTypeUnsure),
+          hair_type_unsure: hairTypeUnsure,
+          porosity: porosity || 'Moyenne',
+          density: density || 'Moyenne',
+          onboarding_done: true,
+        },
+      },
     });
 
     recordAuthAttempt(!err);
@@ -307,54 +327,53 @@ export default function OnboardingScreen() {
 
     await supabase.auth.getSession();
 
-    const profileRow = {
-      id:           data.user.id,
-      name:         name.trim(),
-      hair_type:    hairType  || '3C',
-      hair_type_unsure: hairTypeUnsure,
-      porosity:     porosity  || 'Moyenne',
-      density:      density   || 'Moyenne',
-      problematics: problematics.length ? problematics : [],
-      hair_notes:   hairNotes.trim() || '',
-      hair_confidence: confidence || '',
-      routine_consistency: routineConsistency || '',
-      hair_blockers: blockers.length ? blockers : [],
-      results_pace: resultsPace,
-      results_weeks: resultsWeeks,
-      objective:    normalizeObjectiveId(objective) || '',
-      length:         currentLength.trim() || null,
-      target_length: targetLength.trim() || null,
-      target_goal_date: targetLength.trim() ? goalDateIso : null,
-      region:       selectedRegion?.label   || '',
-      climate:      selectedRegion?.climate || '',
-      budget:       selectedBudget?.range   || '',
-      care_style:   careStyle               || '',
-      onboarding_done: true,
-    };
+    const profileRow = buildOnboardingProfileRow({
+      userId: data.user.id,
+      name: name.trim(),
+      hairType,
+      hairTypeUnsure,
+      porosity,
+      density,
+      problematics,
+      hairNotes,
+      confidence,
+      routineConsistency,
+      blockers,
+      resultsPace,
+      resultsWeeks,
+      objective,
+      currentLength,
+      targetLength,
+      goalDateIso,
+      regionLabel: selectedRegion?.label ?? '',
+      regionClimate: selectedRegion?.climate ?? '',
+      budgetRange: selectedBudget?.range ?? '',
+      careStyle,
+    });
 
-    const { error: profileError } = await supabase.from('profiles').upsert(profileRow);
+    await savePendingOnboardingProfile(profileRow);
+
+    const { error: profileError } = await supabase.from('profiles').upsert(profileRow, {
+      onConflict: 'id',
+    });
     if (profileError) {
       if (__DEV__) console.warn('[onboarding] profiles upsert', profileError.message ?? profileError);
+      setError(
+        'Impossible d’enregistrer ton profil capillaire. Vérifie ta connexion et réessaie. '
+        + 'Si le problème persiste, contacte support@appcotonnoir.com.',
+      );
+      setLoading(false);
+      return;
     }
 
     await AsyncStorage.setItem(PENDING_ONBOARDING_GIFT_KEY, '1');
+    const giftResult = await claimOnboardingGiftSecure();
+    if (!giftResult.ok && __DEV__) {
+      console.warn('[onboarding] claim gift', giftResult.error);
+    }
     dispatch({
       type: 'updateProfile',
-      payload: {
-        name:         profileRow.name,
-        hairType:     profileRow.hair_type,
-        porosity:     profileRow.porosity,
-        density:      profileRow.density,
-        problematics: profileRow.problematics ?? [],
-        objective:    profileRow.objective,
-        length:       profileRow.length ?? '',
-        targetLength: profileRow.target_length ?? '',
-        objectiveTargetDate: profileRow.target_goal_date ?? '',
-        region:       profileRow.region,
-        climate:      profileRow.climate,
-        budget:       profileRow.budget,
-        careStyle:    (profileRow.care_style || '') as CareStyle,
-      },
+      payload: onboardingRowToHairProfile(profileRow),
     });
 
     const reco = buildOnboardingRecommendations({
@@ -404,7 +423,7 @@ export default function OnboardingScreen() {
     const selectedRegionRow = REGIONS.find(r => r.id === region);
     const selectedBudgetRow = BUDGETS.find(b => b.id === budget);
     return buildOnboardingRecommendations({
-      hairType: hairType || '3C',
+      hairType: normalizeOnboardingHairType(hairType, hairTypeUnsure),
       porosity: porosity || 'Moyenne',
       density: density || 'Moyenne',
       objective: normalizeObjectiveId(objective),

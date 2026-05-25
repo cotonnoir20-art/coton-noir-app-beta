@@ -203,10 +203,6 @@ const HEALTH_SCORE_PROFILE_FIELDS: (keyof AppState['profile'])[] = [
   'budget',
 ];
 
-/**
- * Score santé 0–100 (aligné sur les fixtures démo : profil + streak + mesures).
- * `null` si aucune donnée exploitable (nouveau compte sans profil ni mesure).
- */
 export function computeHairHealthScore(state: AppState): number | null {
   const { profile, growthHistory, streak } = state;
   const filled = HEALTH_SCORE_PROFILE_FIELDS.filter(k => {
@@ -221,6 +217,24 @@ export function computeHairHealthScore(state: AppState): number | null {
 
   if (total === 0) return null;
   return Math.min(100, total);
+}
+
+/**
+ * Score affiché sur l’anneau accueil : priorité à la dernière analyse IA,
+ * sinon estimation profil / streak / mesures.
+ */
+export function resolveHomeHealthScore(
+  state: AppState,
+  latestAnalysisScore: number | null | undefined,
+): number | null {
+  if (
+    latestAnalysisScore != null &&
+    Number.isFinite(latestAnalysisScore) &&
+    latestAnalysisScore > 0
+  ) {
+    return Math.min(100, Math.round(latestAnalysisScore));
+  }
+  return computeHairHealthScore(state);
 }
 
 /** En dessous : bandeau « Routine / Analyser » recommandé. */

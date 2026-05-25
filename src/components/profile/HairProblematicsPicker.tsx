@@ -53,9 +53,15 @@ export function HairProblematicsPicker({
         ]}
       >
         {isOnboarding
-          ? 'Choisis ce qui te parle le plus — tu pourras en ajouter d’autres dans ton profil.'
+          ? 'Choisis jusqu’à 3 préoccupations pour ton diagnostic.'
           : 'Sélectionne tes préoccupations pour des routines ciblées'}
       </Text>
+
+      {isOnboarding ? (
+        <Text style={[styles.counter, styles.counterOnboarding]}>
+          {normalized.length}/{MAX_HAIR_PROBLEMATICS} sélectionnée{normalized.length > 1 ? 's' : ''}
+        </Text>
+      ) : null}
 
       {isOnboarding ? (
         <View style={styles.pillList}>

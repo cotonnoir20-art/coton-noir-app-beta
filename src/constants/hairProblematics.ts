@@ -76,22 +76,14 @@ export const HAIR_PROBLEMATICS: HairProblematic[] = [
   },
 ];
 
-/** Ordre d’affichage onboarding (nouvelles options en tête, sans doublon sémantique). */
+/** Ordre d’affichage onboarding — 6 options max, diagnostic ciblé. */
 export const ONBOARDING_PROBLEMATIC_IDS: string[] = [
   'dryness',
   'breakage',
   'product_confusion',
-  'incoherent_routine',
-  'heat_damage',
-  'chemical_damage',
-  'scalp_issues',
-  'dandruff',
   'frizz',
-  'fine_hair',
-  'oily',
-  'dull',
-  'tangles',
   'slow_growth',
+  'scalp_issues',
 ];
 
 export function getProblematicDisplayLabel(p: HairProblematic): string {
@@ -161,9 +153,7 @@ export function findHairProblematic(label: string): HairProblematic | undefined 
 
 export function getOnboardingProblematics(): HairProblematic[] {
   const byId = new Map(HAIR_PROBLEMATICS.map(p => [p.id, p]));
-  const ordered = ONBOARDING_PROBLEMATIC_IDS.map(id => byId.get(id)).filter(
+  return ONBOARDING_PROBLEMATIC_IDS.map(id => byId.get(id)).filter(
     (p): p is HairProblematic => !!p,
   );
-  const rest = HAIR_PROBLEMATICS.filter(p => !ONBOARDING_PROBLEMATIC_IDS.includes(p.id));
-  return [...ordered, ...rest];
 }

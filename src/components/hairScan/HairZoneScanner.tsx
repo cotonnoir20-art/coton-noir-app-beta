@@ -25,7 +25,7 @@ type HairZoneScannerProps = {
   photos: (ScanPhoto | null)[];
   onPhoto: (index: number, photo: ScanPhoto) => void;
   onClose: () => void;
-  onComplete: () => void;
+  onComplete: (capturedCount: number) => void;
   minPhotos?: number;
 };
 
@@ -58,6 +58,8 @@ export function HairZoneScanner({
   const capturedCount = photos.filter(Boolean).length;
   const isLastStep = step === HAIR_SCAN_ZONES.length - 1;
   const canFinish = capturedCount >= minPhotos;
+  const allZonesCaptured = capturedCount >= HAIR_SCAN_ZONES.length;
+  const currentZoneCaptured = Boolean(photos[step]);
 
   const pickFromLibrary = useCallback(async () => {
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -125,7 +127,7 @@ export function HairZoneScanner({
       );
       return;
     }
-    onComplete();
+    onComplete(capturedCount);
   };
 
   return (
@@ -186,31 +188,46 @@ export function HairZoneScanner({
               {capturedCount} sur {HAIR_SCAN_ZONES.length} zones capturées
             </Text>
 
-            <TouchableOpacity
-              style={[styles.captureBtn, capturing && styles.captureBtnDisabled]}
-              onPress={capturePhoto}
-              disabled={capturing}
-              activeOpacity={0.88}
-            >
-              {capturing ? (
-                <ActivityIndicator color={Colors.ink} />
-              ) : (
-                <>
-                  <Ionicons name="camera" size={20} color={Colors.ink} />
-                  <Text style={styles.captureBtnText}>{zone.captureLabel}</Text>
-                </>
-              )}
-            </TouchableOpacity>
-
-            <TouchableOpacity onPress={pickFromLibrary} style={styles.galleryLink}>
-              <Text style={styles.galleryLinkText}>Importer depuis la galerie</Text>
-            </TouchableOpacity>
-
-            {isLastStep && capturedCount >= minPhotos ? (
-              <TouchableOpacity style={styles.doneBtn} onPress={handleFinish}>
-                <Text style={styles.doneBtnText}>Continuer vers le questionnaire →</Text>
+            {allZonesCaptured ? (
+              <TouchableOpacity style={styles.captureBtn} onPress={handleFinish} activeOpacity={0.88}>
+                <Ionicons name="arrow-forward-circle" size={22} color={Colors.ink} />
+                <Text style={styles.captureBtnText}>Continuer vers le questionnaire →</Text>
               </TouchableOpacity>
-            ) : null}
+            ) : (
+              <>
+                <TouchableOpacity
+                  style={[styles.captureBtn, capturing && styles.captureBtnDisabled]}
+                  onPress={capturePhoto}
+                  disabled={capturing}
+                  activeOpacity={0.88}
+                >
+                  {capturing ? (
+                    <ActivityIndicator color={Colors.ink} />
+                  ) : (
+                    <>
+                      <Ionicons name="camera" size={20} color={Colors.ink} />
+                      <Text style={styles.captureBtnText}>
+                        {currentZoneCaptured ? `Reprendre ${zone.label.toLowerCase()}` : zone.captureLabel}
+                      </Text>
+                    </>
+                  )}
+                </TouchableOpacity>
+
+                <TouchableOpacity onPress={pickFromLibrary} style={styles.galleryLink}>
+                  <Text style={styles.galleryLinkText}>Importer depuis la galerie</Text>
+                </TouchableOpacity>
+
+                {canFinish && (isLastStep || currentZoneCaptured) ? (
+                  <TouchableOpacity style={styles.doneBtn} onPress={handleFinish}>
+                    <Text style={styles.doneBtnText}>
+                      {capturedCount < HAIR_SCAN_ZONES.length
+                        ? `Passer au questionnaire (${capturedCount}/${HAIR_SCAN_ZONES.length}) →`
+                        : 'Continuer vers le questionnaire →'}
+                    </Text>
+                  </TouchableOpacity>
+                ) : null}
+              </>
+            )}
           </View>
         </SafeAreaView>
       </View>

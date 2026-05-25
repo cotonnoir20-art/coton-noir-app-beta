@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Modal,
@@ -39,10 +39,11 @@ import { isWebPlatform } from '../../src/lib/webStaging';
 import { PANTRY_ITEMS } from '../../src/data/pantryItems';
 import {
   buildGrowthMilestones,
-  computeHairHealthScore,
   getHomeLengthMetrics,
   HEALTH_SCORE_LOW_THRESHOLD,
+  resolveHomeHealthScore,
 } from '../../src/lib/homeGrowth';
+import { fetchHairAnalysisHistory } from '../../src/lib/hairAnalysisHistory';
 import { GrowthHealthActionBanner } from '../../src/components/growth/GrowthHealthActionBanner';
 import { fetchHomeHighlights } from '../../src/lib/fetchHomeHighlights';
 import type { MomentCard } from '../../src/data/homeHighlights';
@@ -197,7 +198,27 @@ export default function HomeScreen() {
   }, [router, focusRoutine]);
 
   const lengthMetrics = useMemo(() => getHomeLengthMetrics(state), [state]);
-  const healthScore = useMemo(() => computeHairHealthScore(state), [state]);
+  const [analysisHealthScore, setAnalysisHealthScore] = useState<number | null>(null);
+
+  const loadAnalysisHealthScore = useCallback(async () => {
+    const rows = await fetchHairAnalysisHistory(1);
+    setAnalysisHealthScore(rows[0]?.score ?? null);
+  }, []);
+
+  useEffect(() => {
+    void loadAnalysisHealthScore();
+  }, [loadAnalysisHealthScore, state.coinHistory.length]);
+
+  useFocusEffect(
+    useCallback(() => {
+      void loadAnalysisHealthScore();
+    }, [loadAnalysisHealthScore]),
+  );
+
+  const healthScore = useMemo(
+    () => resolveHomeHealthScore(state, analysisHealthScore),
+    [state, analysisHealthScore],
+  );
 
   const hasAnyRoutineValidation = useMemo(
     () =>
@@ -358,9 +379,10 @@ export default function HomeScreen() {
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     setHighlightsNonce(n => n + 1);
+    await loadAnalysisHealthScore();
     await new Promise(res => setTimeout(res, 600));
     setRefreshing(false);
-  }, []);
+  }, [loadAnalysisHealthScore]);
 
   const [showPantry, setShowPantry] = useState(false);
   const [pantryMounted, setPantryMounted] = useState(false);

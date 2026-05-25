@@ -14,7 +14,7 @@ export function buildProfileUpsertRow(
   return {
     id: userId,
     name: profile.name,
-    hair_type: profile.hairType,
+    hair_type: (profile.hairType ?? '').trim() || '3C',
     porosity: profile.porosity,
     density: profile.density,
     length: profile.length ?? '',

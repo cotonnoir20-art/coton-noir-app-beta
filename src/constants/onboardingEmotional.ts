@@ -91,11 +91,9 @@ export const CONFIDENCE_OPTIONS: {
   emoji: string;
   label: string;
 }[] = [
-  { id: 'very_confident', emoji: '💚', label: 'Très confiante, j’adore mes cheveux' },
   { id: 'getting_there', emoji: '🌱', label: 'Ça progresse, j’ai de bons jours' },
   { id: 'frustrated', emoji: '😤', label: 'Frustrée, rien ne semble marcher' },
   { id: 'overwhelmed', emoji: '😩', label: 'Perdue, je ne sais pas quoi faire' },
-  { id: 'disconnected', emoji: '☁️', label: 'En retrait de mes cheveux naturels' },
 ];
 
 export const ROUTINE_CONSISTENCY_OPTIONS: {
@@ -116,11 +114,10 @@ export const BLOCKER_OPTIONS: {
 }[] = [
   { id: 'consistency', emoji: '⏱️', label: 'Manque de régularité' },
   { id: 'dont_know', emoji: '❓', label: 'Je ne sais pas ce qui me convient' },
-  { id: 'too_many_products', emoji: '🧴', label: 'Trop de produits testés' },
   { id: 'no_structure', emoji: '📋', label: 'Pas de routine structurée' },
-  { id: 'stylist', emoji: '💇🏾‍♀️', label: 'Difficile de trouver une bonne coiffeuse' },
-  { id: 'budget', emoji: '💰', label: 'Budget serré' },
 ];
+
+export const MAX_ONBOARDING_BLOCKERS = 3;
 
 export function weeksFromResultsPace(pace: OnboardingResultsPaceId | string): number {
   const stop = RESULTS_PACE_WEEK_STOPS.find(s => s.id === pace);
