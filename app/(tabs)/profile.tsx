@@ -145,6 +145,7 @@ export default function ProfileScreen() {
   const [currentPassword,   setCurrentPassword]   = useState('');
   const [newPassword,       setNewPassword]       = useState('');
   const [confirmPassword,   setConfirmPassword]   = useState('');
+  const [signingOut, setSigningOut] = useState(false);
   const [authLoading,       setAuthLoading]       = useState(false);
   const [authError,         setAuthError]         = useState('');
 
@@ -218,16 +219,23 @@ export default function ProfileScreen() {
   }, [applyPrefs, session?.user?.id]);
 
   const handleSignOut = useCallback(async () => {
+    if (signingOut) return;
+    setSigningOut(true);
     const synced = await flushProfileSync();
     if (!synced) {
       Alert.alert(
         'Synchronisation',
         'Certaines modifications n’ont pas pu être enregistrées en ligne. Réessaie dans quelques secondes avant de te déconnecter.',
       );
+      setSigningOut(false);
       return;
     }
-    await signOut();
-  }, [flushProfileSync, signOut]);
+    const result = await signOut();
+    if (!result.ok) {
+      Alert.alert('Déconnexion impossible', result.error);
+      setSigningOut(false);
+    }
+  }, [flushProfileSync, signOut, signingOut]);
 
   useFocusEffect(
     useCallback(() => {
@@ -735,8 +743,13 @@ export default function ProfileScreen() {
         </ScrollView>
 
         {/* ── Actions compte ── */}
-        <TouchableOpacity style={S.logoutBtn} onPress={() => void handleSignOut()}>
-          <Text style={S.logoutText}>Se déconnecter</Text>
+        <TouchableOpacity
+          style={[S.logoutBtn, signingOut && S.logoutBtnDisabled]}
+          onPress={() => void handleSignOut()}
+          disabled={signingOut}
+          activeOpacity={0.85}
+        >
+          <Text style={S.logoutText}>{signingOut ? 'Déconnexion...' : 'Se déconnecter'}</Text>
         </TouchableOpacity>
         <TouchableOpacity style={S.deleteBtn} onPress={handleDeleteAccount}>
           <Text style={S.deleteText}>Supprimer le compte</Text>
@@ -1297,6 +1310,9 @@ const S = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: Colors.amber,
     marginBottom: 10,
+  },
+  logoutBtnDisabled: {
+    opacity: 0.6,
   },
   logoutText:  { fontSize: 14, fontFamily: 'DMSans_700Bold', color: Colors.amber },
   deleteBtn: {

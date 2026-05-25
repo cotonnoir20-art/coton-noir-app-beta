@@ -4,6 +4,21 @@ import type { CoinHistoryEntry } from '../context/AppContext';
 export const COMEBACK_ABSENCE_DAYS = 14;
 const DISMISS_KEY = '@coton_noir_comeback_dismissed_at';
 
+export function hasHairActivity(
+  coinHistory: CoinHistoryEntry[],
+  lastRoutineDate: string | null | undefined,
+): boolean {
+  if (lastRoutineDate && /^\d{4}-\d{2}-\d{2}/.test(lastRoutineDate)) {
+    return true;
+  }
+  return coinHistory.some(
+    e =>
+      e.amount > 0 &&
+      /^\d{4}-\d{2}-\d{2}/.test(e.date) &&
+      /routine|wash day|washday/i.test(e.label),
+  );
+}
+
 export function daysSinceLastHairActivity(
   coinHistory: CoinHistoryEntry[],
   lastRoutineDate: string | null | undefined,
@@ -19,7 +34,7 @@ export function daysSinceLastHairActivity(
       }
     }
   }
-  if (dates.length === 0) return 999;
+  if (dates.length === 0) return 0;
   const latest = dates.sort().reverse()[0];
   const last = new Date(`${latest}T12:00:00`);
   const today = new Date();
@@ -31,6 +46,7 @@ export function shouldShowComebackBanner(
   coinHistory: CoinHistoryEntry[],
   lastRoutineDate: string | null | undefined,
 ): boolean {
+  if (!hasHairActivity(coinHistory, lastRoutineDate)) return false;
   return daysSinceLastHairActivity(coinHistory, lastRoutineDate) >= COMEBACK_ABSENCE_DAYS;
 }
 

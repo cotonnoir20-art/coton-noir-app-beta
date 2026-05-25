@@ -41,6 +41,7 @@ const s = StyleSheet.create({
   wrap: { marginBottom: 20 },
   avatarWrap: {
     alignItems: 'center',
+    marginTop: 10,
     marginBottom: 12,
   },
   title: {

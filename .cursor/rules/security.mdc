@@ -1,0 +1,15 @@
+---
+description: Règles de sécurité obligatoires — appliquer intégralement security.md
+alwaysApply: true
+---
+
+# Sécurité (obligatoire)
+
+Appliquer **toutes** les règles de `.cursor/rules/security.md` sans exception.
+
+Non-négociable :
+- Secrets uniquement dans `.env.local` ; jamais en dur ; `EXPO_PUBLIC_*` côté client, service key jamais dans l’app
+- RLS sur toutes les tables Supabase ; policies avec `auth.uid()` + `WITH CHECK`
+- Anon key seulement dans `src/lib/supabase.ts`
+- Pas de concat SQL ; pas de `dangerouslySetInnerHTML` sur contenu utilisateur
+- Vérifier `package.json` et `npm audit` avant tout commit de dépendances

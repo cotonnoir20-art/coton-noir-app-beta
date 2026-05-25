@@ -413,7 +413,7 @@ export default function OnboardingScreen() {
     const pendingScan = await AsyncStorage.getItem(PENDING_POST_ONBOARDING_SCAN_KEY);
     await AsyncStorage.removeItem(PENDING_POST_ONBOARDING_SCAN_KEY);
     setLoading(false);
-    router.replace(pendingScan ? '/(tabs)/analyze' : '/(tabs)');
+    router.replace(pendingScan ? '/(tabs)/analyze' : '/(auth)/recommendations');
   }
 
   const selectedRegion = REGIONS.find(r => r.id === region);

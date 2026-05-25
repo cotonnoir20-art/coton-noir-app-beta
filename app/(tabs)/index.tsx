@@ -238,8 +238,14 @@ export default function HomeScreen() {
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      if (!shouldShowComebackBanner(state.coinHistory, state.lastRoutineDate)) return;
-      if (await wasComebackDismissedRecently()) return;
+      if (!shouldShowComebackBanner(state.coinHistory, state.lastRoutineDate)) {
+        if (!cancelled) setShowComeback(false);
+        return;
+      }
+      if (await wasComebackDismissedRecently()) {
+        if (!cancelled) setShowComeback(false);
+        return;
+      }
       if (!cancelled) setShowComeback(true);
     })();
     return () => {

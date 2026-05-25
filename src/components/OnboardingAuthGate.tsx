@@ -20,13 +20,20 @@ export function OnboardingAuthGate({ children }: { children: React.ReactNode }) 
     const authScreen = segments[1] as string | undefined;
 
     if (needsOnboarding) {
-      if (!inAuth || authScreen !== 'onboarding') {
+      const isAllowedOnboardingScreen =
+        inAuth && (authScreen === 'onboarding' || authScreen === 'recommendations');
+      if (!isAllowedOnboardingScreen) {
         router.replace('/(auth)/onboarding');
       }
       return;
     }
 
-    if (inAuth && authScreen !== 'login') {
+    if (
+      inAuth &&
+      authScreen !== 'login' &&
+      authScreen !== 'recommendations' &&
+      authScreen !== 'onboarding'
+    ) {
       router.replace('/(tabs)');
     }
   }, [loading, session, isAppReady, needsOnboarding, segments, router]);
