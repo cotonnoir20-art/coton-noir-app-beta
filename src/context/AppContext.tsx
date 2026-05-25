@@ -119,6 +119,12 @@ export type HairProfile = {
   careStyle?: CareStyle;
 };
 
+function resolveCoachDisplayName(name: string | null | undefined): string {
+  const trimmed = (name ?? '').trim();
+  if (!trimmed) return 'Username';
+  return trimmed.split(/\s+/)[0];
+}
+
 export type GrowthEntry = {
   id: number;
   date: string;
@@ -566,7 +572,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       dispatch({ type: 'validateRoutine', routineType });
       const nextStreak = computeNewStreak(state.streak, state.lastRoutineDate);
       if (wasFirstRoutine) {
-        queueBcTrigger('first_routine');
+        queueBcTrigger('first_routine', {
+          text: `Félicitations ${resolveCoachDisplayName(state.profile.name)} ! 🖤`,
+        });
         void trackProductEvent('first_routine_validated', { routine_type: routineType });
       } else {
         queueBcTrigger('post_routine', buildPostRoutineContext({
@@ -598,7 +606,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         }
         const newStreak = result.snapshot.streak;
         if (wasFirstRoutine) {
-          queueBcTrigger('first_routine');
+          queueBcTrigger('first_routine', {
+            text: `Félicitations ${resolveCoachDisplayName(state.profile.name)} ! 🖤`,
+          });
           void trackProductEvent('first_routine_validated', { routine_type: routineType });
         } else {
           queueBcTrigger('post_routine', buildPostRoutineContext({

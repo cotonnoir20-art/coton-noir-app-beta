@@ -5,20 +5,31 @@ import { displayObjective, normalizeObjectiveId } from '../../constants/hairObje
 import { BCEmojiAvatar } from '../blackCotton/BCEmojiAvatar';
 
 type Props = {
+  name?: string;
   objective: string;
   resultsWeeks: number;
   hairTypeUnsure?: boolean;
 };
 
-export function PlanReadyHeader({ objective, resultsWeeks, hairTypeUnsure }: Props) {
+function resolveDisplayName(name?: string): string {
+  const trimmed = (name ?? '').trim();
+  if (!trimmed) return '';
+  return trimmed.split(/\s+/)[0];
+}
+
+export function PlanReadyHeader({ name, objective, resultsWeeks, hairTypeUnsure }: Props) {
   const focus = displayObjective(normalizeObjectiveId(objective)) || 'Prendre soin de tes cheveux';
+  const displayName = resolveDisplayName(name);
+  const title = displayName
+    ? `${displayName}, ton plan capillaire personnalisé est prêt ! ✨`
+    : 'Ton plan capillaire personnalisé est prêt ! ✨';
 
   return (
     <View style={s.wrap}>
       <View style={s.avatarWrap}>
         <BCEmojiAvatar size={88} mood="coaching" />
       </View>
-      <Text style={s.title}>Ton plan personnalisé est prêt</Text>
+      <Text style={s.title}>{title}</Text>
       <Text style={s.subtitle}>
         Des résultats visibles visés d’ici {resultsWeeks} semaine{resultsWeeks > 1 ? 's' : ''}.
       </Text>

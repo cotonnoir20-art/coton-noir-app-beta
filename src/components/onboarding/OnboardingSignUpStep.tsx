@@ -91,7 +91,7 @@ export function OnboardingSignUpStep({
           <ActivityIndicator color={Colors.white} />
         ) : (
           <Text style={s.primaryBtnText}>
-            Sauvegarder mon plan <Text style={s.primaryBtnAccent}>→</Text>
+            Créer un compte <Text style={s.primaryBtnAccent}>→</Text>
           </Text>
         )}
       </TouchableOpacity>

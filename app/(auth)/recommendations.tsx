@@ -45,6 +45,7 @@ export default function RecommendationsScreen() {
         showsVerticalScrollIndicator={false}
       >
         <PlanReadyHeader
+          name={profile.name}
           objective={profile.objective}
           resultsWeeks={8}
           hairTypeUnsure={!profile.hairType}

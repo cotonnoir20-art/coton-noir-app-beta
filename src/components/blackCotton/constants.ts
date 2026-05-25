@@ -84,7 +84,7 @@ export const TRIGGER_CONFIGS: Record<BlackCottonTrigger, TriggerConfig> = {
 
   first_routine: {
     messages: [
-      { text: "Félicitations mon chien ! 🖤", subtext: "Ta première routine est enregistrée. Tes cheveux te disent merci ✨", mood: 'celebrating' },
+      { text: 'Félicitations ! 🖤', subtext: 'Ta première routine est enregistrée. Tes cheveux te disent merci ✨', mood: 'celebrating' },
       { text: "C'est un grand jour ! 🎉",     subtext: "Ta routine capillaire démarre. Je suis tellement fière de toi !",    mood: 'proud'       },
     ],
     displayMode: 'popup',
