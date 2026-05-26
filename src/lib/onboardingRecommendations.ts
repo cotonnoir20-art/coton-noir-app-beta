@@ -209,6 +209,8 @@ export function buildOnboardingRecommendations(input: DiagnosticSnapshot, overri
       name: p.name,
       price: p.price,
       emoji: p.emoji,
+      bg: p.bg,
+      image: p.image,
       cat: p.cat,
       desc: p.desc,
       ingredients: p.ingredients,

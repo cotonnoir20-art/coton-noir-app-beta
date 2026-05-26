@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/typography';
@@ -331,8 +332,12 @@ function RichProductCard({ product, style }: { product: OnboardingRecommendation
   const catLabel = CAT_LABELS[product.cat] ?? product.cat;
   return (
     <View style={[s.richCard, style]}>
-      <View style={s.richCardTop}>
-        <Text style={s.richEmoji}>{product.emoji}</Text>
+      <View style={[s.richCardTop, product.bg ? { backgroundColor: product.bg } : undefined]}>
+        {product.image ? (
+          <Image source={{ uri: product.image }} style={s.richProductImg} contentFit="cover" />
+        ) : (
+          <Text style={s.richEmoji}>{product.emoji}</Text>
+        )}
         <View style={s.richCatBadge}>
           <Text style={s.richCatText}>{catLabel}</Text>
         </View>
@@ -945,6 +950,7 @@ const s = StyleSheet.create({
     gap: 10,
   },
   richEmoji: { fontSize: 52 },
+  richProductImg: { width: 90, height: 90, borderRadius: 12 },
   richCatBadge: {
     backgroundColor: Colors.amber,
     borderRadius: 999,
