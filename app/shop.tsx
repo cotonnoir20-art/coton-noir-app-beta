@@ -219,7 +219,7 @@ export default function ShopScreen() {
   const showFeatured = cat === 'all' && search.trim() === '' && featuredSlides.length > 0;
   const [slideIndex, setSlideIndex] = useState(0);
   const carouselRef = useRef<ScrollView>(null);
-  const slideWidth  = width - 40;
+  const slideWidth  = width - 48;
 
   function onCarouselScroll(e: NativeSyntheticEvent<NativeScrollEvent>) {
     const x = e.nativeEvent.contentOffset.x;
@@ -290,7 +290,7 @@ export default function ShopScreen() {
               snapToInterval={slideWidth + 12}
               decelerationRate="fast"
               onMomentumScrollEnd={onCarouselScroll}
-              contentContainerStyle={{ gap: 12, paddingHorizontal: 20 }}
+              contentContainerStyle={{ gap: 12 }}
             >
               {featuredSlides.map(p => {
                 const bg      = p.featured_bg     ?? p.bg_color ?? Colors.ink;
@@ -641,12 +641,11 @@ const S = StyleSheet.create({
   pillTextActive: { color: '#fff', fontFamily: 'DMSans_600SemiBold' },
 
   // ── Carrousel "À la une" ──
-  featuredBlock: { marginBottom: 24 },
+  featuredBlock: { marginBottom: 24, marginHorizontal: 16 },
   featuredHeader: {
     flexDirection: 'row',
     alignItems: 'flex-end',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
     marginBottom: 12,
   },
   featuredHeaderLeft: { flexDirection: 'column' },
