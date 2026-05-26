@@ -348,11 +348,10 @@ function RichProductCard({ product, style }: { product: OnboardingRecommendation
         </View>
       </View>
       <Text style={s.richName}>{product.name}</Text>
-      <Text style={s.richBrand}>{product.brand} · {product.price}</Text>
       {product.desc ? <Text style={s.richDesc}>{product.desc}</Text> : null}
       {product.ingredients && product.ingredients.length > 0 && (
         <View style={s.richSection}>
-          <Text style={s.richSectionKicker}>INGREDIENTS CLES</Text>
+          <Text style={s.richSectionKicker}>INGRÉDIENTS CLÉS</Text>
           <View style={s.richChips}>
             {product.ingredients.map(ing => (
               <View key={ing} style={s.richChip}>
@@ -364,7 +363,7 @@ function RichProductCard({ product, style }: { product: OnboardingRecommendation
       )}
       {product.matchReason ? (
         <View style={s.richWhy}>
-          <Text style={s.richWhyKicker}>POURQUOI POUR TOI</Text>
+          <Text style={s.richWhyKicker}>POURQUOI POUR VOUS</Text>
           <Text style={s.richWhyText}>{product.matchReason}</Text>
         </View>
       ) : null}

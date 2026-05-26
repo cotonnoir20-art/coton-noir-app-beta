@@ -43,7 +43,7 @@ type SupabaseProductRow = {
   bg_color: string | null;
   rating: number | null;
   rating_count: number;
-  ingredients: string | null;
+  ingredients: string | string[] | null; // text[] ou string CSV selon le schéma
   image: string | null;
 };
 
@@ -61,7 +61,9 @@ function mapRow(row: SupabaseProductRow): Product {
     cat: mapCategory(row.category),
     desc: row.description_full ?? row.description ?? undefined,
     ingredients: row.ingredients
-      ? row.ingredients.split(',').map(s => s.trim()).filter(Boolean)
+      ? (Array.isArray(row.ingredients)
+          ? (row.ingredients as string[]).filter(Boolean)
+          : (row.ingredients as string).split(',').map((s: string) => s.trim()).filter(Boolean))
       : undefined,
     admin_tags: row.tags ?? [],
     image: row.image ?? undefined,
