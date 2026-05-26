@@ -471,7 +471,8 @@ export function matchCatalogProducts(
   // care_style = diy → ne pas suggérer de produits commerce
   if (careStyle === 'diy') return [];
 
-  const catalog = overrideProducts && overrideProducts.length > 0 ? overrideProducts : PRODUCTS;
+  const usingSupabase = overrideProducts != null && overrideProducts.length > 0;
+  const catalog = usingSupabase ? overrideProducts : PRODUCTS;
   const budgetId = resolveBudgetId(budget);
   const profileConcernIds = new Set(resolveProfileOnboardingIds(ctx));
 
@@ -483,15 +484,18 @@ export function matchCatalogProducts(
     }));
   }
 
-  return catalog
+  const scored = catalog
     .map(p => ({
       ...p,
       matchScore: scoreProduct(p, tags, profileConcernIds) + budgetPenalty(p, budgetId),
       matchReason: productMatchReason(p, ctx),
     }))
-    .filter(x => x.matchScore > 0)
-    .sort((a, b) => b.matchScore - a.matchScore)
-    .slice(0, limit);
+    .sort((a, b) => b.matchScore - a.matchScore);
+
+  // Avec le catalogue local on filtre à score > 0 ; avec Supabase on affiche
+  // toujours les N meilleurs pour ne jamais cacher un produit admin.
+  const filtered = usingSupabase ? scored : scored.filter(x => x.matchScore > 0);
+  return filtered.slice(0, limit);
 }
 
 /** Recettes du catalogue — filtrées par hair_type + tags + care_style. */
