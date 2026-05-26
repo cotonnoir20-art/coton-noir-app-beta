@@ -234,8 +234,10 @@ export default function ProfileScreen() {
     if (!result.ok) {
       Alert.alert('Déconnexion impossible', result.error);
       setSigningOut(false);
+    } else {
+      router.replace('/');
     }
-  }, [flushProfileSync, signOut, signingOut]);
+  }, [flushProfileSync, router, signOut, signingOut]);
 
   useFocusEffect(
     useCallback(() => {
