@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/typography';
@@ -321,8 +322,19 @@ function PlanTab({
 function RichProductCard({ product, style }: { product: OnboardingRecommendations['products'][number]; style?: object }) {
   return (
     <View style={[s.richCard, style]}>
-      <Text style={s.richName}>{product.name}</Text>
-      <Text style={s.richBrand}>{product.brand} · {product.price}</Text>
+      <View style={s.richCompactHeader}>
+        <View style={[s.richThumb, product.bg ? { backgroundColor: product.bg } : undefined]}>
+          {product.image ? (
+            <Image source={{ uri: product.image }} style={s.richThumbImg} contentFit="cover" />
+          ) : (
+            <Text style={s.richThumbEmoji}>{product.emoji ?? '🧴'}</Text>
+          )}
+        </View>
+        <View style={s.richHeaderText}>
+          <Text style={s.richName} numberOfLines={2}>{product.name}</Text>
+          <Text style={s.richBrand}>{product.brand} · {product.price}</Text>
+        </View>
+      </View>
       {product.desc ? <Text style={s.richDesc}>{product.desc}</Text> : null}
       {product.ingredients && product.ingredients.length > 0 && (
         <View style={s.richSection}>
@@ -930,6 +942,26 @@ const s = StyleSheet.create({
   },
   richEmoji: { fontSize: 52 },
   richProductImg: { width: 90, height: 90, borderRadius: 12 },
+  richCompactHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    padding: 14,
+    paddingBottom: 10,
+  },
+  richThumb: {
+    width: 56,
+    height: 56,
+    borderRadius: 12,
+    backgroundColor: Colors.amberPowder,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+    overflow: 'hidden',
+  },
+  richThumbImg: { width: '100%', height: '100%' },
+  richThumbEmoji: { fontSize: 28 },
+  richHeaderText: { flex: 1, gap: 2 },
   richCatBadge: {
     backgroundColor: Colors.amber,
     borderRadius: 999,
