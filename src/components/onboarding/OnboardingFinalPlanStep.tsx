@@ -594,7 +594,7 @@ export function OnboardingFinalPlanStep({
 
       {coachReco && unlocked && <CoachCard reco={coachReco} />}
 
-      {onRestart && (
+      {unlocked && onRestart && (
         <View style={s.restartCard}>
           <Text style={s.restartTitle}>Refaire une analyse ?</Text>
           <Text style={s.restartSub}>

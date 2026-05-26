@@ -59,6 +59,7 @@ export default function RecommendationsScreen() {
           problematics={profile.problematics ?? []}
           unlocked
           coachReco={coachReco}
+          onRestart={() => router.push('/hair-profile' as any)}
         />
 
         <TouchableOpacity
