@@ -69,14 +69,22 @@ function mapRow(row: SupabaseProductRow): Product {
 }
 
 export async function fetchPublishedProducts(): Promise<Product[]> {
-  // Pas de filtre status côté requête — le RLS ne renvoie que les publiés.
-  // On ne trie pas sur is_featured (colonne optionnelle) pour éviter une erreur si absente.
   const { data, error } = await supabase
     .from('products')
     .select('*')
+    .eq('status', 'published')
     .order('rating', { ascending: false });
 
-  if (__DEV__ && error) console.warn('[supabaseProducts] fetch error', error.message);
-  if (error || !data?.length) return [];
+  if (error) {
+    console.error('[supabaseProducts] fetch error:', error.message, error.code, error.details);
+    // Retry sans filtre status ni order au cas où la colonne manque
+    const fallback = await supabase.from('products').select('*');
+    console.warn('[supabaseProducts] fallback result:', fallback.data?.length ?? 0, 'rows, error:', fallback.error?.message);
+    if (fallback.error || !fallback.data?.length) return [];
+    return fallback.data.map(mapRow);
+  }
+
+  console.log('[supabaseProducts] fetched', data?.length ?? 0, 'published products');
+  if (!data?.length) return [];
   return data.map(mapRow);
 }

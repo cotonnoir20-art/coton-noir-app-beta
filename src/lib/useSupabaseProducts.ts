@@ -16,12 +16,15 @@ export function useSupabaseProducts(): { products: Product[]; loading: boolean }
     let cancelled = false;
     fetchPublishedProducts()
       .then(fetched => {
-        if (cancelled || fetched.length === 0) return;
-        _cache = fetched;
-        _cacheAt = Date.now();
-        setProducts(fetched);
+        console.log('[useSupabaseProducts] fetched', fetched.length, 'products, cancelled:', cancelled);
+        if (cancelled) return;
+        if (fetched.length > 0) {
+          _cache = fetched;
+          _cacheAt = Date.now();
+          setProducts(fetched);
+        }
       })
-      .catch(() => {})
+      .catch(e => console.error('[useSupabaseProducts] unexpected error', e))
       .finally(() => {
         if (!cancelled) setLoading(false);
       });
