@@ -335,7 +335,7 @@ function RichProductCard({ product, style }: { product: OnboardingRecommendation
     <View style={[s.richCard, style]}>
       <View style={[s.richCardTop, product.bg ? { backgroundColor: product.bg } : undefined]}>
         {product.image ? (
-          <Image source={{ uri: product.image }} style={s.richProductImg} contentFit="cover" />
+          <Image source={{ uri: product.image }} style={s.richProductImg} contentFit="contain" />
         ) : (
           <Text style={s.richEmoji}>{product.emoji ?? '🧴'}</Text>
         )}
@@ -948,11 +948,13 @@ const s = StyleSheet.create({
     height: 200,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 10,
   },
   richEmoji: { fontSize: 64 },
-  richProductImg: { width: '100%', height: '100%', position: 'absolute', top: 0, left: 0 },
+  richProductImg: { width: '100%', height: '100%' },
   richCatBadge: {
+    position: 'absolute',
+    top: 10,
+    left: 12,
     backgroundColor: Colors.amber,
     borderRadius: 999,
     paddingHorizontal: 12,
