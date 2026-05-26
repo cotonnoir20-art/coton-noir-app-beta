@@ -16,9 +16,8 @@ import { buildBlackCottonHomeRecommendations } from '../../src/lib/blackCottonRe
 
 export default function RecommendationsScreen() {
   const router = useRouter();
-  const { state, isAppReady, needsOnboarding } = useApp();
+  const { state, isAppReady } = useApp();
   const profile = state.profile;
-  const hasPlanData = !!profile.careStyle && !!profile.objective;
   const { products } = useSupabaseProducts();
 
   const reco = useMemo(
@@ -31,7 +30,7 @@ export default function RecommendationsScreen() {
     [profile],
   );
 
-  if (!hasPlanData && (!isAppReady || needsOnboarding)) {
+  if (!isAppReady) {
     return (
       <SafeAreaView style={s.safe} edges={['top']}>
         <View style={s.loading}>
