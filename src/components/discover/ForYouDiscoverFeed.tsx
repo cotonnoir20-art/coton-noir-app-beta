@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useSupabaseProducts } from '../../lib/useSupabaseProducts';
+import { Image } from 'expo-image';
 import {
   ScrollView,
   StyleSheet,
@@ -45,7 +46,11 @@ function ForYouGridCard({
       accessibilityLabel={item.title}
     >
       <View style={[s.gridVisual, { backgroundColor: item.thumbBg }]}>
-        <Text style={s.gridEmoji}>{item.thumbEmoji}</Text>
+        {item.thumbImage ? (
+          <Image source={{ uri: item.thumbImage }} style={s.gridImg} contentFit="cover" />
+        ) : (
+          <Text style={s.gridEmoji}>{item.thumbEmoji}</Text>
+        )}
       </View>
 
       <View style={s.gridBody}>
@@ -291,6 +296,7 @@ const s = StyleSheet.create({
     borderRadius: 14,
   },
   gridEmoji: { fontSize: 44 },
+  gridImg: { width: '100%', height: '100%' },
   gridBody: {
     paddingHorizontal: 12,
     paddingBottom: 12,

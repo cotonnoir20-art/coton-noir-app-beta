@@ -38,6 +38,7 @@ export type ForYouItem = {
   highlightBadge?: string;
   thumbEmoji: string;
   thumbBg: string;
+  thumbImage?: string;
   score: number;
   route: { pathname: string; params?: Record<string, string> };
 };
@@ -176,7 +177,8 @@ function productToItem(
     categoryLabel: PRODUCT_CAT_LABEL[cat],
     highlightBadge: '✦ Pour toi',
     thumbEmoji: p.emoji || '🧴',
-    thumbBg: catalog?.bg ?? '#FDE8C8',
+    thumbBg: p.bg ?? catalog?.bg ?? '#FDE8C8',
+    thumbImage: p.image ?? undefined,
     score,
     route: {
       pathname: '/product',
