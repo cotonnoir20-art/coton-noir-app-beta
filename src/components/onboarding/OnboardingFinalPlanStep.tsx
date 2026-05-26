@@ -335,7 +335,7 @@ function RichProductCard({ product, style }: { product: OnboardingRecommendation
     <View style={[s.richCard, style]}>
       <View style={[s.richCardTop, product.bg ? { backgroundColor: product.bg } : undefined]}>
         {product.image ? (
-          <Image source={{ uri: product.image }} style={s.richProductImg} contentFit="contain" />
+          <Image source={{ uri: product.image }} style={s.richProductImg} contentFit="cover" />
         ) : (
           <Text style={s.richEmoji}>{product.emoji ?? '🧴'}</Text>
         )}
