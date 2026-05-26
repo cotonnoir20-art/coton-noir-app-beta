@@ -1,7 +1,7 @@
 import type { HairProfile } from '../context/AppContext';
 import { ARTICLE_EXPERTS, CATALOG_ARTICLES, type CatalogArticle } from '../data/articlesCatalog';
-import { PRODUCTS, type Product } from '../data/products';
-import { CATALOG_RECIPES, type CatalogRecipe } from '../data/recipesCatalog';
+import type { Product } from '../data/products';
+import type { CatalogRecipe } from '../data/recipesCatalog';
 import { displayObjective, normalizeObjectiveId } from '../constants/hairObjectives';
 import { normalizeProblematicLabels } from '../constants/hairProblematics';
 import { resolvePorosity } from '../constants/hairProfileOptions';
@@ -288,12 +288,7 @@ export function buildForYouDiscoverFeed(profile: HairProfile, overrideProducts?:
   );
 
   const productItems: ForYouItem[] = matchCatalogProducts(ctx, 8, overrideProducts).map(p =>
-    productToItem(
-      { brand: p.brand, name: p.name, price: p.price, emoji: p.emoji, cat: p.cat, desc: p.desc, ingredients: p.ingredients, matchReason: p.matchReason },
-      p,
-      p.matchScore,
-      p.matchReason,
-    ),
+    productToItem(p, p, p.matchScore, p.matchReason),
   );
 
   const recipeItems = matchCatalogRecipes(ctx, 8).map(r =>
