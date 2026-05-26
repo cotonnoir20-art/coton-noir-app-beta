@@ -504,6 +504,8 @@ export default function HomeScreen() {
               displayName={profile.name}
               onAvatarPress={() => router.push('/(tabs)/profile' as any)}
             />
+            <Text style={s.homeTagline}>Prends soin de tes cheveux, chaque jour.</Text>
+
             <HomeLengthRing
               hairType={profile.hairType || '—'}
               currentCm={lengthMetrics.currentCm}
