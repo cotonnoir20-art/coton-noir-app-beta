@@ -31,10 +31,12 @@ type SupabaseProductRow = {
   id: string;
   name: string;
   brand: string;
+  tagline: string | null;
   description: string | null;
   description_full: string | null;
   category: string;
   tags: string[] | null;
+  admin_tags: string[] | null;
   price_cents: number;
   currency: string;
   old_price_cents: number | null;
@@ -43,7 +45,8 @@ type SupabaseProductRow = {
   bg_color: string | null;
   rating: number | null;
   rating_count: number;
-  ingredients: string | string[] | null; // text[] ou string CSV selon le schéma
+  key_ingredients: string[] | null;
+  ingredients: string | string[] | null;
   image: string | null;
 };
 
@@ -59,13 +62,17 @@ function mapRow(row: SupabaseProductRow): Product {
     bg: row.bg_color ?? '#FDE8C8',
     emoji: row.emoji ?? '🧴',
     cat: mapCategory(row.category),
-    desc: row.description_full ?? row.description ?? undefined,
-    ingredients: row.ingredients
-      ? (Array.isArray(row.ingredients)
-          ? (row.ingredients as string[]).filter(Boolean)
-          : (row.ingredients as string).split(',').map((s: string) => s.trim()).filter(Boolean))
-      : undefined,
-    admin_tags: row.tags ?? [],
+    // tagline = fonction courte du produit (carte reco) ; fallback sur description
+    desc: row.tagline ?? row.description ?? undefined,
+    // key_ingredients = chips ingrédients clés ; fallback sur ingredients si key_ingredients absent
+    ingredients: row.key_ingredients?.length
+      ? row.key_ingredients
+      : row.ingredients
+        ? (Array.isArray(row.ingredients)
+            ? (row.ingredients as string[]).filter(Boolean)
+            : (row.ingredients as string).split(',').map((s: string) => s.trim()).filter(Boolean))
+        : undefined,
+    admin_tags: row.admin_tags ?? row.tags ?? [],
     image: row.image ?? undefined,
   };
 }
