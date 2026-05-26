@@ -945,13 +945,13 @@ const s = StyleSheet.create({
   richCardGap: { marginTop: 12 },
   richCardTop: {
     backgroundColor: Colors.amberPowder,
-    padding: 20,
+    height: 200,
     alignItems: 'center',
     justifyContent: 'center',
     gap: 10,
   },
-  richEmoji: { fontSize: 52 },
-  richProductImg: { width: 90, height: 90, borderRadius: 12 },
+  richEmoji: { fontSize: 64 },
+  richProductImg: { width: '100%', height: '100%', position: 'absolute', top: 0, left: 0 },
   richCatBadge: {
     backgroundColor: Colors.amber,
     borderRadius: 999,
