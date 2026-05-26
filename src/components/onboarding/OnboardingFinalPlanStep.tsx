@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/typography';
@@ -26,15 +25,6 @@ const RECIPE_FREQUENCY: Record<string, string> = {
   "Cuir chevelu": "1 à 2 fois par semaine",
 };
 
-const CAT_LABELS: Record<string, string> = {
-  sham: 'Shampoing',
-  cond: "Apres-shampoing",
-  leave: 'Leave-in',
-  mask: 'Masque',
-  oil: 'Huile',
-  style: 'Coiffage',
-  compl: "Complement",
-};
 
 type Props = {
   reco: OnboardingRecommendations;
@@ -329,19 +319,8 @@ function PlanTab({
 }
 
 function RichProductCard({ product, style }: { product: OnboardingRecommendations['products'][number]; style?: object }) {
-  const catLabel = CAT_LABELS[product.cat] ?? product.cat;
   return (
     <View style={[s.richCard, style]}>
-      <View style={[s.richCardTop, product.bg ? { backgroundColor: product.bg } : undefined]}>
-        {product.image ? (
-          <Image source={{ uri: product.image }} style={s.richProductImg} contentFit="cover" />
-        ) : (
-          <Text style={s.richEmoji}>{product.emoji}</Text>
-        )}
-        <View style={s.richCatBadge}>
-          <Text style={s.richCatText}>{catLabel}</Text>
-        </View>
-      </View>
       <Text style={s.richName}>{product.name}</Text>
       <Text style={s.richBrand}>{product.brand} · {product.price}</Text>
       {product.desc ? <Text style={s.richDesc}>{product.desc}</Text> : null}
