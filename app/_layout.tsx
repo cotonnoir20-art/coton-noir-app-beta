@@ -52,9 +52,13 @@ function RootLayoutNav() {
   useEffect(() => {
     if (loading) return;
     const inAuthGroup = segments[0] === '(auth)';
+    const authScreen  = segments[1] as string | undefined;
     const isPublicLegal =
       segments[0] === 'privacy' || segments[0] === 'cgv' || segments[0] === 'legal';
-    if (!session && !inAuthGroup && !isPublicLegal && !isLanding) {
+    const publicAuthScreens = new Set(['login', 'welcome', 'onboarding']);
+    // recommendations nécessite une session — rediriger si non connectée
+    const isRestrictedAuthScreen = inAuthGroup && !!authScreen && !publicAuthScreens.has(authScreen);
+    if (!session && (!inAuthGroup && !isPublicLegal && !isLanding || isRestrictedAuthScreen)) {
       router.replace(Platform.OS === 'web' ? '/' : '/(auth)/welcome');
     }
     // Redirection post-login avec profil incomplet : OnboardingAuthGate
