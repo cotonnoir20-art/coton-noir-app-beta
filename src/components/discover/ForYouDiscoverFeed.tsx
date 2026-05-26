@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { useSupabaseProducts } from '../../lib/useSupabaseProducts';
 import {
   ScrollView,
   StyleSheet,
@@ -85,11 +86,12 @@ export function ForYouDiscoverFeed({ profile, contentPaddingBottom = 32 }: Props
   const router = useRouter();
   const { width: screenW } = useWindowDimensions();
   const [filter, setFilter] = useState<ForYouFilter>('product');
+  const { products } = useSupabaseProducts();
 
   const cardW = (screenW - GRID_PAD * 2 - GRID_GAP) / 2;
 
   const feed = useMemo(
-    () => buildForYouDiscoverFeed(profile),
+    () => buildForYouDiscoverFeed(profile, products),
     [
       profile.hairType,
       profile.porosity,
@@ -98,6 +100,7 @@ export function ForYouDiscoverFeed({ profile, contentPaddingBottom = 32 }: Props
       profile.careStyle,
       profile.region,
       profile.budget,
+      products,
     ],
   );
 

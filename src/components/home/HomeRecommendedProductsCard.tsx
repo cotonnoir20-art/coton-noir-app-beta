@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { useSupabaseProducts } from '../../lib/useSupabaseProducts';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { AppIconBox } from '../AppIconBox';
@@ -35,8 +36,9 @@ function ProblemTile({ item, variant }: { item: HomeProblemItem; variant: 'main'
 
 export function HomeRecommendedProductsCard({ profile }: Props) {
   const router = useRouter();
+  const { products } = useSupabaseProducts();
 
-  const data = useMemo(() => buildHomeProductRecommendations(profile), [
+  const data = useMemo(() => buildHomeProductRecommendations(profile, products), [
     profile.hairType,
     profile.porosity,
     profile.density,
@@ -44,6 +46,7 @@ export function HomeRecommendedProductsCard({ profile }: Props) {
     profile.region,
     profile.budget,
     profile.careStyle,
+    products,
   ]);
 
   if (!data.showSection) return null;

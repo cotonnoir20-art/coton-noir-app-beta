@@ -1,4 +1,5 @@
 import type { CareStyleId } from '../constants/careStyles';
+import type { Product } from '../data/products';
 import { displayObjective, normalizeObjectiveId } from '../constants/hairObjectives';
 import { resolvePorosity } from '../constants/hairProfileOptions';
 import { ROUTINE_TYPES, type RoutineStep, type RoutineType } from '../data/routines';
@@ -8,6 +9,7 @@ import {
   buildPersonalizationContext,
   matchCatalogArticles,
   matchCatalogProducts,
+  resolveRoutineComplexity,
 } from './hairPersonalization';
 
 export type DiagnosticSnapshot = {
@@ -23,6 +25,7 @@ export type DiagnosticSnapshot = {
   blockers?: string[];
   resultsWeeks?: number;
   hairTypeUnsure?: boolean;
+  routineConsistency?: string;
 };
 
 export type RecoRoutineStep = {
@@ -138,9 +141,17 @@ function customizeDailySteps(
   return steps;
 }
 
-export function buildOnboardingRecommendations(input: DiagnosticSnapshot): OnboardingRecommendations {
+const STEP_LIMITS: Record<string, { daily: number; night: number; weekly: number }> = {
+  simple:   { daily: 3, night: 2, weekly: 3 },
+  standard: { daily: 99, night: 99, weekly: 99 },
+  advanced: { daily: 99, night: 99, weekly: 99 },
+};
+
+export function buildOnboardingRecommendations(input: DiagnosticSnapshot, overrideProducts?: Product[]): OnboardingRecommendations {
   const objective = normalizeObjectiveId(input.objective);
   const careStyle = input.careStyle || 'mix';
+  const complexity = resolveRoutineComplexity(input.routineConsistency);
+  const limits = STEP_LIMITS[complexity];
 
   const showProducts = careStyle === 'shop' || careStyle === 'mix';
   const showRecipes = careStyle === 'diy' || careStyle === 'mix';
@@ -188,10 +199,10 @@ export function buildOnboardingRecommendations(input: DiagnosticSnapshot): Onboa
 
   return {
     profileSummary,
-    morning: customizeDailySteps('daily', input.hairType, input.porosity),
-    evening: customizeDailySteps('night', input.hairType, input.porosity),
-    weekly: weeklyStepsForHair(input.hairType),
-    products: matchCatalogProducts(persoCtx, 4).map(p => ({
+    morning: customizeDailySteps('daily', input.hairType, input.porosity).slice(0, limits.daily),
+    evening: customizeDailySteps('night', input.hairType, input.porosity).slice(0, limits.night),
+    weekly: weeklyStepsForHair(input.hairType).slice(0, limits.weekly),
+    products: matchCatalogProducts(persoCtx, 4, overrideProducts).map(p => ({
       brand: p.brand,
       name: p.name,
       price: p.price,
@@ -242,6 +253,7 @@ export function diagnosticSnapshotFromProfile(p: {
   budget?: string;
   careStyle?: string;
   problematics?: string[];
+  routineConsistency?: string;
 }): DiagnosticSnapshot {
   return {
     hairType: p.hairType || '3C',
@@ -252,6 +264,7 @@ export function diagnosticSnapshotFromProfile(p: {
     budget: p.budget ?? '',
     careStyle: (p.careStyle || '') as CareStyleId,
     problematics: p.problematics,
+    routineConsistency: p.routineConsistency,
   };
 }
 

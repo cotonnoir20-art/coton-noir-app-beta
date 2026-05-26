@@ -10,6 +10,7 @@ import {
   matchCatalogArticles,
   matchCatalogProducts,
   matchCatalogRecipes,
+  matchProRecommendations,
 } from './hairPersonalization';
 import type { RecoProduct } from './onboardingRecommendations';
 
@@ -277,14 +278,14 @@ const TYPE_LIMITS: Record<ForYouItemType, number> = {
   expert: 3,
 };
 
-export function buildForYouDiscoverFeed(profile: HairProfile): ForYouDiscoverFeed {
+export function buildForYouDiscoverFeed(profile: HairProfile, overrideProducts?: Product[]): ForYouDiscoverFeed {
   const ctx = buildPersonalizationContext(profile);
   const tags = ctx.tags;
   const hasPersonalization = Boolean(
     normalizeObjectiveId(profile.objective) || (profile.problematics?.length ?? 0) > 0,
   );
 
-  const productItems: ForYouItem[] = matchCatalogProducts(ctx, 8).map(p =>
+  const productItems: ForYouItem[] = matchCatalogProducts(ctx, 8, overrideProducts).map(p =>
     productToItem(
       { brand: p.brand, name: p.name, price: p.price, emoji: p.emoji, cat: p.cat, desc: p.desc, ingredients: p.ingredients, matchReason: p.matchReason },
       p,
@@ -301,13 +302,30 @@ export function buildForYouDiscoverFeed(profile: HairProfile): ForYouDiscoverFee
     articleToItem(a, 6 - i),
   );
 
-  const placeItems = CURATED_PLACES.map(p => ({
-    p,
-    score: blobScore(`${p.title} ${p.subtitle} ${p.tags.join(' ')}`, tags),
-  }))
-    .filter(x => x.score > 0 || !hasPersonalization)
-    .sort((a, b) => b.score - a.score)
-    .map(({ p, score }) => placeToItem(p, score + (hasPersonalization ? 0 : 1)));
+  const proRecos = matchProRecommendations(ctx).map((reco, i): ForYouItem => ({
+    id: `pro-reco-${i}`,
+    type: 'pro',
+    title: reco.label,
+    subtitle: 'Recommandé selon ton profil',
+    description: reco.reason,
+    categoryLabel: 'Service pro',
+    highlightBadge: '✦ Pour toi',
+    thumbEmoji: '💆🏾‍♀️',
+    thumbBg: '#4A306D',
+    score: 10,
+    route: { pathname: '/partners' },
+  }));
+
+  const placeItems = [
+    ...proRecos,
+    ...CURATED_PLACES.map(p => ({
+      p,
+      score: blobScore(`${p.title} ${p.subtitle} ${p.tags.join(' ')}`, tags),
+    }))
+      .filter(x => x.score > 0 || !hasPersonalization)
+      .sort((a, b) => b.score - a.score)
+      .map(({ p, score }) => placeToItem(p, score + (hasPersonalization ? 0 : 1))),
+  ];
 
   const expertItems = expertCatalogItems(tags);
 

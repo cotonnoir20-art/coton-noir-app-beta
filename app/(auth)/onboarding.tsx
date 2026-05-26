@@ -23,6 +23,7 @@ import {
   buildOnboardingRecommendations,
   recoStepsToRoutineSteps,
 } from '../../src/lib/onboardingRecommendations';
+import { useSupabaseProducts } from '../../src/lib/useSupabaseProducts';
 import { buildBlackCottonHomeRecommendations } from '../../src/lib/blackCottonRecommendations';
 import { ONBOARDING_HAIR_TYPES } from '../../src/constants/onboardingHairTypes';
 import { POROSITY_OPTIONS } from '../../src/constants/hairProfileOptions';
@@ -132,6 +133,7 @@ export default function OnboardingScreen() {
   const router = useRouter();
   const { plan, signup } = useLocalSearchParams<{ plan?: string; signup?: string }>();
   const { dispatch, claimOnboardingGiftSecure } = useApp();
+  const { products } = useSupabaseProducts();
   const [hydrated, setHydrated]   = useState(false);
   const [step, setStep]           = useState(0);
   const [hairType, setHairType]   = useState('');
@@ -391,7 +393,7 @@ export default function OnboardingScreen() {
       hairNotes: profileRow.hair_notes,
       resultsWeeks: profileRow.results_weeks,
       hairTypeUnsure: profileRow.hair_type_unsure,
-    });
+    }, products);
     dispatch({
       type: 'applyRecoRoutineSteps',
       daily: recoStepsToRoutineSteps(reco.morning),
@@ -437,10 +439,10 @@ export default function OnboardingScreen() {
       hairNotes: hairNotes.trim(),
       resultsWeeks,
       hairTypeUnsure,
-    });
+    }, products);
   }, [
     careStyle, hairType, porosity, density, objective, region, budget,
-    problematics, blockers, hairNotes, resultsWeeks, hairTypeUnsure,
+    problematics, blockers, hairNotes, resultsWeeks, hairTypeUnsure, products,
   ]);
 
   const coachReco = useMemo(() => {

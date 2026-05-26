@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { useSupabaseProducts } from '../../src/lib/useSupabaseProducts';
 import { ActivityIndicator, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -18,10 +19,11 @@ export default function RecommendationsScreen() {
   const { state, isAppReady, needsOnboarding } = useApp();
   const profile = state.profile;
   const hasPlanData = !!profile.careStyle && !!profile.objective;
+  const { products } = useSupabaseProducts();
 
   const reco = useMemo(
-    () => buildOnboardingRecommendations(diagnosticSnapshotFromProfile(profile)),
-    [profile],
+    () => buildOnboardingRecommendations(diagnosticSnapshotFromProfile(profile), products),
+    [profile, products],
   );
 
   const coachReco = useMemo(

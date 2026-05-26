@@ -1,5 +1,6 @@
 import type { IonName } from '../components/AppIconBox';
 import type { HairProfile } from '../context/AppContext';
+import type { Product } from '../data/products';
 import { normalizeObjectiveId } from '../constants/hairObjectives';
 import { resolvePorosity } from '../constants/hairProfileOptions';
 import {
@@ -186,8 +187,8 @@ function resolveProblems(profile: HairProfile): ProblemBundle {
   return BY_POROSITY[porosity] ?? BY_POROSITY.Moyenne;
 }
 
-export function buildHomeProductRecommendations(profile: HairProfile): HomeProductRecommendations {
-  const reco = buildOnboardingRecommendations(diagnosticSnapshotFromProfile(profile));
+export function buildHomeProductRecommendations(profile: HairProfile, overrideProducts?: Product[]): HomeProductRecommendations {
+  const reco = buildOnboardingRecommendations(diagnosticSnapshotFromProfile(profile), overrideProducts);
   const problems = resolveProblems(profile);
 
   return {
