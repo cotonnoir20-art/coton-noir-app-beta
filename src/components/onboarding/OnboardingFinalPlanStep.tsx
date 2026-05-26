@@ -592,22 +592,7 @@ export function OnboardingFinalPlanStep({
         {activeTab === 'Articles' && <ArticlesTab reco={reco} homeTeaser={homeTeaser} unlocked={unlocked} />}
       </View>
 
-      {coachReco && (
-        unlocked ? (
-          <CoachCard reco={coachReco} />
-        ) : (
-          <BlurredPaywall
-            locked
-            progressive
-            progressiveMaxHeight={110}
-            fadeBottomColor={Colors.bg}
-            homeTeaser={homeTeaser}
-            style={s.paywall}
-          >
-            <CoachCard reco={coachReco} />
-          </BlurredPaywall>
-        )
-      )}
+      {coachReco && unlocked && <CoachCard reco={coachReco} />}
 
       {onRestart && (
         <View style={s.restartCard}>
