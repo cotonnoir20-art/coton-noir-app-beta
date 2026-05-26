@@ -333,7 +333,11 @@ function RichProductCard({ product, style }: { product: OnboardingRecommendation
   const catLabel = CAT_LABELS[product.cat] ?? product.cat;
   return (
     <View style={[s.richCard, style]}>
-      <View style={[s.richCardTop, product.bg ? { backgroundColor: product.bg } : undefined]}>
+      <View style={[
+        s.richCardTop,
+        product.bg ? { backgroundColor: product.bg } : undefined,
+        !product.image && s.richCardTopEmoji,
+      ]}>
         {product.image ? (
           <Image source={{ uri: product.image }} style={s.richProductImg} contentFit="cover" />
         ) : (
@@ -949,7 +953,10 @@ const s = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  richEmoji: { fontSize: 64 },
+  richCardTopEmoji: {
+    height: 120,
+  },
+  richEmoji: { fontSize: 72 },
   richProductImg: { width: '100%', height: '100%' },
   richCatBadge: {
     position: 'absolute',
