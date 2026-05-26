@@ -34,8 +34,6 @@ import { ROUTINE_TYPES, getRoutineHomeLabel, type RoutineType } from '../../src/
 import { loadUserPrefs } from '../../src/lib/userPrefs';
 import { getCurrentLevel } from '../../src/data/levels';
 import { CC_ROUTINE_VALIDATION_REWARD, CC_ROUTINE_WASHDAY } from '../../src/lib/cotonCoins';
-import { HOME_TAGLINE, HOME_TAGLINE_WEB } from '../../src/constants/productPitch';
-import { isWebPlatform } from '../../src/lib/webStaging';
 import { PANTRY_ITEMS } from '../../src/data/pantryItems';
 import {
   buildGrowthMilestones,
@@ -506,16 +504,6 @@ export default function HomeScreen() {
               displayName={profile.name}
               onAvatarPress={() => router.push('/(tabs)/profile' as any)}
             />
-            <Text
-              style={s.homeTagline}
-              numberOfLines={Platform.OS === 'web' ? 2 : 1}
-              {...(Platform.OS === 'ios'
-                ? { adjustsFontSizeToFit: true, minimumFontScale: 0.72 }
-                : {})}
-            >
-              {HOME_TAGLINE}
-            </Text>
-
             <HomeLengthRing
               hairType={profile.hairType || '—'}
               currentCm={lengthMetrics.currentCm}
