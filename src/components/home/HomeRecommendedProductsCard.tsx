@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { useSupabaseProducts } from '../../lib/useSupabaseProducts';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { AppIconBox } from '../AppIconBox';
 import type { HairProfile } from '../../context/AppContext';
@@ -81,15 +82,12 @@ export function HomeRecommendedProductsCard({ profile }: Props) {
               accessibilityRole="button"
               accessibilityLabel={`${p.brand} ${p.name}`}
             >
-              <View style={s.productVisual}>
-                <AppIconBox
-                  name="bag-handle-outline"
-                  backgroundColor={Colors.amberLight}
-                  color={Colors.amberDark}
-                  size={64}
-                  iconSize={30}
-                  borderRadius={16}
-                />
+              <View style={[s.productVisual, { backgroundColor: p.bg ?? Colors.amberLight }]}>
+                {p.image ? (
+                  <Image source={{ uri: p.image }} style={s.productImg} contentFit="cover" />
+                ) : (
+                  <Text style={s.productEmoji}>{p.emoji ?? '🧴'}</Text>
+                )}
               </View>
               <Text style={s.productBrand} numberOfLines={1}>
                 {p.brand}
@@ -198,8 +196,18 @@ const s = StyleSheet.create({
   },
   productVisual: {
     alignItems: 'center',
+    justifyContent: 'center',
     marginBottom: 10,
-    paddingVertical: 10,
+    borderRadius: 14,
+    height: 80,
+    overflow: 'hidden',
+  },
+  productImg: {
+    width: '100%',
+    height: '100%',
+  },
+  productEmoji: {
+    fontSize: 38,
   },
   productBrand: {
     fontSize: 10,

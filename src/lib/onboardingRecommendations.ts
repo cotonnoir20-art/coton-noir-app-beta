@@ -40,6 +40,8 @@ export type RecoProduct = {
   name: string;
   price: string;
   emoji: string;
+  bg?: string;
+  image?: string;
   cat: string;
   desc?: string;
   ingredients?: string[];

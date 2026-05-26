@@ -23,6 +23,8 @@ export type Product = {
   ingredients?: string[];
   /** Tags admin (concern IDs) — alignés sur la table Supabase `products.admin_tags`. */
   admin_tags?: string[];
+  /** URL photo produit (Supabase Storage). Prioritaire sur l'emoji. */
+  image?: string;
 };
 
 export const CATEGORIES: { id: ProductCategory; label: string }[] = [

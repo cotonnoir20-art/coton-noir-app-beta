@@ -44,6 +44,7 @@ type SupabaseProductRow = {
   rating: number | null;
   rating_count: number;
   ingredients: string | null;
+  image: string | null;
 };
 
 function mapRow(row: SupabaseProductRow): Product {
@@ -63,13 +64,14 @@ function mapRow(row: SupabaseProductRow): Product {
       ? row.ingredients.split(',').map(s => s.trim()).filter(Boolean)
       : undefined,
     admin_tags: row.tags ?? [],
+    image: row.image ?? undefined,
   };
 }
 
 export async function fetchPublishedProducts(): Promise<Product[]> {
   const { data, error } = await supabase
     .from('products')
-    .select('id,name,brand,description,description_full,category,tags,price_cents,currency,old_price_cents,discount_label,emoji,bg_color,rating,rating_count,ingredients')
+    .select('id,name,brand,description,description_full,category,tags,price_cents,currency,old_price_cents,discount_label,emoji,bg_color,rating,rating_count,ingredients,image')
     .eq('status', 'published')
     .order('is_featured', { ascending: false })
     .order('rating', { ascending: false });
