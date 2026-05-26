@@ -3,6 +3,7 @@ import type { RoutinePlansState } from '../types/userRoutinePlan';
 import { planFeedbackSnippet } from './userRoutinePlan';
 import type { RoutineType } from '../data/routines';
 import type { UserPrefs } from './userPrefs';
+import { resolveCoachTone, resolveRoutineComplexity, COACH_TONE_HINTS, ROUTINE_COMPLEXITY_HINTS } from './hairPersonalization';
 
 /** Champs autorisés vers le coach IA (aligné Edge Function PROFILE_KEYS). */
 const COACH_PROFILE_KEYS = [
@@ -17,6 +18,8 @@ const COACH_PROFILE_KEYS = [
   'climate',
   'objective',
   'careStyle',
+  'hairConfidence',
+  'routineConsistency',
 ] as const;
 
 /**
@@ -50,6 +53,18 @@ export function buildCoachProfilePayload(
   },
 ): Record<string, string> {
   const out = pickCoachProfileFields(profile);
+
+  // Derived coach directives from new hair profile dimensions
+  if (profile) {
+    const p = profile as Record<string, unknown>;
+    const tone = resolveCoachTone(p.hairConfidence as string | undefined);
+    out.coachTone = tone;
+    out.coachToneHint = COACH_TONE_HINTS[tone];
+
+    const complexity = resolveRoutineComplexity(p.routineConsistency as string | undefined);
+    out.routineComplexity = complexity;
+    out.routineComplexityHint = ROUTINE_COMPLEXITY_HINTS[complexity];
+  }
 
   if (options?.prefs?.isProtective) {
     out.protectiveMode = 'active';

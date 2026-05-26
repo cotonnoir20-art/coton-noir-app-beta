@@ -117,6 +117,12 @@ export type HairProfile = {
   budget?: string;
   /** "shop" → produits commerce · "diy" → recettes maison · "mix" → les deux. */
   careStyle?: CareStyle;
+  /** Confiance capillaire : "getting_there" | "frustrated" | "overwhelmed" */
+  hairConfidence?: string;
+  /** Régularité routine : "very_consistent" | "somewhat" | "variable" | "none" */
+  routineConsistency?: string;
+  /** Freins capillaires (ids) : ["consistency", "dont_know", "no_structure", …] */
+  hairBlockers?: string[];
 };
 
 function resolveCoachDisplayName(name: string | null | undefined): string {
@@ -932,6 +938,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     serverOnboardingDoneRef.current = false;
 
     (async () => {
+      try {
       const today = new Date().toISOString().slice(0, 10);
 
       const pendingGift =
@@ -996,7 +1003,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           region:       profile.region        ?? '',
           climate:      profile.climate       ?? '',
           budget:       profile.budget        ?? '',
-          careStyle:    (profile.care_style   ?? '') as CareStyle,
+          careStyle:         (profile.care_style          ?? '') as CareStyle,
+          hairConfidence:    profile.hair_confidence      ?? '',
+          routineConsistency: profile.routine_consistency ?? '',
+          hairBlockers:      profile.hair_blockers        ?? [],
         };
 
         const metaHairType =
@@ -1159,6 +1169,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         void loadUserPrefs().then(p => {
           void scheduleRoutineReminder(p);
         });
+      }
+      } catch (e) {
+        if (__DEV__) console.error('[AppContext] profile load failed', e);
+        syncReady.current = true;
+        setIsAppReady(true);
       }
     })();
   }, [userId, userEmail]);

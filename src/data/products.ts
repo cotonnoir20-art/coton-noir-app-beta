@@ -21,6 +21,8 @@ export type Product = {
   cat: Exclude<ProductCategory, 'all'>;
   desc?: string;
   ingredients?: string[];
+  /** Tags admin (concern IDs) — alignés sur la table Supabase `products.admin_tags`. */
+  admin_tags?: string[];
 };
 
 export const CATEGORIES: { id: ProductCategory; label: string }[] = [
@@ -48,6 +50,7 @@ export const PRODUCTS: Product[] = [
     cat: 'mask',
     desc: "Nourrit en profondeur et restaure la fibre capillaire asséchée.",
     ingredients: ['Beurre de karité', 'Huile de coco', 'Panthénol'],
+    admin_tags: ['dry_brittle', 'tangles', 'Hydratation'],
   },
   {
     brand: 'Racines',
@@ -60,6 +63,7 @@ export const PRODUCTS: Product[] = [
     cat: 'oil',
     desc: "Stimule la pousse et renforce les racines dès les premières applications.",
     ingredients: ['Ricin bio', 'Vitamine E', 'Huile de jojoba'],
+    admin_tags: ['hair_loss', 'Pousse', 'Cuir_chevelu'],
   },
   {
     brand: 'Coton Noir',
@@ -72,6 +76,7 @@ export const PRODUCTS: Product[] = [
     cat: 'leave',
     desc: "Hydrate sans alourdir et facilite le démêlage sur cheveux texturés.",
     ingredients: ['Aloe vera', 'Glycérine végétale', 'Huile de jojoba'],
+    admin_tags: ['dry_brittle', 'tangles', 'frizz', 'Hydratation'],
   },
   {
     brand: 'Ondine',
@@ -86,6 +91,7 @@ export const PRODUCTS: Product[] = [
     cat: 'sham',
     desc: "Nettoie en douceur tout en apportant hydratation et souplesse.",
     ingredients: ['Aloe vera', 'Glycérine végétale', 'Huile de jojoba'],
+    admin_tags: ['dry_brittle', 'Hydratation'],
   },
   {
     brand: 'Maison Curl',
@@ -98,6 +104,7 @@ export const PRODUCTS: Product[] = [
     cat: 'style',
     desc: "Définit les boucles et réduit les frisottis sans effet cartonneux.",
     ingredients: ['Beurre de mangue', 'Huile de tournesol', 'Extrait de coton'],
+    admin_tags: ['frizz', 'curl_loss', 'Définition'],
   },
   {
     brand: 'Racines',
@@ -110,5 +117,6 @@ export const PRODUCTS: Product[] = [
     cat: 'style',
     desc: "Répare les pointes abîmées et scelle l'hydratation durablement.",
     ingredients: ['Huile de ricin', 'Kératine végétale', 'Vitamine E'],
+    admin_tags: ['breakage', 'split_ends', 'damaged', 'Dommages'],
   },
 ];

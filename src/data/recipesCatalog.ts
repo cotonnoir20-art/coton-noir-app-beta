@@ -25,6 +25,8 @@ export type CatalogRecipe = {
   featured?: boolean;
   signature?: boolean;
   created_at: string;
+  /** Tags admin (concern IDs) — alignés sur la table Supabase `recipes.admin_tags`. */
+  admin_tags?: string[];
 };
 
 export const RECIPE_CATEGORIES: {
@@ -91,6 +93,7 @@ export const CATALOG_RECIPES: CatalogRecipe[] = [
     ],
     steps: STEPS_KARITE,
     created_at: '2026-05-12T10:00:00.000Z',
+    admin_tags: ['dry_brittle', 'tangles', 'Hydratation'],
   },
   {
     id: 'cat-avocat-miel',
@@ -115,6 +118,7 @@ export const CATALOG_RECIPES: CatalogRecipe[] = [
       'Applique 15 min puis rince.',
     ],
     created_at: '2026-05-11T09:00:00.000Z',
+    admin_tags: ['dry_brittle', 'Hydratation'],
   },
   {
     id: 'cat-coco-ricin',
@@ -139,6 +143,7 @@ export const CATALOG_RECIPES: CatalogRecipe[] = [
       'Laisse poser 40 min sous charlotte.',
     ],
     created_at: '2026-05-10T14:00:00.000Z',
+    admin_tags: ['breakage', 'Pousse', 'dry_brittle'],
   },
   {
     id: 'cat-hibiscus-aloe',
@@ -163,6 +168,7 @@ export const CATALOG_RECIPES: CatalogRecipe[] = [
       'Remplis un vaporisateur, conserve au frais 5 jours.',
     ],
     created_at: '2026-05-09T11:00:00.000Z',
+    admin_tags: ['dry_brittle', 'frizz', 'curl_loss', 'Hydratation'],
   },
   {
     id: 'cat-banane-yaourt',
@@ -187,6 +193,7 @@ export const CATALOG_RECIPES: CatalogRecipe[] = [
       'Pose 15 min, rince abondamment.',
     ],
     created_at: '2026-05-08T16:00:00.000Z',
+    admin_tags: ['dry_brittle', 'dull', 'Brillance'],
   },
   {
     id: 'cat-romarin',
@@ -211,6 +218,7 @@ export const CATALOG_RECIPES: CatalogRecipe[] = [
       'Applique sur cuir chevelu avec un coton.',
     ],
     created_at: '2026-05-07T10:00:00.000Z',
+    admin_tags: ['dandruff', 'Cuir_chevelu', 'Pousse'],
   },
   {
     id: 'cat-pre-poo-coco',
@@ -235,13 +243,14 @@ export const CATALOG_RECIPES: CatalogRecipe[] = [
       'Laisse poser 35 min minimum.',
     ],
     created_at: '2026-05-06T08:00:00.000Z',
+    admin_tags: ['dry_brittle', 'breakage', 'Hydratation'],
   },
   {
-    id: 'cat-oeuf-mayo',
-    name: 'Masque protéiné œuf-mayo',
-    description: 'Reconstruction légère pour cheveux cassants.',
-    category: 'Masque',
-    difficulty: 'Moyen',
+    id: "cat-oeuf-mayo",
+    name: "Masque protéiné œuf-mayo",
+    description: "Reconstruction légère pour cheveux cassants.",
+    category: "Masque",
+    difficulty: "Moyen",
     duration: 30,
     prep_minutes: 10,
     pose_minutes: 20,
@@ -249,23 +258,24 @@ export const CATALOG_RECIPES: CatalogRecipe[] = [
     likes: 430,
     ingredient_count: 4,
     avg_cost_eur: 2.0,
-    thumb_emoji: '🥚',
-    thumb_bg: '#FCE4EC',
-    hair_types: ['3B', '3C', '4A'],
-    ingredients: ['1 œuf', 'Mayonnaise', 'Huile d’olive', 'Miel'],
+    thumb_emoji: "🥚",
+    thumb_bg: "#FCE4EC",
+    hair_types: ["3B", "3C", "4A"],
+    ingredients: ["1 oeuf", "Mayonnaise", "Huile d’olive", "Miel"],
     steps: [
-      'Bat l’œuf avec une cuillère de mayo.',
-      'Applique sur longueurs uniquement.',
-      'Rince à l’eau tiède (pas brûlante).',
+      "Bat l’oeuf avec une cuillere de mayo.",
+      "Applique sur longueurs uniquement.",
+      "Rince a l’eau tiede (pas brulante).",
     ],
-    created_at: '2026-05-05T12:00:00.000Z',
+    created_at: "2026-05-05T12:00:00.000Z",
+    admin_tags: ["breakage", "damaged", "transition", "Fibre"],
   },
   {
-    id: 'cat-lavande-spray',
-    name: 'Spray fraîcheur lavande',
-    description: 'Réveil de boucles entre deux wash days.',
-    category: 'Spray',
-    difficulty: 'Express',
+    id: "cat-lavande-spray",
+    name: "Spray fraicheur lavande",
+    description: "Reveil de boucles entre deux wash days.",
+    category: "Spray",
+    difficulty: "Express",
     duration: 5,
     prep_minutes: 5,
     pose_minutes: 0,
@@ -273,15 +283,16 @@ export const CATALOG_RECIPES: CatalogRecipe[] = [
     likes: 380,
     ingredient_count: 3,
     avg_cost_eur: 1.5,
-    thumb_emoji: '💜',
-    thumb_bg: '#F5C2C7',
-    hair_types: ['2C', '3A', '3B', '3C'],
-    ingredients: ['Eau', 'Gel d’aloe', 'Hydrolat lavande'],
+    thumb_emoji: "💜",
+    thumb_bg: "#F5C2C7",
+    hair_types: ["2C", "3A", "3B", "3C"],
+    ingredients: ["Eau", "Gel d’aloe vera", "Hydrolat lavande"],
     steps: [
-      'Mélange dans un spray 200 ml.',
-      'Secoue avant usage sur cheveux secs ou humides.',
+      "Melange dans un spray 200 ml.",
+      "Secoue avant usage sur cheveux secs ou humides.",
     ],
-    created_at: '2026-05-04T15:00:00.000Z',
+    created_at: "2026-05-04T15:00:00.000Z",
+    admin_tags: ["frizz", "curl_loss", "Définition"],
   },
 ];
 
