@@ -1,4 +1,5 @@
 import type { AppState } from '../context/AppContext';
+import { supabase } from '../lib/supabase';
 
 /**
  * Catalogue de badges (achievements) — source de vérité unique.
@@ -12,6 +13,16 @@ import type { AppState } from '../context/AppContext';
  */
 
 export type AchievementGroup = 'starter' | 'streak' | 'growth' | 'coins' | 'community';
+
+export type AchievementMetricKey =
+  | 'has_any_validated'
+  | 'recipes_liked_count'
+  | 'hairstyles_liked_count'
+  | 'streak_days'
+  | 'growth_entries_count'
+  | 'planned_soins_count'
+  | 'total_earned_coins'
+  | 'invites_sent_count';
 
 export type AchievementExtras = {
   /** Nombre de recettes likées (clé AsyncStorage `@coton_noir_recipe_likes`). */
@@ -42,6 +53,19 @@ export type AchievementDef = {
   progress?: (state: AppState, extras: AchievementExtras) => number;
 };
 
+export type AchievementCatalogRow = {
+  achievement_key: string;
+  emoji: string;
+  name: string;
+  description: string;
+  group_key: AchievementGroup | string;
+  tier: number;
+  metric_key: AchievementMetricKey | string;
+  target_value: number;
+  sort_order?: number;
+  is_active?: boolean;
+};
+
 function hasAnyValidated(state: AppState): boolean {
   return Object.values(state.validated ?? {}).some(Boolean) || state.streak > 0;
 }
@@ -53,6 +77,84 @@ function totalEarned(state: AppState): number {
 function clamp01(n: number): number {
   if (!Number.isFinite(n)) return 0;
   return Math.max(0, Math.min(1, n));
+}
+
+function metricValue(
+  metric: AchievementMetricKey,
+  state: AppState,
+  extras: AchievementExtras,
+): number {
+  switch (metric) {
+    case 'has_any_validated':
+      return hasAnyValidated(state) ? 1 : 0;
+    case 'recipes_liked_count':
+      return extras.recipesLikedCount;
+    case 'hairstyles_liked_count':
+      return extras.hairstylesLikedCount;
+    case 'streak_days':
+      return state.streak ?? 0;
+    case 'growth_entries_count':
+      return state.growthHistory?.length ?? 0;
+    case 'planned_soins_count':
+      return state.plannedSoins?.length ?? 0;
+    case 'total_earned_coins':
+      return totalEarned(state);
+    case 'invites_sent_count':
+      return extras.invitesSentCount;
+    default:
+      return 0;
+  }
+}
+
+function isAchievementGroup(value: string): value is AchievementGroup {
+  return ['starter', 'streak', 'growth', 'coins', 'community'].includes(value);
+}
+
+function isMetricKey(value: string): value is AchievementMetricKey {
+  return [
+    'has_any_validated',
+    'recipes_liked_count',
+    'hairstyles_liked_count',
+    'streak_days',
+    'growth_entries_count',
+    'planned_soins_count',
+    'total_earned_coins',
+    'invites_sent_count',
+  ].includes(value);
+}
+
+function normalizeTier(value: number): 1 | 2 | 3 {
+  if (value === 2) return 2;
+  if (value === 3) return 3;
+  return 1;
+}
+
+export function buildAchievementDef(row: AchievementCatalogRow): AchievementDef | null {
+  if (
+    !row
+    || typeof row.achievement_key !== 'string'
+    || typeof row.emoji !== 'string'
+    || typeof row.name !== 'string'
+    || typeof row.description !== 'string'
+    || !isAchievementGroup(String(row.group_key))
+    || !isMetricKey(String(row.metric_key))
+  ) {
+    return null;
+  }
+
+  const target = Math.max(1, Number(row.target_value) || 1);
+  const metric = row.metric_key as AchievementMetricKey;
+
+  return {
+    id: row.achievement_key,
+    emoji: row.emoji,
+    name: row.name,
+    desc: row.description,
+    group: row.group_key as AchievementGroup,
+    tier: normalizeTier(Number(row.tier) || 1),
+    predicate: (state, extras) => metricValue(metric, state, extras) >= target,
+    progress: (state, extras) => clamp01(metricValue(metric, state, extras) / target),
+  };
 }
 
 export const ACHIEVEMENTS: readonly AchievementDef[] = [
@@ -199,6 +301,10 @@ export const ACHIEVEMENT_BY_ID: Record<string, AchievementDef> = Object.fromEntr
   ACHIEVEMENTS.map(a => [a.id, a]),
 );
 
+export function buildAchievementLookup(defs: readonly AchievementDef[]): Record<string, AchievementDef> {
+  return Object.fromEntries(defs.map(def => [def.id, def]));
+}
+
 export type AchievementStatus = {
   def: AchievementDef;
   unlocked: boolean;
@@ -215,8 +321,9 @@ export function evaluateAchievements(
   state: AppState,
   extras: AchievementExtras,
   unlockedDates: Record<string, string>,
+  defs: readonly AchievementDef[] = ACHIEVEMENTS,
 ): AchievementStatus[] {
-  return ACHIEVEMENTS.map(def => {
+  return defs.map(def => {
     const unlocked = def.predicate(state, extras);
     return {
       def,
@@ -225,4 +332,32 @@ export function evaluateAchievements(
       progress: unlocked ? 1 : def.progress ? def.progress(state, extras) : 0,
     };
   });
+}
+
+export async function loadAchievementCatalog(): Promise<AchievementDef[]> {
+  try {
+    const { data, error } = await supabase
+      .from('achievement_catalog')
+      .select(
+        'achievement_key, emoji, name, description, group_key, tier, metric_key, target_value, sort_order, is_active',
+      )
+      .eq('is_active', true)
+      .order('sort_order', { ascending: true });
+
+    if (error || !Array.isArray(data)) {
+      if (__DEV__ && error) console.warn('[achievements] catalog', error.message);
+      return [...ACHIEVEMENTS];
+    }
+
+    const defs = (data as AchievementCatalogRow[])
+      .map(buildAchievementDef)
+      .filter((item): item is AchievementDef => item != null);
+
+    return defs.length > 0 ? defs : [...ACHIEVEMENTS];
+  } catch (error) {
+    if (__DEV__) {
+      console.warn('[achievements] catalog unexpected', error);
+    }
+    return [...ACHIEVEMENTS];
+  }
 }

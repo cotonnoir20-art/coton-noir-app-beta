@@ -23,6 +23,7 @@ import {
   buildOnboardingRecommendations,
   recoStepsToRoutineSteps,
 } from '../../src/lib/onboardingRecommendations';
+import { buildBlackCottonHomeRecommendations } from '../../src/lib/blackCottonRecommendations';
 import { ONBOARDING_HAIR_TYPES } from '../../src/constants/onboardingHairTypes';
 import { POROSITY_OPTIONS } from '../../src/constants/hairProfileOptions';
 import { markOnboardingDoneLocal } from '../../src/lib/onboardingGate';
@@ -157,6 +158,7 @@ export default function OnboardingScreen() {
   const [password, setPassword]   = useState('');
   const [loading, setLoading]     = useState(false);
   const [error, setError]         = useState('');
+  const [scanPhotoUri, setScanPhotoUri] = useState<string | null>(null);
 
   // ── Restaure l'onboarding (lastStep + champs) au démarrage ──
   useEffect(() => {
@@ -440,6 +442,20 @@ export default function OnboardingScreen() {
     careStyle, hairType, porosity, density, objective, region, budget,
     problematics, blockers, hairNotes, resultsWeeks, hairTypeUnsure,
   ]);
+
+  const coachReco = useMemo(() => {
+    if (!careStyle) return null;
+    return buildBlackCottonHomeRecommendations({
+      name: name || '',
+      hairType: hairType || '',
+      porosity: porosity || '',
+      density: density || '',
+      length: '',
+      objective: objective || '',
+      problematics,
+      careStyle,
+    });
+  }, [careStyle, hairType, porosity, density, objective, problematics, name]);
 
   const canNext = (
     (step === 0 && (!!hairType || hairTypeUnsure)) ||
@@ -761,7 +777,12 @@ export default function OnboardingScreen() {
             />
           )}
 
-          {step === SCAN_STEP && <OnboardingScanIntroStep />}
+          {step === SCAN_STEP && (
+            <OnboardingScanIntroStep
+              photoUri={scanPhotoUri}
+              onPhotoSelect={setScanPhotoUri}
+            />
+          )}
 
           {step === FINAL_STEP && finalReco ? (
             <OnboardingFinalPlanStep
@@ -769,6 +790,12 @@ export default function OnboardingScreen() {
               objective={objective}
               resultsWeeks={resultsWeeks ?? 8}
               hairTypeUnsure={hairTypeUnsure}
+              hairType={hairType}
+              porosity={porosity}
+              density={density}
+              problematics={problematics}
+              coachReco={coachReco}
+              onRestart={() => setStep(0)}
             />
           ) : step === FINAL_STEP ? (
             <Text style={S.stepSub}>Préparation de ton plan…</Text>
@@ -804,7 +831,7 @@ export default function OnboardingScreen() {
           >
             <Text style={S.nextBtnText}>
               {step === SCAN_STEP
-                ? 'Voir mon plan'
+                ? "Lancer l'analyse"
                 : ONBOARDING_INTERSTITIAL_STEPS.has(step)
                   ? 'Suivant'
                   : step === FINAL_STEP

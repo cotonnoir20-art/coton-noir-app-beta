@@ -38,7 +38,7 @@ export function HomeBlackCottonRecommendations({ profile }: Props) {
           <BCEmojiAvatar size={52} mood={bc.mood} />
           <View style={s.coachBody}>
             <Text style={s.coachName}>Black Cotton</Text>
-            <Text style={s.coachRole}>Ta coach capillaire</Text>
+            <Text style={s.coachRole}>Ta copilote capillaire</Text>
           </View>
         </View>
         <Text style={s.intro}>{bc.intro}</Text>

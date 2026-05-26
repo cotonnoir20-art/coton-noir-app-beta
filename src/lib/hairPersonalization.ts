@@ -195,11 +195,101 @@ export function buildPersonalizationContext(
   };
 }
 
-function productMatchReason(_p: Product, ctx: PersonalizationContext): string {
-  if (ctx.profileLabels.length > 0) {
-    return `Selon ton profil : ${ctx.profileLabels.slice(0, 2).join(', ')}`;
+function productMatchReason(p: Product, ctx: PersonalizationContext): string {
+  const { porosity, objective, problematics = [], hairType } = ctx.snapshot;
+  const prob = problematics ?? [];
+  const obj = normalizeObjectiveId(objective);
+  const has = (label: string) => prob.some(pr => pr === label);
+
+  if (p.cat === 'mask') {
+    if (has('Casse') || has('Dommages chaleur') || has('Dommages chimiques')) {
+      return "Tes cheveux fragilisés ont besoin de protéines pour renforcer la structure de la fibre.";
+    }
+    if (has('Sécheresse') || porosity === 'Élevée') {
+      return "Parfait pour tes cheveux à haute porosité qui ont besoin d'hydratation sans être asséchés.";
+    }
+    if (has('Nœuds fréquents')) {
+      return "Assouplit la fibre et facilite le démêlage pour réduire la casse lors du brossage.";
+    }
+    if (obj === 'Hydratation') {
+      return "Au cœur de ta routine hydratation, ce masque nourrit en profondeur sans alourdir.";
+    }
+    return "Soin profond pour restaurer et renforcer ta fibre capillaire.";
   }
-  return 'Sélection catalogue Coton Noir';
+
+  if (p.cat === 'oil') {
+    if (porosity === 'Élevée') {
+      return "Idéale pour sceller l'hydratation et éviter que tes cheveux la perdent trop vite.";
+    }
+    if (has('Pousse lente') || obj === 'Pousse' || obj === 'Chute' || obj === 'Casse_et_chute') {
+      return "Stimule la circulation au cuir chevelu et favorise une pousse saine dès les premières semaines.";
+    }
+    if (has('Manque de brillance') || obj === 'Brillance') {
+      return "Apporte brillance et souplesse à ta fibre sans alourdir tes longueurs.";
+    }
+    if (has('Casse')) {
+      return "Nourrit les pointes sèches et réduit la casse en scellant l'humidité.";
+    }
+    return "Nourrit et protège ta fibre pour des cheveux souples et brillants.";
+  }
+
+  if (p.cat === 'leave') {
+    if (porosity === 'Faible') {
+      return "Formulé léger pour hydrater tes cheveux sans obstruer leurs cuticules naturellement fermées.";
+    }
+    if (has('Sécheresse') || porosity === 'Élevée') {
+      return "Hydrate tes longueurs au quotidien sans rinçage pour combattre la sécheresse persistante.";
+    }
+    if (has('Frisottis')) {
+      return "Apprivoise les frisottis et garde tes boucles définies tout au long de la journée.";
+    }
+    if (hairType?.startsWith('4') || hairType === 'Locks') {
+      return "Pénètre la fibre dense pour une hydratation durable sur cheveux très texturés.";
+    }
+    return "Maintient l'hydratation entre les lavages et facilite le coiffage au quotidien.";
+  }
+
+  if (p.cat === 'sham') {
+    if (has('Pellicules') || has('Problèmes de cuir chevelu')) {
+      return "Nettoie en douceur et apaise le cuir chevelu irrité pour éliminer les démangeaisons.";
+    }
+    if (has('Cheveux gras')) {
+      return "Élimine l'excès de sébum sans décaper ni déséquilibrer ton cuir chevelu.";
+    }
+    if (hairType?.startsWith('4') || hairType === 'Locks') {
+      return "Nettoie sans sulfates agressifs qui fragilisent les cheveux texturés et très bouclés.";
+    }
+    return "Purifie le cuir chevelu tout en préservant l'hydratation naturelle de tes cheveux.";
+  }
+
+  if (p.cat === 'cond') {
+    if (has('Nœuds fréquents') || has('Casse')) {
+      return "Détend les nœuds et renforce la fibre après chaque lavage pour réduire la casse.";
+    }
+    if (porosity === 'Élevée') {
+      return "Referme les cuticules ouvertes pour retenir l'humidité et apporter de la brillance.";
+    }
+    return "Apporte souplesse et brillance à ta fibre après chaque shampoing.";
+  }
+
+  if (p.cat === 'style') {
+    if (has('Frisottis') || obj === 'Définition') {
+      return "Définit tes boucles et élimine les frisottis pour un résultat net qui dure toute la journée.";
+    }
+    if (has('Manque de brillance') || obj === 'Brillance') {
+      return "Sublime l'éclat naturel et donne de la définition sans effet cartonneux ni résidu.";
+    }
+    return "Coiffe et protège tes boucles tout en conservant un toucher naturel et léger.";
+  }
+
+  if (p.cat === 'compl') {
+    if (has('Pousse lente') || obj === 'Pousse' || obj === 'Casse_et_chute') {
+      return "Apporte les nutriments essentiels à l'intérieur pour une pousse accélérée et des cheveux plus forts.";
+    }
+    return "Renforce ta fibre de l'intérieur pour des cheveux plus denses et moins cassants.";
+  }
+
+  return "Sélectionné pour correspondre à ton profil capillaire personnalisé.";
 }
 
 function scoreProduct(p: Product, tags: string[]): number {

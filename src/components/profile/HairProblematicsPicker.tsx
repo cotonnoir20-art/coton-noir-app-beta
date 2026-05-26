@@ -13,7 +13,7 @@ import { profileSectionStyles } from './profileSectionStyles';
 type Props = {
   selected: string[];
   onChange: (labels: string[]) => void;
-  /** Style onboarding (titre intégré à l’étape). */
+  /** Style onboarding (titre intégré à l'étape). */
   variant?: 'profile' | 'onboarding';
 };
 
@@ -44,7 +44,7 @@ export function HairProblematicsPicker({
           isOnboarding ? styles.titleOnboarding : styles.titleProfile,
         ]}
       >
-        {isOnboarding ? 'Quel est le plus gros problème avec tes cheveux ?' : 'Problématiques capillaires'}
+        {isOnboarding ? 'Quelles sont tes problématiques ?' : 'Problématiques capillaires'}
       </Text>
       <Text
         style={[
@@ -53,8 +53,8 @@ export function HairProblematicsPicker({
         ]}
       >
         {isOnboarding
-          ? 'Choisis jusqu’à 3 préoccupations pour ton diagnostic.'
-          : 'Sélectionne tes préoccupations pour des routines ciblées'}
+          ? "Sélectionne tout ce qui s'applique à tes cheveux actuellement."
+          : "Sélectionne tes préoccupations pour des routines ciblées"}
       </Text>
 
       {isOnboarding ? (

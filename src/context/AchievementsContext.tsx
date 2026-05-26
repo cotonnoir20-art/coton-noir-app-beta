@@ -3,9 +3,10 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useApp } from './AppContext';
 import {
   ACHIEVEMENTS,
-  ACHIEVEMENT_BY_ID,
+  buildAchievementLookup,
   EMPTY_EXTRAS,
   evaluateAchievements,
+  loadAchievementCatalog,
   type AchievementDef,
   type AchievementExtras,
   type AchievementStatus,
@@ -88,6 +89,7 @@ async function writeUnlockedDates(map: Record<string, string>): Promise<void> {
 export function AchievementsProvider({ children }: { children: React.ReactNode }) {
   const { state } = useApp();
 
+  const [achievementDefs, setAchievementDefs] = useState<readonly AchievementDef[]>(ACHIEVEMENTS);
   const [extras, setExtras]             = useState<AchievementExtras>(EMPTY_EXTRAS);
   const [unlockedDates, setUnlockedDates] = useState<Record<string, string>>({});
   const [pendingIds, setPendingIds]     = useState<string[]>([]);
@@ -113,7 +115,12 @@ export function AchievementsProvider({ children }: { children: React.ReactNode }
 
   useEffect(() => {
     (async () => {
-      const [dates] = await Promise.all([readUnlockedDates(), reloadExtras()]);
+      const [dates, defs] = await Promise.all([
+        readUnlockedDates(),
+        loadAchievementCatalog(),
+        reloadExtras(),
+      ]);
+      setAchievementDefs(defs);
       setUnlockedDates(dates);
       setHydrated(true);
     })();
@@ -121,8 +128,13 @@ export function AchievementsProvider({ children }: { children: React.ReactNode }
 
   // ── Évaluation : diff vs dates persistées → toast pour les nouveaux ────
   const achievements = useMemo<AchievementStatus[]>(() => {
-    return evaluateAchievements(state, extras, unlockedDates);
-  }, [state, extras, unlockedDates]);
+    return evaluateAchievements(state, extras, unlockedDates, achievementDefs);
+  }, [state, extras, unlockedDates, achievementDefs]);
+
+  const achievementById = useMemo(
+    () => buildAchievementLookup(achievementDefs),
+    [achievementDefs],
+  );
 
   useEffect(() => {
     if (!hydrated) return;
@@ -152,7 +164,7 @@ export function AchievementsProvider({ children }: { children: React.ReactNode }
       setPendingIds(prev => [...prev, ...newlyUnlocked]);
       hapticSuccess();
       for (const id of newlyUnlocked) {
-        const def = ACHIEVEMENT_BY_ID[id];
+        const def = achievementById[id];
         if (def) {
           void trackProductEvent('achievement_unlocked', {
             achievement_id: id,
@@ -169,10 +181,10 @@ export function AchievementsProvider({ children }: { children: React.ReactNode }
     // On ne dépend volontairement pas de `unlockedDates` pour éviter une boucle
     // (on l'a déjà comme valeur fraîche via le calcul ci-dessus).
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [achievements, hydrated]);
+  }, [achievementById, achievements, hydrated]);
 
   const pending: AchievementDef | null = pendingIds.length
-    ? ACHIEVEMENT_BY_ID[pendingIds[0]] ?? null
+    ? achievementById[pendingIds[0]] ?? null
     : null;
 
   const dismissCurrent = () => setPendingIds(prev => prev.slice(1));
@@ -180,11 +192,11 @@ export function AchievementsProvider({ children }: { children: React.ReactNode }
   const value = useMemo<Ctx>(() => ({
     achievements,
     unlockedCount: achievements.filter(a => a.unlocked).length,
-    totalCount: ACHIEVEMENTS.length,
+    totalCount: achievementDefs.length,
     pending,
     dismissCurrent,
     refreshExtras: reloadExtras,
-  }), [achievements, pending]);
+  }), [achievementDefs.length, achievements, pending]);
 
   return (
     <AchievementsContext.Provider value={value}>

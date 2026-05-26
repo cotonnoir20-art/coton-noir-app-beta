@@ -39,7 +39,7 @@ export function OnboardingProgressBar({
                 source={require('../../../assets/welcome-avatar.png')}
                 style={s.avatar}
                 contentFit="cover"
-                accessibilityLabel="Black Cotton, ta coach capillaire"
+                accessibilityLabel="Black Cotton, ta copilote capillaire"
               />
             </View>
           ) : null}

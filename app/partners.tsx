@@ -8,6 +8,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../src/theme/colors';
 import { useApp } from '../src/context/AppContext';
 import { supabase } from '../src/lib/supabase';
+import { isCatalogPublished } from '../src/lib/catalogStatus';
 import { AppHeader } from '../src/components/AppHeader';
 import { normalizeHttpUrl, openSafeUrl } from '../src/lib/safeLinking';
 
@@ -114,7 +115,7 @@ export default function PartnersScreen() {
       });
   }, []);
 
-  const catalog = partners.filter(p => !p.status || p.status === 'active');
+  const catalog = partners.filter(p => isCatalogPublished(p.status));
 
   const counts: Record<Exclude<CatId, 'all'>, number> = {
     products: catalog.filter(p => p.kind === 'product').length,

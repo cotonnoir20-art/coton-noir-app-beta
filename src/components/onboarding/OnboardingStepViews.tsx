@@ -1,4 +1,5 @@
-import { StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Image, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../../theme/colors';
 import { ONBOARDING_TESTIMONIALS } from '../../constants/onboardingTestimonials';
@@ -129,21 +130,70 @@ export function OnboardingTestimonialsStep() {
   );
 }
 
-export function OnboardingScanIntroStep() {
+export function OnboardingScanIntroStep({
+  photoUri,
+  onPhotoSelect,
+}: {
+  photoUri: string | null;
+  onPhotoSelect: (uri: string | null) => void;
+}) {
+  async function pickFromGallery() {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images"],
+      quality: 0.85,
+      allowsEditing: true,
+      aspect: [3, 4],
+    });
+    if (!result.canceled && result.assets?.[0]) {
+      onPhotoSelect(result.assets[0].uri);
+    }
+  }
+
+  async function pickFromCamera() {
+    const perm = await ImagePicker.requestCameraPermissionsAsync();
+    if (perm.status !== "granted") return;
+    const result = await ImagePicker.launchCameraAsync({
+      quality: 0.85,
+      allowsEditing: true,
+      aspect: [3, 4],
+    });
+    if (!result.canceled && result.assets?.[0]) {
+      onPhotoSelect(result.assets[0].uri);
+    }
+  }
+
   return (
     <View style={s.trustWrap}>
       <BCEmojiAvatar size={88} mood="coaching" />
       <Text style={[s.stepTitle, s.scanTitle]}>Prête pour ton scan capillaire ?</Text>
       <Text style={s.stepSubCenter}>
-        Merci de nous faire confiance — on prend ton parcours capillaire au sérieux. Tes réponses
-        servent à construire une routine qui colle à ton profil, pas à te vendre n’importe quoi.
+        Ajoute une photo de tes cheveux pour affiner ton diagnostic — optionnel, tu pourras le faire après inscription.
       </Text>
-      <View style={s.scanCard}>
-        <Text style={s.scanCardEmoji}>📸</Text>
-        <Text style={s.scanCardText}>
-          Photos guidées (racines, longueurs, pointes) + questionnaire — quelques secondes pour
-          affiner ton plan. Tu pourras aussi le faire depuis l’accueil après inscription.
-        </Text>
+
+      {photoUri ? (
+        <View style={s.scanPhotoPreview}>
+          <Image source={{ uri: photoUri }} style={s.scanPhotoImg} resizeMode="cover" />
+          <TouchableOpacity style={s.scanPhotoRemove} onPress={() => onPhotoSelect(null)}>
+            <Ionicons name="close-circle" size={28} color={Colors.ink} />
+          </TouchableOpacity>
+        </View>
+      ) : (
+        <TouchableOpacity style={s.scanUploadZone} onPress={() => void pickFromGallery()} activeOpacity={0.8}>
+          <Ionicons name="cloud-upload-outline" size={32} color={Colors.amberDark} />
+          <Text style={s.scanUploadText}>Dépose ou choisis une photo</Text>
+          <Text style={s.scanUploadHint}>JPG, PNG — max 10 Mo</Text>
+        </TouchableOpacity>
+      )}
+
+      <View style={s.scanBtnRow}>
+        <TouchableOpacity style={s.scanBtnGallery} onPress={() => void pickFromGallery()} activeOpacity={0.88}>
+          <Ionicons name="image-outline" size={18} color={Colors.ink} />
+          <Text style={s.scanBtnText}>Galerie</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={s.scanBtnCamera} onPress={() => void pickFromCamera()} activeOpacity={0.88}>
+          <Ionicons name="camera-outline" size={18} color={Colors.ink} />
+          <Text style={s.scanBtnText}>Appareil photo</Text>
+        </TouchableOpacity>
       </View>
     </View>
   );
@@ -304,6 +354,80 @@ const s = StyleSheet.create({
     fontFamily: 'DMSans_400Regular',
     color: Colors.ink,
     lineHeight: 21,
+  },
+  scanPhotoPreview: {
+    width: '100%',
+    height: 220,
+    borderRadius: 18,
+    overflow: 'hidden',
+    marginTop: 20,
+    position: 'relative',
+  },
+  scanPhotoImg: { width: '100%', height: '100%' },
+  scanPhotoRemove: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    backgroundColor: 'rgba(255,255,255,0.85)',
+    borderRadius: 16,
+  },
+  scanUploadZone: {
+    width: '100%',
+    marginTop: 20,
+    borderRadius: 18,
+    borderWidth: 1.5,
+    borderColor: Colors.amberDark,
+    borderStyle: 'dashed',
+    backgroundColor: Colors.amberPowder,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 32,
+    gap: 8,
+  },
+  scanUploadText: {
+    fontSize: 15,
+    fontFamily: 'DMSans_600SemiBold',
+    color: Colors.ink,
+  },
+  scanUploadHint: {
+    fontSize: 12,
+    fontFamily: 'DMSans_400Regular',
+    color: Colors.warmGray,
+  },
+  scanBtnRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 14,
+    width: '100%',
+  },
+  scanBtnGallery: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 7,
+    paddingVertical: 13,
+    borderRadius: 999,
+    backgroundColor: Colors.surface,
+    borderWidth: 1.5,
+    borderColor: Colors.border,
+  },
+  scanBtnCamera: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 7,
+    paddingVertical: 13,
+    borderRadius: 999,
+    backgroundColor: Colors.surface,
+    borderWidth: 1.5,
+    borderColor: Colors.border,
+  },
+  scanBtnText: {
+    fontSize: 14,
+    fontFamily: 'DMSans_600SemiBold',
+    color: Colors.ink,
   },
   trustIconCircle: {
     width: 88,

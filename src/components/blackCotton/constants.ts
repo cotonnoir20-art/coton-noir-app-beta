@@ -46,7 +46,7 @@ export const TRIGGER_CONFIGS: Record<BlackCottonTrigger, TriggerConfig> = {
   first_login: {
     messages: [{
       text: 'Bienvenue chez Coton Noir ✨',
-      subtext: "Je suis Black Cotton, ta coach capillaire personnelle. Ensemble on va sublimer tes cheveux !",
+      subtext: "Je suis Black Cotton, ta copilote capillaire personnelle. Ensemble on va sublimer tes cheveux !",
       mood: 'happy',
     }],
     displayMode: 'popup',

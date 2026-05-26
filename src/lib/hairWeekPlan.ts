@@ -70,6 +70,12 @@ export function buildHairWeekAgenda(args: {
   todayIso?: string;
   weekStart?: Date;
 }): WeekAgendaItem[] {
+  // Nouvelle utilisatrice : aucune routine validée et aucun soin planifié → vide
+  const hasRoutineHistory = args.coinHistory.some(
+    e => e.amount > 0 && /routine|wash/i.test(e.label),
+  );
+  if (!hasRoutineHistory && args.plannedSoins.length === 0) return [];
+
   const today = args.todayIso ?? toLocalISODate(new Date());
   const weekStart = args.weekStart ?? getMondayWeekStart();
 

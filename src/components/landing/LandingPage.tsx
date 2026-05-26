@@ -1,5 +1,6 @@
 import { useRouter } from 'expo-router';
 import {
+  Linking,
   ScrollView,
   StyleSheet,
   Text,
@@ -118,8 +119,65 @@ export function LandingPage() {
           ))}
         </View>
 
-        <Text style={s.footerLine}>{MARKETING_LANDING_FOOTER_LINE}</Text>
-        <Text style={s.footerCopy}>{MARKETING_LANDING_COPYRIGHT}</Text>
+        <View style={s.ctaCard}>
+          <Text style={s.ctaCardTitle}>Prête à révéler la beauté de tes cheveux ?</Text>
+          <Text style={s.ctaCardSub}>
+            Ton analyse personnalisée t'attend. C'est gratuit et ça prend moins de 3 minutes.
+          </Text>
+          <TouchableOpacity
+            style={s.ctaCardBtn}
+            onPress={() => void onStartDiagnostic()}
+            activeOpacity={0.9}
+            accessibilityRole="button"
+            accessibilityLabel={MARKETING_LANDING_CTA_PRIMARY}
+          >
+            <Text style={s.ctaCardBtnText}>
+              {MARKETING_LANDING_CTA_PRIMARY}{' '}
+              <Text style={s.ctaCardBtnArrow}>→</Text>
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        <View style={s.footer}>
+          <View style={s.footerDivider} />
+
+          <View style={s.footerBrand}>
+            <AuthBrandLogo width={36} variant="rounded" />
+            <View style={s.footerBrandText}>
+              <Text style={s.footerBrandName}>Coton Noir</Text>
+              <Text style={s.footerBrandTagline}>Ta copilote capillaire</Text>
+            </View>
+            <TouchableOpacity
+              style={s.footerInsta}
+              onPress={() => {}}
+              activeOpacity={0.75}
+              accessibilityRole="link"
+              accessibilityLabel="Instagram Coton Noir"
+            >
+              <Ionicons name="logo-instagram" size={20} color={Colors.warmGray} />
+            </TouchableOpacity>
+          </View>
+
+          <View style={s.footerLinks}>
+            <TouchableOpacity onPress={() => router.push('/legal' as any)} activeOpacity={0.7}>
+              <Text style={s.footerLink}>CGU</Text>
+            </TouchableOpacity>
+            <Text style={s.footerLinkSep}>·</Text>
+            <TouchableOpacity onPress={() => router.push('/privacy' as any)} activeOpacity={0.7}>
+              <Text style={s.footerLink}>Confidentialité</Text>
+            </TouchableOpacity>
+            <Text style={s.footerLinkSep}>·</Text>
+            <TouchableOpacity
+              onPress={() => void Linking.openURL('mailto:contact@appcotonnoir.com')}
+              activeOpacity={0.7}
+            >
+              <Text style={s.footerLink}>Contact</Text>
+            </TouchableOpacity>
+          </View>
+
+          <Text style={s.footerCopy}>{MARKETING_LANDING_COPYRIGHT}</Text>
+          <Text style={s.footerConçu}>{MARKETING_LANDING_FOOTER_LINE}</Text>
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -227,18 +285,105 @@ const s = StyleSheet.create({
     color: Colors.warmGray,
     lineHeight: 19,
   },
-  footerLine: {
-    fontSize: 13,
+  ctaCard: {
+    backgroundColor: Colors.ink,
+    borderRadius: 24,
+    padding: 24,
+    marginBottom: 28,
+    alignItems: 'center',
+  },
+  ctaCardTitle: {
+    fontSize: 20,
+    fontFamily: Fonts.displayBold,
+    color: '#FFFFFF',
+    textAlign: 'center',
+    lineHeight: 28,
+    marginBottom: 10,
+  },
+  ctaCardSub: {
+    fontSize: 14,
+    fontFamily: 'DMSans_400Regular',
+    color: 'rgba(255,255,255,0.75)',
+    textAlign: 'center',
+    lineHeight: 21,
+    marginBottom: 20,
+  },
+  ctaCardBtn: {
+    backgroundColor: Colors.amber,
+    borderRadius: 999,
+    paddingVertical: 14,
+    paddingHorizontal: 28,
+    alignItems: 'center',
+  },
+  ctaCardBtnText: {
+    fontSize: 15,
+    fontFamily: 'DMSans_700Bold',
+    color: Colors.ink,
+  },
+  ctaCardBtnArrow: { color: Colors.ink },
+  footer: {
+    paddingTop: 8,
+    paddingBottom: 16,
+  },
+  footerDivider: {
+    height: 1,
+    backgroundColor: Colors.border,
+    marginBottom: 20,
+  },
+  footerBrand: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 16,
+  },
+  footerBrandText: { flex: 1 },
+  footerBrandName: {
+    fontSize: 15,
+    fontFamily: Fonts.displayBold,
+    color: Colors.ink,
+    lineHeight: 20,
+  },
+  footerBrandTagline: {
+    fontSize: 12,
     fontFamily: 'DMSans_400Regular',
     color: Colors.warmGray,
-    textAlign: 'center',
-    marginBottom: 6,
+    lineHeight: 17,
+  },
+  footerInsta: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: Colors.bgShell,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  footerLinks: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 14,
+  },
+  footerLink: {
+    fontSize: 12,
+    fontFamily: 'DMSans_400Regular',
+    color: Colors.warmGray,
+  },
+  footerLinkSep: {
+    fontSize: 12,
+    fontFamily: 'DMSans_400Regular',
+    color: Colors.border,
   },
   footerCopy: {
     fontSize: 11,
     fontFamily: 'DMSans_400Regular',
     color: Colors.warmGray,
-    textAlign: 'center',
-    opacity: 0.85,
+    opacity: 0.75,
+    marginBottom: 4,
+  },
+  footerConçu: {
+    fontSize: 11,
+    fontFamily: 'DMSans_400Regular',
+    color: Colors.warmGray,
+    opacity: 0.6,
   },
 });

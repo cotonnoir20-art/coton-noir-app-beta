@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { supabase } from './supabase';
 
 const ARTICLE_FAV_KEY = '@coton_noir_fav_articles';
 const PRODUCT_FAV_KEY = '@coton_noir_fav_products';
@@ -43,7 +44,55 @@ async function writeJson<T>(key: string, items: T[]): Promise<void> {
 
 type FavoriteBase = { id: string; savedAt: string };
 
-function createFavoriteStore<T extends FavoriteBase>(storageKey: string) {
+type FavoriteContentType = 'article' | 'product' | 'recipe';
+
+async function syncFavoriteRow(args: {
+  contentType: FavoriteContentType;
+  contentId: string;
+  active: boolean;
+  label?: string;
+  category?: string;
+}) {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    if (args.active) {
+      await supabase
+        .from('user_favorites')
+        .upsert(
+          {
+            user_id: user.id,
+            content_type: args.contentType,
+            content_id: args.contentId,
+            label: args.label ?? null,
+            category: args.category ?? null,
+            saved_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: 'user_id,content_type,content_id' },
+        );
+      return;
+    }
+
+    await supabase
+      .from('user_favorites')
+      .delete()
+      .eq('content_type', args.contentType)
+      .eq('content_id', args.contentId);
+  } catch {
+    // La synchro distante est best-effort : le fallback local reste prioritaire.
+  }
+}
+
+function createFavoriteStore<T extends FavoriteBase>(
+  storageKey: string,
+  sync: {
+    contentType: FavoriteContentType;
+    getLabel: (item: Omit<T, 'savedAt'>) => string;
+    getCategory: (item: Omit<T, 'savedAt'>) => string | undefined;
+  },
+) {
   return {
     async list(): Promise<T[]> {
       return readJson<T>(storageKey);
@@ -60,12 +109,24 @@ function createFavoriteStore<T extends FavoriteBase>(storageKey: string) {
           storageKey,
           list.filter(entry => entry.id !== item.id),
         );
+        await syncFavoriteRow({
+          contentType: sync.contentType,
+          contentId: item.id,
+          active: false,
+        });
         return false;
       }
       await writeJson(storageKey, [
         { ...item, savedAt: new Date().toISOString() } as T,
         ...list,
       ]);
+      await syncFavoriteRow({
+        contentType: sync.contentType,
+        contentId: item.id,
+        active: true,
+        label: sync.getLabel(item),
+        category: sync.getCategory(item),
+      });
       return true;
     },
     async remove(id: string): Promise<void> {
@@ -74,13 +135,30 @@ function createFavoriteStore<T extends FavoriteBase>(storageKey: string) {
         storageKey,
         list.filter(entry => entry.id !== id),
       );
+      await syncFavoriteRow({
+        contentType: sync.contentType,
+        contentId: id,
+        active: false,
+      });
     },
   };
 }
 
-const articleStore = createFavoriteStore<ArticleFavorite>(ARTICLE_FAV_KEY);
-const productStore = createFavoriteStore<ProductFavorite>(PRODUCT_FAV_KEY);
-const recipeStore = createFavoriteStore<RecipeFavorite>(RECIPE_FAV_KEY);
+const articleStore = createFavoriteStore<ArticleFavorite>(ARTICLE_FAV_KEY, {
+  contentType: 'article',
+  getLabel: item => item.title,
+  getCategory: item => item.category,
+});
+const productStore = createFavoriteStore<ProductFavorite>(PRODUCT_FAV_KEY, {
+  contentType: 'product',
+  getLabel: item => `${item.brand} ${item.name}`.trim(),
+  getCategory: () => undefined,
+});
+const recipeStore = createFavoriteStore<RecipeFavorite>(RECIPE_FAV_KEY, {
+  contentType: 'recipe',
+  getLabel: item => item.name,
+  getCategory: item => item.category,
+});
 
 export const listArticleFavorites = articleStore.list;
 export const isArticleFavorite = articleStore.isFavorite;

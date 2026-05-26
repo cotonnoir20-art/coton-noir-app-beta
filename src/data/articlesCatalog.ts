@@ -31,6 +31,7 @@ export type CatalogArticle = {
   featured?: boolean;
   is_sponsored?: boolean;
   sponsor_brand?: string | null;
+  tags?: string[];
   created_at: string;
 };
 
@@ -78,6 +79,7 @@ export const CATALOG_ARTICLES: CatalogArticle[] = [
     author_contact: 'amelie.sow@cotonnoir.app',
     thumb_emoji: '🔬',
     thumb_bg: '#4A306D',
+    tags: ['Porosité', 'Science', 'Hydratation'],
     created_at: '2026-05-10T10:00:00.000Z',
   },
   {
@@ -99,6 +101,7 @@ export const CATALOG_ARTICLES: CatalogArticle[] = [
     author_contact: '@mariama.coiffure',
     thumb_emoji: '💧',
     thumb_bg: '#FDE8C8',
+    tags: ['Technique', 'Hydratation', 'Routine'],
     created_at: '2026-05-09T14:00:00.000Z',
   },
   {
@@ -119,6 +122,7 @@ export const CATALOG_ARTICLES: CatalogArticle[] = [
     author_contact: 'lea.bertrand@cotonnoir.app',
     thumb_emoji: '✂️',
     thumb_bg: '#FCE4EC',
+    tags: ['Santé', 'Réparation', 'Conseils'],
     created_at: '2026-05-08T09:00:00.000Z',
   },
   {
@@ -139,6 +143,7 @@ export const CATALOG_ARTICLES: CatalogArticle[] = [
     author_contact: '@naima.aroma',
     thumb_emoji: '🌿',
     thumb_bg: '#E2EDD8',
+    tags: ['Cuir chevelu', 'Soins', 'Santé'],
     created_at: '2026-05-07T16:00:00.000Z',
   },
   {
@@ -159,6 +164,7 @@ export const CATALOG_ARTICLES: CatalogArticle[] = [
     author_contact: '@esther.hair',
     thumb_emoji: '💇🏾‍♀️',
     thumb_bg: '#FCE4EC',
+    tags: ['Coiffage', 'Technique', 'Boucles'],
     created_at: '2026-05-06T11:00:00.000Z',
   },
   {
@@ -179,6 +185,7 @@ export const CATALOG_ARTICLES: CatalogArticle[] = [
     author_contact: 'amelie.sow@cotonnoir.app',
     thumb_emoji: '📉',
     thumb_bg: '#FDE8C8',
+    tags: ['Pousse', 'Santé', 'Science'],
     created_at: '2026-05-05T08:00:00.000Z',
   },
 ];

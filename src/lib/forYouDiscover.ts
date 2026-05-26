@@ -286,7 +286,7 @@ export function buildForYouDiscoverFeed(profile: HairProfile): ForYouDiscoverFee
 
   const productItems: ForYouItem[] = matchCatalogProducts(ctx, 8).map(p =>
     productToItem(
-      { brand: p.brand, name: p.name, price: p.price, emoji: p.emoji },
+      { brand: p.brand, name: p.name, price: p.price, emoji: p.emoji, cat: p.cat, desc: p.desc, ingredients: p.ingredients, matchReason: p.matchReason },
       p,
       p.matchScore,
       p.matchReason,

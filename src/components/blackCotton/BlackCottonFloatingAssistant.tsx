@@ -219,7 +219,7 @@ export function BlackCottonFloatingAssistant() {
         style={[s.fab, { bottom: fabBottom, right: 14 }]}
         onPress={toggleFloating}
         activeOpacity={0.88}
-        accessibilityLabel="Ouvrir Black Cotton, coach capillaire"
+        accessibilityLabel="Ouvrir Black Cotton, copilote capillaire"
       >
         <BCEmojiAvatar size={46} mood={floatingMsg.mood} />
       </TouchableOpacity>

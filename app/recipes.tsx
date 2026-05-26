@@ -33,21 +33,17 @@ import {
   type RecipeCategory,
 } from '../src/data/recipesCatalog';
 import { isRecipeFavorite, toggleRecipeFavorite } from '../src/lib/contentFavorites';
+import {
+  addRecipeReview,
+  loadRecipeReviews,
+  type RecipeReviewItem,
+} from '../src/lib/recipeReviews';
 
 const LIKES_KEY = '@coton_noir_recipe_likes';
-const REVIEWS_KEY = '@coton_noir_recipe_reviews';
 
 const GRID_GAP = 12;
 const GRID_PAD = 16;
 const CARD_W = (Dimensions.get('window').width - GRID_PAD * 2 - GRID_GAP) / 2;
-
-type Review = {
-  id: string;
-  author: string;
-  rating: number;
-  text: string;
-  date: string;
-};
 
 type Recipe = CatalogRecipe & { image?: string | null };
 
@@ -105,7 +101,7 @@ export default function RecipesScreen() {
   const [selected, setSelected] = useState<Recipe | null>(null);
   const [likedIds, setLikedIds] = useState<Record<string, boolean>>({});
   const [favIds, setFavIds] = useState<Record<string, boolean>>({});
-  const [reviews, setReviews] = useState<Record<string, Review[]>>({});
+  const [reviews, setReviews] = useState<Record<string, RecipeReviewItem[]>>({});
   const [reviewRating, setReviewRating] = useState(0);
   const [reviewText, setReviewText] = useState('');
 
@@ -139,15 +135,7 @@ export default function RecipesScreen() {
         }
       }
     });
-    AsyncStorage.getItem(REVIEWS_KEY).then(raw => {
-      if (raw) {
-        try {
-          setReviews(JSON.parse(raw));
-        } catch {
-          /* ignore */
-        }
-      }
-    });
+    void loadRecipeReviews().then(setReviews);
   }, []);
 
   useEffect(() => {
@@ -218,29 +206,26 @@ export default function RecipesScreen() {
     return (r.likes ?? 0) + (likedIds[r.id] ? 1 : 0);
   }
 
-  function submitReview() {
+  async function submitReview() {
     if (!selected || reviewRating < 1) return;
-    const review: Review = {
-      id: `${Date.now()}`,
+    const next = await addRecipeReview({
+      recipeId: selected.id,
       author: state.profile?.name?.trim() || 'Anonyme',
       rating: reviewRating,
       text: reviewText.trim(),
-      date: new Date().toISOString(),
-    };
-    setReviews(prev => {
-      const list = prev[selected.id] ?? [];
-      const next = { ...prev, [selected.id]: [review, ...list] };
-      AsyncStorage.setItem(REVIEWS_KEY, JSON.stringify(next));
-      return next;
     });
+    setReviews(next);
     setReviewRating(0);
     setReviewText('');
   }
 
   const selectedReviews = selected ? reviews[selected.id] ?? [] : [];
+  const publishedSelectedReviews = selectedReviews.filter(
+    rev => !rev.status || rev.status === 'published',
+  );
   const avgRating =
-    selectedReviews.length > 0
-      ? selectedReviews.reduce((a, r) => a + r.rating, 0) / selectedReviews.length
+    publishedSelectedReviews.length > 0
+      ? publishedSelectedReviews.reduce((a, r) => a + r.rating, 0) / publishedSelectedReviews.length
       : selected?.rating ?? 0;
 
   return (
@@ -492,7 +477,7 @@ export default function RecipesScreen() {
                       onPress={submitReview}
                       disabled={reviewRating === 0}
                     >
-                      <Text style={S.reviewSubmitText}>Publier mon avis</Text>
+                      <Text style={S.reviewSubmitText}>Envoyer mon avis</Text>
                     </TouchableOpacity>
                   </View>
 
@@ -500,7 +485,14 @@ export default function RecipesScreen() {
                     selectedReviews.map(rev => (
                       <View key={rev.id} style={S.reviewCard}>
                         <View style={S.reviewTop}>
-                          <Text style={S.reviewAuthor}>{rev.author}</Text>
+                          <View style={S.reviewMeta}>
+                            <Text style={S.reviewAuthor}>{rev.author}</Text>
+                            {rev.status === 'pending' ? (
+                              <View style={S.reviewStatusPill}>
+                                <Text style={S.reviewStatusText}>En modération</Text>
+                              </View>
+                            ) : null}
+                          </View>
                           <View style={S.reviewStars}>
                             {[1, 2, 3, 4, 5].map(n => (
                               <Ionicons
@@ -1064,7 +1056,15 @@ const S = StyleSheet.create({
     justifyContent: 'space-between',
     marginBottom: 6,
   },
+  reviewMeta: { flexDirection: 'row', alignItems: 'center', gap: 8, flexShrink: 1 },
   reviewAuthor: { fontSize: 13, fontFamily: 'DMSans_700Bold', color: Colors.ink },
+  reviewStatusPill: {
+    backgroundColor: Colors.blush,
+    borderRadius: 999,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  reviewStatusText: { fontSize: 10, fontFamily: 'DMSans_700Bold', color: Colors.rose },
   reviewStars: { flexDirection: 'row', gap: 2 },
   reviewText: {
     fontSize: 13,

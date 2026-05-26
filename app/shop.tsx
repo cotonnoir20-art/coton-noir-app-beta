@@ -16,6 +16,7 @@ import { useApp } from '../src/context/AppContext';
 import { useAuth } from '../src/context/AuthContext';
 import { CATEGORIES, ProductCategory } from '../src/data/products';
 import { supabase } from '../src/lib/supabase';
+import { isCatalogPublished } from '../src/lib/catalogStatus';
 import { AppHeader } from '../src/components/AppHeader';
 import { EmptyAnimation } from '../src/components/animations/EmptyAnimation';
 import { getDemoProducts, type DemoProduct } from '../src/data/demoUsers';
@@ -181,7 +182,7 @@ export default function ShopScreen() {
     });
   })();
 
-  const catalog = allProducts.filter(p => !p.status || p.status === 'active');
+  const catalog = allProducts.filter(p => isCatalogPublished(p.status));
 
   const filteredRaw = catalog.filter(p => {
     const matchCat    = cat === 'all' || p.category === cat;

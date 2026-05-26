@@ -56,7 +56,7 @@ export const FALLBACK_HOME_HIGHLIGHTS: MomentCard[] = [
     id: 'local-parrain',
     badge: '● EN COURS',
     title: 'Parrainage x2',
-    sub: "Ton amie s'inscrit avec ton code → CC pour vous deux (plafonné)",
+    sub: "Ton amie s'inscrit avec ton code → CC pour toutes les deux (plafonné)",
     footerLeft: 'Inviter',
     variant: 'live',
     route: '/invite',

@@ -37,6 +37,10 @@ export type RecoProduct = {
   name: string;
   price: string;
   emoji: string;
+  cat: string;
+  desc?: string;
+  ingredients?: string[];
+  matchReason?: string;
 };
 
 export type RecoRecipe = {
@@ -46,6 +50,9 @@ export type RecoRecipe = {
   duration: number;
   thumb_emoji: string;
   thumb_bg: string;
+  ingredients?: string[];
+  steps?: string[];
+  description?: string;
 };
 
 export type RecoArticle = {
@@ -55,6 +62,7 @@ export type RecoArticle = {
   read_time: number;
   thumb_emoji: string;
   thumb_bg: string;
+  tags?: string[];
 };
 
 export type OnboardingRecommendations = {
@@ -137,25 +145,25 @@ export function buildOnboardingRecommendations(input: DiagnosticSnapshot): Onboa
   const showProducts = careStyle === 'shop' || careStyle === 'mix';
   const showRecipes = careStyle === 'diy' || careStyle === 'mix';
 
-  const recipes = CATALOG_RECIPES.filter(r => matchesHairType(r.hair_types, input.hairType))
-    .slice(0, 3)
-    .map(r => ({
+  function mapRecipe(r: (typeof CATALOG_RECIPES)[number]): RecoRecipe {
+    return {
       id: r.id,
       name: r.name,
       category: r.category,
       duration: r.duration,
       thumb_emoji: r.thumb_emoji,
       thumb_bg: r.thumb_bg,
-    }));
+      ingredients: r.ingredients,
+      steps: r.steps,
+      description: r.description,
+    };
+  }
 
-  const fallbackRecipes = CATALOG_RECIPES.slice(0, 3).map(r => ({
-    id: r.id,
-    name: r.name,
-    category: r.category,
-    duration: r.duration,
-    thumb_emoji: r.thumb_emoji,
-    thumb_bg: r.thumb_bg,
-  }));
+  const recipes = CATALOG_RECIPES.filter(r => matchesHairType(r.hair_types, input.hairType))
+    .slice(0, 3)
+    .map(mapRecipe);
+
+  const fallbackRecipes = CATALOG_RECIPES.slice(0, 3).map(mapRecipe);
 
   const persoCtx = buildPersonalizationContext(input);
   const catalogArticles = matchCatalogArticles(persoCtx, 3);
@@ -166,6 +174,7 @@ export function buildOnboardingRecommendations(input: DiagnosticSnapshot): Onboa
     read_time: a.read_time,
     thumb_emoji: a.thumb_emoji,
     thumb_bg: a.thumb_bg,
+    tags: a.tags,
   }));
 
   const profileSummary = [
@@ -187,6 +196,10 @@ export function buildOnboardingRecommendations(input: DiagnosticSnapshot): Onboa
       name: p.name,
       price: p.price,
       emoji: p.emoji,
+      cat: p.cat,
+      desc: p.desc,
+      ingredients: p.ingredients,
+      matchReason: p.matchReason,
     })),
     recipes: recipes.length > 0 ? recipes : fallbackRecipes,
     articles,

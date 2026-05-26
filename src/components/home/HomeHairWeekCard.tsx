@@ -27,5 +27,7 @@ export function HomeHairWeekCard({ coinHistory, plannedSoins }: Props) {
     } as any);
   }
 
+  if (items.length === 0) return null;
+
   return <HairWeekAgenda items={items} onPressSlot={onPressSlot} compact />;
 }

@@ -9,6 +9,7 @@ type Props = {
   objective: string;
   resultsWeeks: number;
   hairTypeUnsure?: boolean;
+  showObjectiveCard?: boolean;
 };
 
 function resolveDisplayName(name?: string): string {
@@ -17,7 +18,7 @@ function resolveDisplayName(name?: string): string {
   return trimmed.split(/\s+/)[0];
 }
 
-export function PlanReadyHeader({ name, objective, resultsWeeks, hairTypeUnsure }: Props) {
+export function PlanReadyHeader({ name, objective, resultsWeeks, hairTypeUnsure, showObjectiveCard = true }: Props) {
   const focus = displayObjective(normalizeObjectiveId(objective)) || 'Prendre soin de tes cheveux';
   const displayName = resolveDisplayName(name);
   const title = displayName
@@ -39,11 +40,13 @@ export function PlanReadyHeader({ name, objective, resultsWeeks, hairTypeUnsure 
         </Text>
       ) : null}
 
-      <View style={s.focusCard}>
-        <Text style={s.focusKicker}>TON OBJECTIF</Text>
-        <Text style={s.focusTitle}>{focus}</Text>
-        <Text style={s.focusSub}>Tout ton plan est calibré autour de cet objectif.</Text>
-      </View>
+      {showObjectiveCard && (
+        <View style={s.focusCard}>
+          <Text style={s.focusKicker}>TON OBJECTIF</Text>
+          <Text style={s.focusTitle}>{focus}</Text>
+          <Text style={s.focusSub}>Tout ton plan est calibré autour de cet objectif.</Text>
+        </View>
+      )}
     </View>
   );
 }
@@ -56,10 +59,10 @@ const s = StyleSheet.create({
     marginBottom: 12,
   },
   title: {
-    fontSize: 26,
+    fontSize: 18,
     fontFamily: Fonts.display,
     color: Colors.ink,
-    lineHeight: 32,
+    lineHeight: 24,
     marginBottom: 6,
   },
   subtitle: {

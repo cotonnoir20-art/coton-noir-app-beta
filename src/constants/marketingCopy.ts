@@ -16,13 +16,13 @@ export const MARKETING_TAGLINE =
   'Ton copilote capillaire — pour mieux prendre soin de tes cheveux.';
 
 /** CTA landing web — entrée onboarding (étape 1). */
-export const MARKETING_LANDING_CTA_PRIMARY = 'Commencer mon diagnostic';
+export const MARKETING_LANDING_CTA_PRIMARY = 'Commencer mon analyse';
 
 /** CTA landing web — connexion. */
 export const MARKETING_LANDING_CTA_SECONDARY = 'Connexion';
 
 /** CTA welcome app native. */
-export const MARKETING_WELCOME_CTA_PRIMARY = 'Commencer mon diagnostic';
+export const MARKETING_WELCOME_CTA_PRIMARY = 'Commencer mon analyse';
 
 export const MARKETING_WELCOME_CTA_SECONDARY = "J'ai déjà un compte";
 

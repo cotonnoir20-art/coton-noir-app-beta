@@ -8,6 +8,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../src/theme/colors';
 import { useApp } from '../src/context/AppContext';
 import { supabase } from '../src/lib/supabase';
+import { isCatalogPublished } from '../src/lib/catalogStatus';
 import { AppHeader } from '../src/components/AppHeader';
 import { EmptyAnimation } from '../src/components/animations/EmptyAnimation';
 
@@ -63,7 +64,7 @@ export default function CoiffuresScreen() {
       });
   }, []);
 
-  const catalog = styles.filter(s => !s.status || s.status === 'active');
+  const catalog = styles.filter(s => isCatalogPublished(s.status));
 
   const filtered = catalog.filter(s => {
     const matchTab    = tab === 'recent' || (s.tabs ?? []).includes(tab);

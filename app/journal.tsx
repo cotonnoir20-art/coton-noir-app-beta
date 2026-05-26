@@ -13,7 +13,7 @@ import {
 } from '../src/lib/journalStorage';
 
 type JournalEntry = {
-  id: number;
+  id: number | string;
   day: string;
   month: string;
   year: string;
