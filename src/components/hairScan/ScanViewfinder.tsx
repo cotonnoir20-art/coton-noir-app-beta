@@ -1,10 +1,10 @@
 import { StyleSheet, View } from 'react-native';
-import { Colors } from '../../theme/colors';
+import { ScanColors as C } from '../../constants/scanner/cotonNoirColors';
 
 const CORNER = 28;
-const STROKE = 3;
+const STROKE = 2.5;
 
-/** Cadre de visée — coins orange (style Iruncoil). */
+/** Cadre de visée — coins terracotta Coton Noir. */
 export function ScanViewfinder() {
   return (
     <View style={styles.frame} pointerEvents="none">
@@ -12,27 +12,20 @@ export function ScanViewfinder() {
       <View style={[styles.corner, styles.tr]} />
       <View style={[styles.corner, styles.bl]} />
       <View style={[styles.corner, styles.br]} />
-      <View style={styles.grid}>
-        {Array.from({ length: 12 }).map((_, i) => (
-          <View key={i} style={styles.dot} />
-        ))}
-      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   frame: {
-    flex: 1,
-    marginHorizontal: 28,
-    marginVertical: 16,
-    position: 'relative',
+    ...StyleSheet.absoluteFillObject,
+    margin: 20,
   },
   corner: {
     position: 'absolute',
     width: CORNER,
     height: CORNER,
-    borderColor: Colors.amber,
+    borderColor: C.accent.primary,
   },
   tl: {
     top: 0,
@@ -61,20 +54,5 @@ const styles = StyleSheet.create({
     borderBottomWidth: STROKE,
     borderRightWidth: STROKE,
     borderBottomRightRadius: 4,
-  },
-  grid: {
-    ...StyleSheet.absoluteFillObject,
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-evenly',
-    alignContent: 'space-evenly',
-    opacity: 0.35,
-    padding: 24,
-  },
-  dot: {
-    width: 4,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: 'rgba(255,255,255,0.25)',
   },
 });

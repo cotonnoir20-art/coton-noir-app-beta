@@ -170,7 +170,7 @@ export default function AnalyzeScreen() {
   const [step, setStep]           = useState(0);
   const [tab, setTab]             = useState<Tab>('problems');
   const [shared, setShared]       = useState(false);
-  const [photos, setPhotos]       = useState<PhotoSlot[]>([null, null, null]);
+  const [photos, setPhotos]       = useState<PhotoSlot[]>([null, null, null, null]);
   const [showManualSlots, setShowManualSlots] = useState(false);
   const [analysis, setAnalysis]   = useState<HairAnalysis | null>(null);
   const [analysisError, setError] = useState<string | null>(null);
@@ -182,7 +182,7 @@ export default function AnalyzeScreen() {
 
   const [refreshing, setRefreshing] = useState(false);
   const [history, setHistory] = useState<HairAnalysisSummary[]>([]);
-  const [resultPhotos, setResultPhotos] = useState<(PhotoSlot | null)[]>([null, null, null]);
+  const [resultPhotos, setResultPhotos] = useState<(PhotoSlot | null)[]>([null, null, null, null]);
   const [previousScore, setPreviousScore] = useState<number | null>(null);
   const [journey, setJourney] = useState<AnalysisJourney | null>(null);
   const previousScoreRef = useRef<number | null>(null);
@@ -386,7 +386,7 @@ export default function AnalyzeScreen() {
       const hairAnalysis = results[0] as HairAnalysis;
       setAnalysis(hairAnalysis);
       setResultPhotos(photos.map(p => (p ? { uri: p.uri, base64: '', mimeType: 'image/jpeg' } : null)));
-      setPhotos([null, null, null]);
+      setPhotos([null, null, null, null]);
       setPhase('results');
       hapticSuccess();
 
@@ -480,8 +480,8 @@ export default function AnalyzeScreen() {
   const resetAnalysis = () => {
     setPhase('empty');
     setError(null);
-    setPhotos([null, null, null]);
-    setResultPhotos([null, null, null]);
+    setPhotos([null, null, null, null]);
+    setResultPhotos([null, null, null, null]);
     setAnalysis(null);
     setAnswers({});
     setQIndex(0);

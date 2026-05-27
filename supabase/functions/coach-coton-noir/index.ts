@@ -33,7 +33,7 @@ function corsHeadersFor(req: Request): Record<string, string> | null {
   };
 }
 
-const MAX_PHOTOS = 3;
+const MAX_PHOTOS = 4;
 const MAX_IMAGE_BYTES = 2_000_000;
 const MAX_TOTAL_IMAGE_BYTES = 4_500_000;
 const MAX_HISTORY = 12;
@@ -67,7 +67,7 @@ Tu retournes UNIQUEMENT un objet JSON valide, sans texte avant ni après, sans b
 - Hydratation : sécheresse (frisottis, fils ternes cassants) vs souplesse définie
 - Cuir chevelu : irritation, sébum, sécheresse
 - Buildup produits : agglutination, lourdeur
-- Si plusieurs photos : compare racines/longueurs/pointes
+- Si plusieurs photos : compare entre les angles fournis (face, côté gauche, côté droit, dessus)
 
 [ 2 — Croisement avec le questionnaire utilisateur ]
 Le questionnaire est CRUCIAL. Il te donne des infos invisibles à la photo :
