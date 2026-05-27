@@ -50,6 +50,7 @@ type Recipe = CatalogRecipe & { image?: string | null };
 function mapSupabaseRow(row: Record<string, unknown>): Recipe | null {
   const name = typeof row.name === 'string' ? row.name.trim() : '';
   if (!name) return null;
+
   const catRaw = typeof row.category === 'string' ? row.category : 'Masque';
   let category: RecipeCategory = 'Masque';
   if (catRaw === 'Huile' || catRaw === 'Traitement') category = 'Huile';
@@ -58,13 +59,12 @@ function mapSupabaseRow(row: Record<string, unknown>): Recipe | null {
 
   const diffRaw = typeof row.difficulty === 'string' ? row.difficulty : 'Facile';
   const difficulty: CatalogRecipe['difficulty'] =
-    diffRaw === 'Moyen' ? 'Moyen' : diffRaw === 'Difficile' ? 'Moyen' : 'Facile';
+    diffRaw === 'Express' ? 'Express' : diffRaw === 'Moyen' ? 'Moyen' : 'Facile';
 
-  const style = CATEGORY_STYLES[category];
-  const ingredients = Array.isArray(row.ingredients)
-    ? (row.ingredients as string[])
-  : [];
+  const fallbackStyle = CATEGORY_STYLES[category];
+  const ingredients = Array.isArray(row.ingredients) ? (row.ingredients as string[]) : [];
   const steps = Array.isArray(row.steps) ? (row.steps as string[]) : [];
+  const duration = typeof row.duration === 'number' ? row.duration : 20;
 
   return {
     id: String(row.id),
@@ -72,20 +72,27 @@ function mapSupabaseRow(row: Record<string, unknown>): Recipe | null {
     description: typeof row.description === 'string' ? row.description : '',
     category,
     difficulty,
-    duration: typeof row.duration === 'number' ? row.duration : 20,
-    prep_minutes: Math.max(5, Math.round((typeof row.duration === 'number' ? row.duration : 20) * 0.35)),
-    pose_minutes: Math.max(0, (typeof row.duration === 'number' ? row.duration : 20) - 10),
-    rating: 4.5,
+    duration,
+    prep_minutes: typeof row.prep_minutes === 'number' ? row.prep_minutes : Math.max(5, Math.round(duration * 0.35)),
+    pose_minutes: typeof row.pose_minutes === 'number' ? row.pose_minutes : Math.max(0, duration - 10),
+    rating: typeof row.rating === 'number' ? row.rating : 4.5,
     likes: typeof row.likes === 'number' ? row.likes : 0,
     ingredient_count: ingredients.length || 3,
-    avg_cost_eur: 2.5,
-    thumb_emoji: category === 'Huile' ? '🌿' : category === 'Spray' ? '💧' : '🥛',
-    thumb_bg: style.cardBg,
+    avg_cost_eur: typeof row.avg_cost_eur === 'number' ? row.avg_cost_eur : 2.5,
+    thumb_emoji: typeof row.thumb_emoji === 'string' && row.thumb_emoji ? row.thumb_emoji
+      : category === 'Huile' ? '🌿' : category === 'Spray' ? '💧' : category === 'Cuir chevelu' ? '🍃' : '🥛',
+    thumb_bg: typeof row.thumb_bg === 'string' && row.thumb_bg ? row.thumb_bg : fallbackStyle.cardBg,
+    featured: row.featured === true,
+    signature: row.signature === true,
     hair_types: Array.isArray(row.hair_types) ? (row.hair_types as string[]) : [],
     ingredients,
     steps,
+    admin_tags: Array.isArray(row.admin_tags) ? (row.admin_tags as string[]) : [],
     image: typeof row.image === 'string' ? row.image : null,
     created_at: typeof row.created_at === 'string' ? row.created_at : new Date().toISOString(),
+    notes: typeof row.notes === 'string' && row.notes.trim() ? row.notes.trim() : null,
+    porosity: Array.isArray(row.porosity) ? (row.porosity as string[]) : [],
+    frequency: typeof row.frequency === 'string' && row.frequency.trim() ? row.frequency.trim() : null,
   };
 }
 
@@ -109,6 +116,8 @@ export default function RecipesScreen() {
     supabase
       .from('recipes')
       .select('*')
+      .eq('status', 'published')
+      .order('sort_order', { ascending: true })
       .order('created_at', { ascending: false })
       .then(({ data, error }) => {
         if (error) {
@@ -151,9 +160,13 @@ export default function RecipesScreen() {
   }, [selected?.id]);
 
   const allRecipes = useMemo(() => {
-    const ids = new Set(CATALOG_RECIPES.map(r => r.id));
-    const extra = remoteRecipes.filter(r => !ids.has(r.id));
-    return [...CATALOG_RECIPES, ...extra] as Recipe[];
+    if (remoteRecipes.length > 0) {
+      // Recettes admin en source principale ; on ajoute les locales non présentes en fallback
+      const remoteIds = new Set(remoteRecipes.map(r => r.id));
+      const localFallback = CATALOG_RECIPES.filter(r => !remoteIds.has(r.id));
+      return [...remoteRecipes, ...localFallback] as Recipe[];
+    }
+    return [...CATALOG_RECIPES] as Recipe[];
   }, [remoteRecipes]);
 
   const featured = useMemo(
@@ -389,16 +402,42 @@ export default function RecipesScreen() {
                   <Text style={S.modalDesc}>{selected.description}</Text>
                 ) : null}
 
-                {selected.hair_types?.length > 0 ? (
+                {(selected.hair_types?.length > 0 || (selected.porosity?.length ?? 0) > 0 || selected.frequency) ? (
                   <View style={S.block}>
-                    <Text style={S.blockTitle}>Types de cheveux</Text>
-                    <View style={S.tagsRow}>
-                      {selected.hair_types.map((t, i) => (
-                        <View key={i} style={S.tag}>
-                          <Text style={S.tagText}>{t}</Text>
+                    {selected.hair_types?.length > 0 && (
+                      <>
+                        <Text style={S.blockTitle}>Types de cheveux</Text>
+                        <View style={[S.tagsRow, { marginBottom: 8 }]}>
+                          {selected.hair_types.map((t, i) => (
+                            <View key={i} style={S.tag}>
+                              <Text style={S.tagText}>{t}</Text>
+                            </View>
+                          ))}
                         </View>
-                      ))}
-                    </View>
+                      </>
+                    )}
+                    {(selected.porosity?.length ?? 0) > 0 && (
+                      <>
+                        <Text style={S.blockTitle}>Porosité</Text>
+                        <View style={[S.tagsRow, { marginBottom: 8 }]}>
+                          {(selected.porosity ?? []).map((p, i) => (
+                            <View key={i} style={S.tag}>
+                              <Text style={S.tagText}>{p}</Text>
+                            </View>
+                          ))}
+                        </View>
+                      </>
+                    )}
+                    {selected.frequency ? (
+                      <>
+                        <Text style={S.blockTitle}>Fréquence</Text>
+                        <View style={S.tagsRow}>
+                          <View style={S.tag}>
+                            <Text style={S.tagText}>{selected.frequency}</Text>
+                          </View>
+                        </View>
+                      </>
+                    ) : null}
                   </View>
                 ) : null}
 
@@ -439,6 +478,13 @@ export default function RecipesScreen() {
                         <Text style={S.stepText}>{step}</Text>
                       </View>
                     ))}
+                  </View>
+                ) : null}
+
+                {selected.notes ? (
+                  <View style={[S.block, { backgroundColor: 'rgba(139,175,122,0.10)', borderRadius: 12, padding: 14 }]}>
+                    <Text style={[S.blockTitle, { marginBottom: 6 }]}>📝 Note</Text>
+                    <Text style={S.stepText}>{selected.notes}</Text>
                   </View>
                 ) : null}
 
