@@ -27,6 +27,12 @@ export type CatalogRecipe = {
   created_at: string;
   /** Tags admin (concern IDs) — alignés sur la table Supabase `recipes.admin_tags`. */
   admin_tags?: string[];
+  /** Note admin — visible dans la fiche recette (app + hub). */
+  notes?: string | null;
+  /** Porosité adaptée (Basse / Moyenne / Élevée). */
+  porosity?: string[];
+  /** Fréquence d'utilisation recommandée. */
+  frequency?: string | null;
 };
 
 export const RECIPE_CATEGORIES: {
