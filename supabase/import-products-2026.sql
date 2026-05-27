@@ -8,6 +8,7 @@
 
 -- ÉTAPE 1 : Ajouter les colonnes manquantes (safe si déjà existantes)
 ALTER TABLE public.products
+  ADD COLUMN IF NOT EXISTS currency        text NOT NULL DEFAULT 'EUR',
   ADD COLUMN IF NOT EXISTS tagline         text,
   ADD COLUMN IF NOT EXISTS description_full text,
   ADD COLUMN IF NOT EXISTS emoji           text,
