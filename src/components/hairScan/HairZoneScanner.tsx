@@ -53,6 +53,7 @@ export function HairZoneScanner({
   const [step, setStep] = useState(0);
   const [capturing, setCapturing] = useState(false);
   const [capturedOverlay, setCapturedOverlay] = useState(false);
+  const [facing, setFacing] = useState<'back' | 'front'>('back');
   const cameraRef = useRef<CameraView>(null);
   const [permission, requestPermission] = useCameraPermissions();
 
@@ -151,7 +152,7 @@ export function HairZoneScanner({
     <View style={styles.root}>
       {/* Caméra live (natif uniquement, quand pas de photo pour cet angle) */}
       {Platform.OS !== 'web' && permission?.granted && !currentCaptured && (
-        <CameraView ref={cameraRef} style={StyleSheet.absoluteFill} facing="back" />
+        <CameraView ref={cameraRef} style={StyleSheet.absoluteFill} facing={facing} />
       )}
 
       {/* Fond sombre */}
@@ -192,6 +193,20 @@ export function HairZoneScanner({
 
           {/* Coins décoratifs */}
           <ScanViewfinder />
+
+          {/* Bouton flip caméra (natif, pas de photo en cours) */}
+          {Platform.OS !== 'web' && permission?.granted && !currentCaptured && (
+            <TouchableOpacity
+              style={styles.flipBtn}
+              onPress={() => {
+                hapticLight();
+                setFacing(f => f === 'back' ? 'front' : 'back');
+              }}
+              hitSlop={12}
+            >
+              <Ionicons name="camera-reverse-outline" size={24} color={C.text.primary} />
+            </TouchableOpacity>
+          )}
 
           {/* Overlay "Capturé !" */}
           {capturedOverlay && (
@@ -273,28 +288,34 @@ export function HairZoneScanner({
         {/* ── Boutons footer ── */}
         <View style={styles.footer}>
 
-          {/* Bouton capture — masqué quand tous capturés */}
-          {!allCaptured && (
-            <TouchableOpacity
-              style={[styles.captureBtn, capturing && styles.captureBtnDisabled]}
-              onPress={capturePhoto}
-              disabled={capturing}
-              activeOpacity={0.88}
-            >
-              {capturing ? (
-                <ActivityIndicator color={C.text.primary} size="small" />
-              ) : (
-                <>
-                  <Ionicons name="camera" size={20} color={C.text.primary} />
-                  <Text style={styles.captureBtnText}>
-                    {currentCaptured
-                      ? `Reprendre — ${zone.label}`
-                      : `Capturer — ${zone.label}`}
-                  </Text>
-                </>
-              )}
-            </TouchableOpacity>
-          )}
+          {/* Bouton capture — toujours visible pour permettre de reprendre */}
+          <TouchableOpacity
+            style={[
+              styles.captureBtn,
+              capturing && styles.captureBtnDisabled,
+              currentCaptured && styles.captureBtnRetake,
+            ]}
+            onPress={capturePhoto}
+            disabled={capturing}
+            activeOpacity={0.88}
+          >
+            {capturing ? (
+              <ActivityIndicator color={C.text.primary} size="small" />
+            ) : (
+              <>
+                <Ionicons
+                  name={currentCaptured ? 'refresh' : 'camera'}
+                  size={20}
+                  color={C.text.primary}
+                />
+                <Text style={styles.captureBtnText}>
+                  {currentCaptured
+                    ? `Reprendre — ${zone.label}`
+                    : `Capturer — ${zone.label}`}
+                </Text>
+              </>
+            )}
+          </TouchableOpacity>
 
           {/* Import galerie */}
           <TouchableOpacity onPress={pickFromLibrary} style={styles.galleryLink}>
@@ -555,6 +576,22 @@ const styles = StyleSheet.create({
     gap: 8,
   },
 
+  /* Bouton flip caméra */
+  flipBtn: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(28, 18, 16, 0.55)',
+    borderWidth: 1,
+    borderColor: C.accent.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 10,
+  },
+
   /* Bouton capture */
   captureBtn: {
     flexDirection: 'row',
@@ -568,6 +605,11 @@ const styles = StyleSheet.create({
   },
   captureBtnDisabled: {
     opacity: 0.65,
+  },
+  captureBtnRetake: {
+    backgroundColor: C.background.surface,
+    borderWidth: 1,
+    borderColor: C.accent.borderActive,
   },
   captureBtnText: {
     fontSize: 15,
