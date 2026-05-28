@@ -25,15 +25,17 @@ export function HairProblematicsPicker({
   const normalized = normalizeProblematicLabels(selected);
   const isOnboarding = variant === 'onboarding';
   const items = isOnboarding ? getOnboardingProblematics() : HAIR_PROBLEMATICS;
-  const atMax = normalized.length >= MAX_HAIR_PROBLEMATICS;
+  // Seuls les items présents dans la liste actuelle comptent (ghost items du storage ignorés).
+  const visibleSelected = normalized.filter(l => items.some(p => p.label === l));
+  const atMax = visibleSelected.length >= MAX_HAIR_PROBLEMATICS;
 
   function toggle(label: string) {
-    if (normalized.includes(label)) {
-      onChange(normalized.filter(x => x !== label));
+    if (visibleSelected.includes(label)) {
+      onChange(visibleSelected.filter(x => x !== label));
       return;
     }
     if (atMax) return;
-    onChange([...normalized, label]);
+    onChange([...visibleSelected, label]);
   }
 
   return (
@@ -59,14 +61,14 @@ export function HairProblematicsPicker({
 
       {isOnboarding ? (
         <Text style={[styles.counter, styles.counterOnboarding]}>
-          {normalized.length}/{MAX_HAIR_PROBLEMATICS} sélectionnée{normalized.length > 1 ? 's' : ''}
+          {visibleSelected.length}/{MAX_HAIR_PROBLEMATICS} sélectionnée{visibleSelected.length > 1 ? 's' : ''}
         </Text>
       ) : null}
 
       {isOnboarding ? (
         <View style={styles.pillList}>
           {items.map(p => {
-            const isActive = normalized.includes(p.label);
+            const isActive = visibleSelected.includes(p.label);
             const isDisabled = atMax && !isActive;
             const display = getProblematicDisplayLabel(p);
             return (

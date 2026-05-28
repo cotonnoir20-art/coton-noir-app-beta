@@ -1,13 +1,12 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
-  KeyboardAvoidingView, Platform,
+  Animated, KeyboardAvoidingView, Platform,
   ScrollView, StyleSheet, Text, TouchableOpacity, View,
 } from 'react-native';
 import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { BackButton } from '../../src/components/BackButton';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../../src/lib/supabase';
 import { PENDING_ONBOARDING_GIFT_KEY } from '../../src/lib/cotonCoins';
@@ -44,8 +43,8 @@ import {
   OnboardingHairNotesField,
   OnboardingResultsPaceStep,
   OnboardingRoutineBlockersStep,
-  OnboardingScanIntroStep,
 } from '../../src/components/onboarding/OnboardingStepViews';
+import { ScanEntryCard } from '../../src/components/hairScan/ScanEntryCard';
 import { OnboardingInterstitialStep } from '../../src/components/onboarding/OnboardingInterstitialStep';
 import {
   ONBOARDING_INTERSTITIALS,
@@ -79,11 +78,11 @@ function migrateOnboardingStep(saved: number): number {
   let s = saved;
   if (s >= 16) s -= 1;
   if (s >= 9) s -= 1;
+  if (s === 3) s = 4;
   return s;
 }
 
 const INTERSTITIAL_BY_STEP: Record<number, (typeof ONBOARDING_INTERSTITIALS)[number]> = {
-  3: ONBOARDING_INTERSTITIALS[0],
   7: ONBOARDING_INTERSTITIALS[1],
   11: ONBOARDING_INTERSTITIALS[2],
 };
@@ -160,7 +159,19 @@ export default function OnboardingScreen() {
   const [password, setPassword]   = useState('');
   const [loading, setLoading]     = useState(false);
   const [error, setError]         = useState('');
-  const [scanPhotoUri, setScanPhotoUri] = useState<string | null>(null);
+  const fadeAnim = useRef(new Animated.Value(1)).current;
+  const animating = useRef(false);
+
+  function withFade(action: () => void) {
+    if (animating.current) return;
+    animating.current = true;
+    Animated.timing(fadeAnim, { toValue: 0, duration: 100, useNativeDriver: true }).start(() => {
+      action();
+      Animated.timing(fadeAnim, { toValue: 1, duration: 200, useNativeDriver: true }).start(() => {
+        animating.current = false;
+      });
+    });
+  }
 
   // ── Restaure l'onboarding (lastStep + champs) au démarrage ──
   useEffect(() => {
@@ -236,7 +247,7 @@ export default function OnboardingScreen() {
     currentLength, targetLength, goalDate, region, budget, careStyle, name, email,
   ]);
 
-  function next() { setStep(s => Math.min(s + 1, TOTAL - 1)); }
+  function next() { withFade(() => setStep(s => { const n = Math.min(s + 1, TOTAL - 1); return n === 3 ? 4 : n; })); }
   function skip() { next(); }
   function goToFinalPlan(deferScan = false) {
     if (deferScan) {
@@ -244,13 +255,14 @@ export default function OnboardingScreen() {
     } else {
       void AsyncStorage.removeItem(PENDING_POST_ONBOARDING_SCAN_KEY);
     }
-    setStep(FINAL_STEP);
+    withFade(() => setStep(FINAL_STEP));
   }
   function back() {
-    if (step === SIGNUP_STEP) setStep(FINAL_STEP);
-    else if (step === FINAL_STEP) setStep(SCAN_STEP);
+    if (step === SIGNUP_STEP) withFade(() => setStep(FINAL_STEP));
+    else if (step === FINAL_STEP) withFade(() => setStep(SCAN_STEP));
     else if (step === 0) router.back();
-    else setStep(s => s - 1);
+    else if (step === 4) withFade(() => setStep(2));
+    else withFade(() => setStep(s => s - 1));
   }
 
   function toggleBlocker(id: OnboardingBlockerId) {
@@ -264,6 +276,7 @@ export default function OnboardingScreen() {
   function selectHairType(code: string) {
     setHairType(code);
     setHairTypeUnsure(false);
+    setTimeout(next, 280);
   }
 
   function markHairTypeUnsure() {
@@ -483,16 +496,10 @@ export default function OnboardingScreen() {
         step={step}
         total={TOTAL}
         optional={OPTIONAL_STEPS.has(step)}
-        showCoachAvatar={step !== FINAL_STEP && !ONBOARDING_INTERSTITIAL_STEPS.has(step)}
+        onBack={back}
       />
 
-      {/* ── Bouton retour ── */}
-      <BackButton
-        style={S.backBtn}
-        onPress={back}
-        accessibilityLabel="Étape précédente"
-      />
-
+      <Animated.View style={[S.animatedContainer, { opacity: fadeAnim }]}>
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -611,7 +618,10 @@ export default function OnboardingScreen() {
           )}
 
           {INTERSTITIAL_BY_STEP[step] ? (
-            <OnboardingInterstitialStep config={INTERSTITIAL_BY_STEP[step]} />
+            <OnboardingInterstitialStep
+              config={INTERSTITIAL_BY_STEP[step]}
+              hairType={hairType || undefined}
+            />
           ) : null}
 
           {step === 4 && (
@@ -622,7 +632,7 @@ export default function OnboardingScreen() {
                 <TouchableOpacity
                   key={o.id}
                   style={[S.optionCard, objective === o.id && S.optionCardActive]}
-                  onPress={() => setObjective(o.id)}
+                  onPress={() => { setObjective(o.id); setTimeout(next, 280); }}
                 >
                   <Text style={S.optionEmoji}>{o.emoji}</Text>
                   <Text style={[S.optionLabel, objective === o.id && S.optionLabelActive]}>{o.label}</Text>
@@ -633,7 +643,7 @@ export default function OnboardingScreen() {
           )}
 
           {step === 5 && (
-            <OnboardingConfidenceStep value={confidence} onChange={setConfidence} />
+            <OnboardingConfidenceStep value={confidence} onChange={v => { setConfidence(v); setTimeout(next, 280); }} />
           )}
 
           {step === 6 && (
@@ -756,7 +766,7 @@ export default function OnboardingScreen() {
                 <TouchableOpacity
                   key={c.id}
                   style={[S.optionCard, careStyle === c.id && S.optionCardActive]}
-                  onPress={() => setCareStyle(c.id)}
+                  onPress={() => { setCareStyle(c.id); setTimeout(next, 280); }}
                 >
                   <Text style={S.optionEmoji}>{c.emoji}</Text>
                   <View style={{ flex: 1 }}>
@@ -780,10 +790,7 @@ export default function OnboardingScreen() {
           )}
 
           {step === SCAN_STEP && (
-            <OnboardingScanIntroStep
-              photoUri={scanPhotoUri}
-              onPhotoSelect={setScanPhotoUri}
-            />
+            <ScanEntryCard onStartScan={() => goToFinalPlan(true)} />
           )}
 
           {step === FINAL_STEP && finalReco ? (
@@ -822,33 +829,35 @@ export default function OnboardingScreen() {
 
       {step < SIGNUP_STEP && (
         <View style={S.footer}>
-          <TouchableOpacity
-            style={[S.nextBtn, !canNext && S.nextBtnDisabled]}
-            onPress={() => {
-              if (step === SCAN_STEP) goToFinalPlan();
-              else if (step === FINAL_STEP) next();
-              else next();
-            }}
-            disabled={!canNext}
-          >
-            <Text style={S.nextBtnText}>
-              {step === SCAN_STEP
-                ? "Lancer l'analyse"
-                : ONBOARDING_INTERSTITIAL_STEPS.has(step)
+          {step !== SCAN_STEP && (
+            <TouchableOpacity
+              style={[S.nextBtn, !canNext && S.nextBtnDisabled]}
+              onPress={() => {
+                if (step === FINAL_STEP) next();
+                else next();
+              }}
+              disabled={!canNext}
+            >
+              <Text style={S.nextBtnText}>
+                {ONBOARDING_INTERSTITIAL_STEPS.has(step)
                   ? 'Suivant'
                   : step === FINAL_STEP
-                    ? 'Créer un compte'
+                    ? 'Sauvegarder mon plan'
                     : 'Continuer'}{' '}
-              <Text style={S.nextBtnAccent}>→</Text>
-            </Text>
-          </TouchableOpacity>
-          {step === SCAN_STEP ? (
-            <TouchableOpacity onPress={() => goToFinalPlan(true)} style={S.skipLink}>
-              <Text style={S.skipText}>Scanner après inscription</Text>
+                <Text style={S.nextBtnAccent}>→</Text>
+              </Text>
             </TouchableOpacity>
+          )}
+          {step === SCAN_STEP ? (
+            <TouchableOpacity onPress={() => goToFinalPlan(false)} style={S.skipLink}>
+              <Text style={S.skipText}>Passer pour l'instant</Text>
+            </TouchableOpacity>
+          ) : step === FINAL_STEP ? (
+            <Text style={S.saveHint}>Gratuit · ton plan disparaît si tu fermes sans compte.</Text>
           ) : null}
         </View>
       )}
+      </Animated.View>
 
     </SafeAreaView>
   );
@@ -856,6 +865,7 @@ export default function OnboardingScreen() {
 
 const S = StyleSheet.create({
   safe:    { flex: 1, backgroundColor: Colors.bg },
+  animatedContainer: { flex: 1 },
   content: { paddingHorizontal: 24, paddingBottom: 24, paddingTop: 8 },
   contentHairStep: { paddingBottom: 120 },
   contentFinalStep: { paddingBottom: 48 },
@@ -904,11 +914,6 @@ const S = StyleSheet.create({
   },
   progressDot:       { flex: 1, height: 4, borderRadius: 2, backgroundColor: Colors.border },
   progressDotActive: { backgroundColor: Colors.amber },
-
-  backBtn: {
-    marginLeft: 20,
-    marginBottom: 8,
-  },
 
   // ── Titres ──
   stepTitle: { fontSize: 24, fontFamily: 'Satoshi_500Medium', color: Colors.ink, marginBottom: 8, lineHeight: 32 },
@@ -1092,5 +1097,13 @@ const S = StyleSheet.create({
   nextBtnAccent: {
     color: Colors.amber,
     fontFamily: 'DMSans_700Bold',
+  },
+  saveHint: {
+    fontSize: 11,
+    fontFamily: 'DMSans_400Regular',
+    color: Colors.warmGray,
+    textAlign: 'center',
+    marginTop: 10,
+    lineHeight: 15,
   },
 });

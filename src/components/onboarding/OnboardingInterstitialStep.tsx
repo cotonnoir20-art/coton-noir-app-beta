@@ -100,9 +100,14 @@ function TestimonialsCard() {
 
 type Props = {
   config: OnboardingInterstitialConfig;
+  hairType?: string;
 };
 
-export function OnboardingInterstitialStep({ config }: Props) {
+export function OnboardingInterstitialStep({ config, hairType }: Props) {
+  const personalizedBody =
+    config.id === 'testimonials' && hairType
+      ? `Des femmes avec des cheveux ${hairType} comme les tiens ont commencé au même point — voici ce qui a changé avec Coton Noir.`
+      : config.body;
   const showStatCard = config.id === 'regularity' && config.statBars;
   const showChart =
     config.id === 'consistency' &&
@@ -120,7 +125,7 @@ export function OnboardingInterstitialStep({ config }: Props) {
       {showTestimonials ? (
         <>
           <Text style={s.title}>{config.title}</Text>
-          <Text style={[s.body, s.bodySpaced]}>{config.body}</Text>
+          <Text style={[s.body, s.bodySpaced]}>{personalizedBody}</Text>
           <TestimonialsCard />
         </>
       ) : (

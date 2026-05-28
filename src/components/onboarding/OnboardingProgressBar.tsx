@@ -1,114 +1,181 @@
-import { Image } from 'expo-image';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../../theme/colors';
+
+type Phase = { label: string; startStep: number; endStep: number };
+
+const PHASES: Phase[] = [
+  { label: 'Profil',   startStep: 0,  endStep: 2  },
+  { label: 'Objectif', startStep: 4,  endStep: 7  },
+  { label: 'Envies',   startStep: 8,  endStep: 13 },
+  { label: 'Ton plan', startStep: 14, endStep: 16 },
+];
+
+function getPhaseState(phase: Phase, step: number): 'done' | 'active' | 'pending' {
+  if (step > phase.endStep) return 'done';
+  if (step >= phase.startStep) return 'active';
+  return 'pending';
+}
 
 type Props = {
   step: number;
   total: number;
   optional?: boolean;
-  /** Affiché à gauche (ex. durée estimée). */
-  durationLabel?: string;
-  /** Avatar coach en haut à droite (masqué sur la page plan si doublon). */
   showCoachAvatar?: boolean;
+  onBack?: () => void;
 };
 
-export function OnboardingProgressBar({
-  step,
-  total,
-  optional,
-  durationLabel = '~3 min',
-  showCoachAvatar = true,
-}: Props) {
-  const progress = total > 0 ? Math.min(1, (step + 1) / total) : 0;
-
+export function OnboardingProgressBar({ step, optional, onBack }: Props) {
   return (
     <View style={s.wrap}>
-      <View style={s.row}>
-        <View style={s.left}>
-          <Text style={s.duration}>{durationLabel}</Text>
-          {optional ? (
-            <View style={s.optionalBadge}>
-              <Text style={s.optionalBadgeText}>OPTIONNEL</Text>
-            </View>
-          ) : null}
+      <View style={s.headerRow}>
+
+        {/* Chevron retour compact */}
+        <TouchableOpacity
+          style={s.backBtn}
+          onPress={onBack}
+          disabled={!onBack}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 6 }}
+          accessibilityRole="button"
+          accessibilityLabel="Étape précédente"
+        >
+          <Ionicons
+            name="chevron-back"
+            size={22}
+            color={onBack ? Colors.warmGray : 'transparent'}
+          />
+        </TouchableOpacity>
+
+        {/* Phases */}
+        <View style={s.phases}>
+          {PHASES.map((phase, i) => {
+            const state = getPhaseState(phase, step);
+            const isDone = state === 'done';
+            const isActive = state === 'active';
+            const leftAmber = i > 0 && getPhaseState(PHASES[i - 1], step) === 'done';
+            const rightAmber = isDone;
+
+            return (
+              <View key={phase.label} style={s.phaseCol}>
+                <View style={s.connRow}>
+                  <View style={[
+                    s.line,
+                    i === 0 ? s.lineHidden : leftAmber ? s.lineAmber : undefined,
+                  ]} />
+
+                  <View style={[
+                    s.dot,
+                    isDone ? s.dotDone : isActive ? s.dotActive : s.dotPending,
+                  ]}>
+                    {isDone && <Ionicons name="checkmark" size={11} color="#fff" />}
+                    {isActive && <View style={s.innerDot} />}
+                  </View>
+
+                  <View style={[
+                    s.line,
+                    i === PHASES.length - 1 ? s.lineHidden : rightAmber ? s.lineAmber : undefined,
+                  ]} />
+                </View>
+
+                <Text style={[
+                  s.label,
+                  isDone && s.labelDone,
+                  isActive && s.labelActive,
+                ]}>
+                  {phase.label}
+                </Text>
+              </View>
+            );
+          })}
         </View>
-        <View style={s.right}>
-          {showCoachAvatar ? (
-            <View style={s.avatarRing}>
-              <Image
-                source={require('../../../assets/welcome-avatar.png')}
-                style={s.avatar}
-                contentFit="cover"
-                accessibilityLabel="Black Cotton, ta copilote capillaire"
-              />
-            </View>
-          ) : null}
+
+      </View>
+
+      {optional && (
+        <View style={s.optionalWrap}>
+          <View style={s.optionalBadge}>
+            <Text style={s.optionalText}>OPTIONNEL</Text>
+          </View>
         </View>
-      </View>
-      <View style={s.track}>
-        <View style={[s.fill, { width: `${Math.round(progress * 100)}%` }]} />
-      </View>
+      )}
     </View>
   );
 }
 
 const s = StyleSheet.create({
-  wrap: { paddingHorizontal: 24, paddingTop: 8, paddingBottom: 6 },
-  row: {
+  wrap: { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 4 },
+
+  headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 8,
+    gap: 4,
   },
-  left: {
+  backBtn: {
+    width: 28,
+    height: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
+
+  phases: { flex: 1, flexDirection: 'row' },
+  phaseCol: { flex: 1, alignItems: 'center' },
+
+  connRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    width: '100%',
+    marginBottom: 5,
+  },
+  line: {
     flex: 1,
+    height: 2,
+    backgroundColor: Colors.border,
   },
-  duration: {
-    fontSize: 12,
-    fontFamily: 'DMSans_600SemiBold',
+  lineHidden: { backgroundColor: 'transparent' },
+  lineAmber:  { backgroundColor: Colors.amber },
+
+  dot: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  dotDone:    { backgroundColor: Colors.amber },
+  dotActive:  { backgroundColor: Colors.amber },
+  dotPending: {
+    backgroundColor: 'transparent',
+    borderWidth: 1.5,
+    borderColor: Colors.border,
+  },
+  innerDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#fff',
+  },
+
+  label: {
+    fontSize: 10,
+    fontFamily: 'DMSans_500Medium',
     color: Colors.warmGray,
-    letterSpacing: 0.2,
+    textAlign: 'center',
   },
+  labelDone:   { color: Colors.amberDark },
+  labelActive: { color: Colors.ink, fontFamily: 'DMSans_700Bold' },
+
+  optionalWrap:  { alignItems: 'center', marginTop: 6 },
   optionalBadge: {
     backgroundColor: Colors.amberLight,
     borderRadius: 999,
     paddingHorizontal: 9,
     paddingVertical: 3,
   },
-  optionalBadgeText: {
+  optionalText: {
     fontSize: 9,
     fontFamily: 'DMSans_700Bold',
     color: Colors.amberDark,
     letterSpacing: 1.1,
-  },
-  right: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    minWidth: 40,
-  },
-  avatarRing: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    overflow: 'hidden',
-    backgroundColor: Colors.amberLight,
-  },
-  avatar: {
-    width: 36,
-    height: 36,
-  },
-  track: {
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: Colors.border,
-    overflow: 'hidden',
-  },
-  fill: {
-    height: '100%',
-    borderRadius: 2,
-    backgroundColor: Colors.amber,
   },
 });

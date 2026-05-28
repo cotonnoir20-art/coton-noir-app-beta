@@ -50,8 +50,7 @@ export const ONBOARDING_INTERSTITIALS: OnboardingInterstitialConfig[] = [
 ];
 
 /** Indices d’étape onboarding où insérer un intercalaire (après N questions). */
-export const ONBOARDING_INTERSTITIAL_STEP_INDICES: Record<OnboardingInterstitialId, number> = {
-  regularity: 3,
+export const ONBOARDING_INTERSTITIAL_STEP_INDICES: Partial<Record<OnboardingInterstitialId, number>> = {
   testimonials: 7,
   consistency: 11,
 };
