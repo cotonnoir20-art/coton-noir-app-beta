@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../../theme/colors';
@@ -13,6 +13,7 @@ import {
   type OnboardingRecommendations,
 } from '../../lib/onboardingRecommendations';
 import type { BlackCottonHomeReco } from '../../lib/blackCottonRecommendations';
+import type { OnboardingQuickScan } from '../../services/onboardingScanApi';
 
 const TABS = ['Plan', 'Produits', 'Recettes', 'Articles'] as const;
 type Tab = (typeof TABS)[number];
@@ -49,8 +50,178 @@ type Props = {
   name?: string;
   unlocked?: boolean;
   coachReco?: BlackCottonHomeReco | null;
+  scanResult?: OnboardingQuickScan;
+  scanLoading?: boolean;
   onRestart?: () => void;
 };
+
+// ── Carte scan préliminaire ───────────────────────────────────────────────────
+
+const SCAN_BG = '#2A1208';
+
+function ScanResultCard({ result, loading }: { result?: OnboardingQuickScan; loading?: boolean }) {
+  if (!loading && !result) return null;
+  return (
+    <View style={sc.card}>
+      <View style={sc.header}>
+        <View style={sc.iconWrap}>
+          <Ionicons name="sparkles" size={16} color="#C8733A" />
+        </View>
+        <Text style={sc.kicker}>ANALYSE IA · SCAN PRÉLIMINAIRE</Text>
+      </View>
+
+      {loading ? (
+        <View style={sc.loadingRow}>
+          <ActivityIndicator size="small" color="#C8733A" />
+          <Text style={sc.loadingText}>Analyse de tes cheveux en cours…</Text>
+        </View>
+      ) : result ? (
+        <>
+          <View style={sc.scoreRow}>
+            <View style={sc.scoreCircle}>
+              <Text style={sc.scoreValue}>{result.score}</Text>
+              <Text style={sc.scoreUnit}>/100</Text>
+            </View>
+            <View style={sc.scoreMeta}>
+              <Text style={sc.metaLabel}>Type détecté</Text>
+              <Text style={sc.metaValue}>{result.hairType}</Text>
+              <Text style={sc.metaLabel} numberOfLines={1}>Porosité · {result.porosity}</Text>
+            </View>
+          </View>
+
+          {result.synthesis ? (
+            <Text style={sc.synthesis}>{result.synthesis}</Text>
+          ) : null}
+
+          {result.highlights.length > 0 && (
+            <View style={sc.highlights}>
+              {result.highlights.map((h, i) => (
+                <View key={i} style={sc.highlightRow}>
+                  <View style={sc.highlightDot} />
+                  <Text style={sc.highlightText}>{h}</Text>
+                </View>
+              ))}
+            </View>
+          )}
+        </>
+      ) : null}
+    </View>
+  );
+}
+
+const sc = StyleSheet.create({
+  card: {
+    backgroundColor: SCAN_BG,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(200, 115, 58, 0.35)',
+    padding: 18,
+    marginBottom: 16,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 14,
+  },
+  iconWrap: {
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    backgroundColor: 'rgba(200, 115, 58, 0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(200, 115, 58, 0.3)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  kicker: {
+    fontSize: 10,
+    fontFamily: Fonts.bodyBold,
+    color: '#C8733A',
+    letterSpacing: 1.1,
+  },
+  loadingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingVertical: 8,
+  },
+  loadingText: {
+    fontSize: 13,
+    fontFamily: Fonts.body,
+    color: 'rgba(255,255,255,0.55)',
+    fontStyle: 'italic',
+  },
+  scoreRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+    marginBottom: 12,
+  },
+  scoreCircle: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: 'rgba(200, 115, 58, 0.15)',
+    borderWidth: 1.5,
+    borderColor: '#C8733A',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  scoreValue: {
+    fontSize: 20,
+    fontFamily: Fonts.display,
+    color: '#fff',
+    lineHeight: 24,
+  },
+  scoreUnit: {
+    fontSize: 9,
+    fontFamily: Fonts.body,
+    color: 'rgba(255,255,255,0.5)',
+    lineHeight: 11,
+  },
+  scoreMeta: { flex: 1, gap: 2 },
+  metaLabel: {
+    fontSize: 10,
+    fontFamily: Fonts.bodyBold,
+    color: 'rgba(255,255,255,0.45)',
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+  },
+  metaValue: {
+    fontSize: 15,
+    fontFamily: Fonts.display,
+    color: '#fff',
+    marginBottom: 4,
+  },
+  synthesis: {
+    fontSize: 13,
+    fontFamily: Fonts.body,
+    color: 'rgba(255,255,255,0.7)',
+    lineHeight: 20,
+    marginBottom: 12,
+    fontStyle: 'italic',
+  },
+  highlights: { gap: 6 },
+  highlightRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  highlightDot: {
+    width: 5,
+    height: 5,
+    borderRadius: 3,
+    backgroundColor: '#C8733A',
+    flexShrink: 0,
+  },
+  highlightText: {
+    fontSize: 13,
+    fontFamily: Fonts.bodyMedium,
+    color: 'rgba(255,255,255,0.75)',
+    flex: 1,
+  },
+});
 
 // ── Carte diagnostic ─────────────────────────────────────────────────────────
 
@@ -568,6 +739,8 @@ export function OnboardingFinalPlanStep({
   name,
   unlocked,
   coachReco,
+  scanResult,
+  scanLoading,
   onRestart,
 }: Props) {
   const [activeTab, setActiveTab] = useState<Tab>('Plan');
@@ -582,6 +755,8 @@ export function OnboardingFinalPlanStep({
         hairTypeUnsure={hairTypeUnsure}
         showObjectiveCard={false}
       />
+
+      <ScanResultCard result={scanResult} loading={scanLoading} />
 
       <DiagnosticCard
         hairType={hairType}

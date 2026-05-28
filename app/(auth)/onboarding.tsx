@@ -45,6 +45,10 @@ import {
   OnboardingRoutineBlockersStep,
 } from '../../src/components/onboarding/OnboardingStepViews';
 import { ScanEntryCard } from '../../src/components/hairScan/ScanEntryCard';
+import { OnboardingQuickCapture } from '../../src/components/hairScan/OnboardingQuickCapture';
+import type { ScanPhoto } from '../../src/components/hairScan/HairZoneScanner';
+import { analyzeOnboardingPhoto } from '../../src/services/onboardingScanApi';
+import type { OnboardingQuickScan } from '../../src/services/onboardingScanApi';
 import { OnboardingInterstitialStep } from '../../src/components/onboarding/OnboardingInterstitialStep';
 import {
   ONBOARDING_INTERSTITIALS,
@@ -159,6 +163,9 @@ export default function OnboardingScreen() {
   const [password, setPassword]   = useState('');
   const [loading, setLoading]     = useState(false);
   const [error, setError]         = useState('');
+  const [showCapture, setShowCapture] = useState(false);
+  const [scanLoading, setScanLoading] = useState(false);
+  const [scanResult, setScanResult]   = useState<OnboardingQuickScan | null>(null);
   const fadeAnim = useRef(new Animated.Value(1)).current;
   const animating = useRef(false);
 
@@ -249,13 +256,29 @@ export default function OnboardingScreen() {
 
   function next() { withFade(() => setStep(s => { const n = Math.min(s + 1, TOTAL - 1); return n === 3 ? 4 : n; })); }
   function skip() { next(); }
-  function goToFinalPlan(deferScan = false) {
-    if (deferScan) {
-      void AsyncStorage.setItem(PENDING_POST_ONBOARDING_SCAN_KEY, '1');
-    } else {
-      void AsyncStorage.removeItem(PENDING_POST_ONBOARDING_SCAN_KEY);
-    }
+  function goToFinalPlan() {
+    void AsyncStorage.removeItem(PENDING_POST_ONBOARDING_SCAN_KEY);
     withFade(() => setStep(FINAL_STEP));
+  }
+
+  async function handleScanCapture(photo: ScanPhoto) {
+    setShowCapture(false);
+    setScanLoading(true);
+    withFade(() => setStep(FINAL_STEP));
+    try {
+      const result = await analyzeOnboardingPhoto(photo, {
+        hairType: hairType || undefined,
+        porosity: porosity || undefined,
+        density: density || undefined,
+        objective: objective || undefined,
+        problematics: problematics.length ? problematics : undefined,
+      });
+      setScanResult(result);
+    } catch {
+      // Scan indisponible — le plan s'affiche sans résultat scan
+    } finally {
+      setScanLoading(false);
+    }
   }
   function back() {
     if (step === SIGNUP_STEP) withFade(() => setStep(FINAL_STEP));
@@ -790,7 +813,7 @@ export default function OnboardingScreen() {
           )}
 
           {step === SCAN_STEP && (
-            <ScanEntryCard onStartScan={() => goToFinalPlan(true)} />
+            <ScanEntryCard onStartScan={() => setShowCapture(true)} />
           )}
 
           {step === FINAL_STEP && finalReco ? (
@@ -804,6 +827,8 @@ export default function OnboardingScreen() {
               density={density}
               problematics={problematics}
               coachReco={coachReco}
+              scanResult={scanResult ?? undefined}
+              scanLoading={scanLoading}
               onRestart={() => setStep(0)}
             />
           ) : step === FINAL_STEP ? (
@@ -849,7 +874,7 @@ export default function OnboardingScreen() {
             </TouchableOpacity>
           )}
           {step === SCAN_STEP ? (
-            <TouchableOpacity onPress={() => goToFinalPlan(false)} style={S.skipLink}>
+            <TouchableOpacity onPress={() => goToFinalPlan()} style={S.skipLink}>
               <Text style={S.skipText}>Passer pour l'instant</Text>
             </TouchableOpacity>
           ) : step === FINAL_STEP ? (
@@ -858,6 +883,13 @@ export default function OnboardingScreen() {
         </View>
       )}
       </Animated.View>
+
+      {showCapture && (
+        <OnboardingQuickCapture
+          onCapture={handleScanCapture}
+          onClose={() => setShowCapture(false)}
+        />
+      )}
 
     </SafeAreaView>
   );

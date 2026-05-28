@@ -7,7 +7,7 @@ type ScanEntryCardProps = {
   onStartScan: () => void;
 };
 
-const FEATURES = ['Texture', 'Porosité', 'Condition', 'Routine'];
+const FEATURES = ['Texture', 'Porosité', 'Condition', 'Type'];
 
 /** Carte d'entrée scanner — palette brun profond / terracotta Coton Noir. */
 export function ScanEntryCard({ onStartScan }: ScanEntryCardProps) {
@@ -36,7 +36,7 @@ export function ScanEntryCard({ onStartScan }: ScanEntryCardProps) {
       <Text style={styles.title}>Prête pour{'\n'}ton scan ?</Text>
 
       {/* Sous-titre */}
-      <Text style={styles.sub}>4 angles · analyse texture, porosité & condition</Text>
+      <Text style={styles.sub}>1 angle · 30 sec · croisé avec ton profil</Text>
 
       {/* Chips fonctionnalités */}
       <View style={styles.featuresRow}>
