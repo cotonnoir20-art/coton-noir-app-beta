@@ -53,21 +53,48 @@ Tu es concise : 1 à 3 phrases maximum pour un conseil du jour, 5 phrases max po
 Tu maîtrises la méthode LOC, les types de porosité, les routines wash day, les soins naturels (karité, huile de coco, aloe vera, glycérine, huile de ricin...).
 Tu ne prescris jamais de traitement médical. Tu restes dans le domaine capillaire.`;
 
+/** Étape 1 — Sonnet 4.6 vision : analyse visuelle pure des photos. */
+const VISION_SYSTEM = `Tu es une experte trichologue spécialisée en cheveux afro-texturés (types 3A–4C).
+Tu analyses des photos de cheveux et retournes UNIQUEMENT un objet JSON d'analyse visuelle pure.
+Aucun texte avant ni après, aucune balise markdown.
+
+Observe strictement ce qui est visible dans les photos :
+- Pattern de boucles/coils (1A à 4C, échelle André Walker + LOIS)
+- État de la cuticule : fermée (brillance vitreuse) → moyenne (mat doux) → ouverte (gonflé, terne, irrégulier)
+- Hydratation apparente : frisottis excessifs, fils cassants = sec ; souplesse, définition = hydraté
+- État des pointes : saines, légèrement abîmées, fourches, très abîmées
+- Densité : clairsemée (cuir chevelu visible), moyenne, dense
+- Cuir chevelu (si visible) : sain, sec, gras, irrité
+- Signes de buildup : agglutination, lourdeur, film terne
+- Si plusieurs angles : compare et note les différences entre zones
+
+JSON à retourner :
+{
+  "type_curl": "ex: 4A | mixte 3C/4A | 4B",
+  "porosite_visuelle": "faible|moyenne|élevée",
+  "hydratation_visuelle": "très sec|sec|normal|bien hydraté",
+  "etat_pointes": "saines|légèrement abîmées|fourches|très abîmées",
+  "densite": "fine|moyenne|dense",
+  "etat_cuir_chevelu": "sain|sec|gras|irrité|non visible",
+  "buildup": true|false,
+  "brillance": "terne|normale|brillante",
+  "elasticite_apparente": "faible|normale|bonne",
+  "observations_visuelles": "description précise et détaillée de ce que tu vois sur les photos",
+  "confiance": "faible|moyenne|élevée"
+}`;
+
+/** Étape 2 — Haiku 4.5 texte : diagnostic complet à partir de l'analyse visuelle + questionnaire. */
 const ANALYSIS_SYSTEM = `Tu es Coach Coton Noir, experte certifiée en trichologie capillaire pour cheveux naturels, crépus et texturés.
-Tu analyses des photos de cheveux ET un questionnaire ciblé pour produire un diagnostic d'une précision professionnelle.
+Tu reçois une ANALYSE VISUELLE structurée (produite par un modèle de vision spécialisé) ET un questionnaire utilisateur.
+Croise ces deux sources pour produire un diagnostic complet d'une précision professionnelle.
 Tu retournes UNIQUEMENT un objet JSON valide, sans texte avant ni après, sans balises markdown.
 
 ═══ MÉTHODOLOGIE EN 2 TEMPS ═══
 
-[ 1 — Analyse visuelle des photos ]
-- Pattern de boucles/coils : classification 1A à 4C (échelle André Walker + LOIS)
-- Porosité visible : cuticule fermée (brillance vitreuse), moyenne (mat doux), haute (gonflé, terne, irrégulier)
-- Densité : clairsemée (cuir chevelu visible), moyenne, dense
-- État fibre : brillance, élasticité, casse visible, fourches, fragilité pointes
-- Hydratation : sécheresse (frisottis, fils ternes cassants) vs souplesse définie
-- Cuir chevelu : irritation, sébum, sécheresse
-- Buildup produits : agglutination, lourdeur
-- Si plusieurs photos : compare entre les angles fournis (face, côté gauche, côté droit, dessus)
+[ 1 — Interprétation de l'analyse visuelle ]
+L'analyse visuelle a déjà identifié : type_curl, porosité, hydratation, état des pointes, densité, cuir chevelu, buildup, brillance, élasticité.
+Utilise ces données comme base factuelle. Si la confiance est "faible", pondère davantage le questionnaire.
+Les observations_visuelles décrivent ce qui a été vu — prends-les en compte pour ta synthesis.
 
 [ 2 — Croisement avec le questionnaire utilisateur ]
 Le questionnaire est CRUCIAL. Il te donne des infos invisibles à la photo :
@@ -370,24 +397,61 @@ Deno.serve(async (req) => {
       const questionnaire = sanitizeQuestionnaire(body.questionnaire);
       const photoList = normalized.photos!;
 
-      const content: unknown[] = [];
+      // ── Étape 1 : Analyse visuelle — claude-sonnet-4-6 ─────────────────
+      const visionContent: unknown[] = [];
       for (const photo of photoList) {
-        content.push({ type: 'text', text: `📸 ${photo.label} :` });
-        content.push({
+        visionContent.push({ type: 'text', text: `📸 ${photo.label} :` });
+        visionContent.push({
           type: 'image',
           source: { type: 'base64', media_type: photo.mediaType, data: photo.base64 },
         });
       }
-
-      const qctx = buildQuestionnaireCtx(questionnaire);
-      content.push({
+      visionContent.push({
         type: 'text',
-        text:
-          `Analyse ${photoList.length > 1 ? `ces ${photoList.length} photos` : 'cette photo'} et retourne le JSON de diagnostic complet.` +
-          (qctx ? `\n\n${qctx}` : ''),
+        text: `Analyse ${photoList.length > 1 ? `ces ${photoList.length} angles` : 'cette photo'} et retourne le JSON d'analyse visuelle.`,
       });
 
-      const response = await fetch('https://api.anthropic.com/v1/messages', {
+      const visionRes = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': apiKey,
+          'anthropic-version': '2023-06-01',
+        },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-6',
+          max_tokens: 800,
+          system: VISION_SYSTEM,
+          messages: [{ role: 'user', content: visionContent }],
+        }),
+      });
+
+      if (!visionRes.ok) {
+        const vErr = await visionRes.json();
+        logCoachError('vision_step', visionRes.status, vErr?.error?.message);
+        return jsonResponse({ error: vErr?.error?.message ?? `Vision ${visionRes.status}` }, req, 502);
+      }
+
+      const visionData = await visionRes.json();
+      const visionRaw = visionData.content?.[0]?.text ?? '{}';
+      const visionMatch = visionRaw.match(/\{[\s\S]*\}/);
+      let visualAnalysis: unknown = {};
+      try {
+        visualAnalysis = JSON.parse(visionMatch ? visionMatch[0] : visionRaw);
+      } catch {
+        // analyse visuelle non parsable → on continue avec objet vide (Haiku se basera sur le questionnaire)
+        logCoachError('vision_parse', undefined, 'JSON parse failed');
+      }
+
+      // ── Étape 2 : Recommandations — claude-haiku-4-5-20251001 ──────────
+      const qctx = buildQuestionnaireCtx(questionnaire);
+      const recoMsg = [
+        `Analyse visuelle IA (${photoList.length} angle${photoList.length > 1 ? 's' : ''}) :\n${JSON.stringify(visualAnalysis, null, 2)}`,
+        qctx ? `\n${qctx}` : '',
+        '\nGénère le diagnostic complet et les recommandations personnalisées.',
+      ].join('');
+
+      const recoRes = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -398,21 +462,21 @@ Deno.serve(async (req) => {
           model: 'claude-haiku-4-5-20251001',
           max_tokens: 1800,
           system: ANALYSIS_SYSTEM + buildProfileCtx(profile),
-          messages: [{ role: 'user', content }],
+          messages: [{ role: 'user', content: recoMsg }],
         }),
       });
 
-      const data = await response.json();
-      if (!response.ok) {
-        logCoachError('anthropic_analysis', response.status, data?.error?.message);
-        return jsonResponse({ error: data.error?.message ?? `Anthropic ${response.status}` }, req, 502);
+      const recoData = await recoRes.json();
+      if (!recoRes.ok) {
+        logCoachError('reco_step', recoRes.status, recoData?.error?.message);
+        return jsonResponse({ error: recoData?.error?.message ?? `Reco ${recoRes.status}` }, req, 502);
       }
 
-      const raw = data.content?.[0]?.text ?? '{}';
-      const match = raw.match(/\{[\s\S]*\}/);
+      const recoRaw = recoData.content?.[0]?.text ?? '{}';
+      const recoMatch = recoRaw.match(/\{[\s\S]*\}/);
       let analysis: unknown;
       try {
-        analysis = JSON.parse(match ? match[0] : raw);
+        analysis = JSON.parse(recoMatch ? recoMatch[0] : recoRaw);
       } catch {
         return jsonResponse({ error: 'invalid_analysis_json' }, req, 502);
       }
