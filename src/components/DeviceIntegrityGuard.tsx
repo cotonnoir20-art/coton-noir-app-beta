@@ -15,22 +15,32 @@ type Props = { children: React.ReactNode };
 export function DeviceIntegrityGuard({ children }: Props) {
   const { session, loading: authLoading } = useAuth();
   const [report, setReport] = useState<DeviceIntegrityReport | null>(null);
-  const [scanning, setScanning] = useState(isNativeMobile());
+  // En dev (Expo Go) on ne scanne pas : jail-monkey peut bloquer indéfiniment.
+  const [scanning, setScanning] = useState(isNativeMobile() && !__DEV__);
 
   useEffect(() => {
-    if (!isNativeMobile()) {
+    if (!isNativeMobile() || __DEV__) {
       setScanning(false);
       return;
     }
     let cancelled = false;
+    // Timeout de 4 s pour éviter un blocage si le module natif ne répond pas.
+    const timeout = setTimeout(() => {
+      if (!cancelled) setScanning(false);
+    }, 4000);
     scanDeviceIntegrity().then(r => {
+      clearTimeout(timeout);
       if (!cancelled) {
         setReport(r);
         setScanning(false);
       }
+    }).catch(() => {
+      clearTimeout(timeout);
+      if (!cancelled) setScanning(false);
     });
     return () => {
       cancelled = true;
+      clearTimeout(timeout);
     };
   }, []);
 
