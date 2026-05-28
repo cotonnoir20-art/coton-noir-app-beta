@@ -221,23 +221,16 @@ export default function ProfileScreen() {
   const handleSignOut = useCallback(async () => {
     if (signingOut) return;
     setSigningOut(true);
-    const synced = await flushProfileSync();
-    if (!synced) {
-      Alert.alert(
-        'Synchronisation',
-        'Certaines modifications n’ont pas pu être enregistrées en ligne. Réessaie dans quelques secondes avant de te déconnecter.',
-      );
-      setSigningOut(false);
-      return;
-    }
+    // Sync best-effort — on ne bloque jamais la déconnexion sur un échec réseau
+    await flushProfileSync().catch(() => {});
     const result = await signOut();
     if (!result.ok) {
-      Alert.alert('Déconnexion impossible', result.error);
+      Alert.alert("Déconnexion impossible", result.error);
       setSigningOut(false);
-    } else {
-      router.replace('/');
     }
-  }, [flushProfileSync, router, signOut, signingOut]);
+    // Pas de router.replace : le guard _layout.tsx redirige automatiquement
+    // vers /(auth)/welcome quand la session devient null.
+  }, [flushProfileSync, signOut, signingOut]);
 
   useFocusEffect(
     useCallback(() => {
