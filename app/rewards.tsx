@@ -98,8 +98,7 @@ export default function RewardsScreen() {
   }, [maybeShowMoment]);
   const { coins, coinHistory, totalEarned } = state;
 
-  const scrollRef    = useRef<ScrollView>(null);
-  const catalogueY   = useRef(0);
+  const scrollRef = useRef<ScrollView>(null);
 
   const [earnWays, setEarnWays] = useState<EarnRow[]>(() =>
     EARN_WAYS.map((w, i) => ({
@@ -220,9 +219,9 @@ export default function RewardsScreen() {
 
           <TouchableOpacity
             style={S.exchangeBtn}
-            onPress={() => scrollRef.current?.scrollTo({ y: catalogueY.current, animated: true })}
+            onPress={() => router.push('/redeem' as any)}
           >
-            <Text style={S.exchangeBtnText}>🎁 Échanger mes CotonCoins</Text>
+            <Text style={S.exchangeBtnText}>🎁 Échanger mes avoirs</Text>
           </TouchableOpacity>
         </LinearGradient>
 
@@ -291,15 +290,28 @@ export default function RewardsScreen() {
         </View>
 
         {/* ── Catalogue récompenses ── */}
-        <Text
-          style={[S.secTitle, { marginTop: 24 }]}
-          onLayout={e => { catalogueY.current = e.nativeEvent.layout.y; }}
-        >Catalogue récompenses</Text>
+        <TouchableOpacity
+          style={[S.secRow, { marginTop: 24 }]}
+          onPress={() => router.push('/redeem' as any)}
+          activeOpacity={0.8}
+        >
+          <Text style={[S.secTitle, { marginBottom: 0, flex: 1 }]}>Catalogue récompenses</Text>
+          <View style={S.catalogCta}>
+            <Text style={S.catalogCtaText}>Échanger mes avoirs</Text>
+            <Ionicons name="chevron-forward" size={14} color={Colors.amber} />
+          </View>
+        </TouchableOpacity>
+        <View style={{ marginBottom: 12 }} />
         {catalogRewards.map(r => {
           const canRedeem = !r.locked && coins >= r.cost;
           const insufficient = !r.locked && coins < r.cost;
           return (
-            <View key={r.id} style={[S.rewardRow, (r.locked || insufficient) && { opacity: 0.6 }]}>
+            <TouchableOpacity
+              key={r.id}
+              style={[S.rewardRow, (r.locked || insufficient) && { opacity: 0.6 }]}
+              onPress={() => router.push('/redeem' as any)}
+              activeOpacity={0.85}
+            >
               <View style={[S.rewardIcon, { backgroundColor: r.locked ? Colors.cream : Colors.blush }]}>
                 <Text style={{ fontSize: 20 }}>{r.emoji}</Text>
               </View>
@@ -307,16 +319,12 @@ export default function RewardsScreen() {
                 <Text style={S.rewardName}>{r.name}</Text>
                 <Text style={S.rewardCost}>{formatCc(r.cost)}</Text>
               </View>
-              <TouchableOpacity
-                style={[S.redeemBtn, !canRedeem && S.redeemBtnDisabled]}
-                disabled={!canRedeem}
-                onPress={() => { if (canRedeem) void handleRedeem(r); }}
-              >
+              <View style={[S.redeemBtn, !canRedeem && S.redeemBtnDisabled]}>
                 <Text style={[S.redeemText, !canRedeem && S.redeemTextDisabled]}>
                   {r.locked ? 'Bientôt' : insufficient ? 'Insuff.' : 'Échanger'}
                 </Text>
-              </TouchableOpacity>
-            </View>
+              </View>
+            </TouchableOpacity>
           );
         })}
 
@@ -594,6 +602,8 @@ const S = StyleSheet.create({
 
   // ── Section titles ──
   secRow:   { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
+  catalogCta: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  catalogCtaText: { fontSize: 13, fontFamily: 'DMSans_600SemiBold', color: Colors.amber },
   secTitle: {
     fontSize: 18,
     fontFamily: 'Satoshi_500Medium',

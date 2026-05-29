@@ -36,6 +36,8 @@ export type OnboardingProfileRow = {
   budget: string;
   care_style: string;
   onboarding_done: boolean;
+  /** Score santé 0-100 issu du scan IA onboarding (null = pas de scan). */
+  health_score: number | null;
 };
 
 export function normalizeOnboardingHairType(
@@ -69,6 +71,7 @@ export function buildOnboardingProfileRow(args: {
   regionClimate: string;
   budgetRange: string;
   careStyle: CareStyleId | '';
+  healthScore?: number;
 }): OnboardingProfileRow {
   return {
     id: args.userId,
@@ -93,6 +96,7 @@ export function buildOnboardingProfileRow(args: {
     budget: args.budgetRange,
     care_style: args.careStyle || '',
     onboarding_done: true,
+    health_score: typeof args.healthScore === 'number' ? args.healthScore : null,
   };
 }
 
@@ -111,6 +115,7 @@ export function onboardingRowToHairProfile(row: OnboardingProfileRow): HairProfi
     climate: row.climate,
     budget: row.budget,
     careStyle: (row.care_style || '') as CareStyle,
+    healthScore: typeof row.health_score === 'number' ? row.health_score : undefined,
   };
 }
 

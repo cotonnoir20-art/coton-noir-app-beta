@@ -1,11 +1,14 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Animated,
+  Easing,
   Platform,
   StyleSheet,
   Text,
   TouchableOpacity,
+  useWindowDimensions,
   View,
 } from 'react-native';
 import { Image } from 'expo-image';
@@ -30,7 +33,7 @@ async function processAsset(uri: string, base64?: string | null): Promise<ScanPh
   const resized = await ImageManipulator.manipulateAsync(
     uri,
     [{ resize: { width: 800 } }],
-    { compress: 0.4, format: ImageManipulator.SaveFormat.JPEG, base64: true },
+    { compress: 0.75, format: ImageManipulator.SaveFormat.JPEG, base64: true },
   );
   return { uri: resized.uri, base64: resized.base64 ?? base64 ?? '', mimeType: 'image/jpeg' };
 }
@@ -40,12 +43,40 @@ async function processAsset(uri: string, base64?: string | null): Promise<ScanPh
  */
 export function OnboardingQuickCapture({ onCapture, onClose }: Props) {
   const insets = useSafeAreaInsets();
+  const { height: screenH } = useWindowDimensions();
   const [captured, setCaptured] = useState<ScanPhoto | null>(null);
   const [capturing, setCapturing] = useState(false);
   const [capturedOverlay, setCapturedOverlay] = useState(false);
   const [facing, setFacing] = useState<'back' | 'front'>('back');
   const cameraRef = useRef<CameraView>(null);
   const [permission, requestPermission] = useCameraPermissions();
+
+  // Balayage haut → bas sur le viewfinder (arrêté une fois la photo capturée)
+  const sweep = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    if (captured) { sweep.setValue(0); return; }
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(sweep, {
+          toValue: 1,
+          duration: 2200,
+          easing: Easing.linear,
+          useNativeDriver: true,
+        }),
+        Animated.delay(400),
+      ])
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [sweep, captured]);
+  const sweepTranslateY = sweep.interpolate({
+    inputRange: [0, 1],
+    outputRange: [-60, screenH + 60],
+  });
+
+  const handleRetake = useCallback(() => {
+    setCaptured(null);
+  }, []);
 
   const doProcess = useCallback(async (uri: string, base64?: string | null) => {
     const photo = await processAsset(uri, base64);
@@ -124,6 +155,20 @@ export function OnboardingQuickCapture({ onCapture, onClose }: Props) {
         <ScanViewfinder />
       </View>
 
+      {/* ── Balayage scanner (caméra live uniquement) ── */}
+      {!captured && (
+        <Animated.View
+          style={[s.sweep, { transform: [{ translateY: sweepTranslateY }] }]}
+          pointerEvents="none"
+        >
+          <LinearGradient
+            colors={['transparent', 'rgba(200,115,58,0.08)', 'rgba(200,115,58,0.38)', 'rgba(200,115,58,0.08)', 'transparent']}
+            style={StyleSheet.absoluteFill}
+          />
+          <View style={s.sweepLine} />
+        </Animated.View>
+      )}
+
       {/* ── Overlay "Capturé !" ── */}
       {capturedOverlay && (
         <View style={[StyleSheet.absoluteFill, s.capturedOverlay]} pointerEvents="none">
@@ -200,7 +245,7 @@ export function OnboardingQuickCapture({ onCapture, onClose }: Props) {
           {/* Bouton principal : capturer ou reprendre */}
           <TouchableOpacity
             style={[s.captureBtn, capturing && s.captureBtnDisabled, captured && s.captureBtnRetake]}
-            onPress={handleCapture}
+            onPress={captured ? handleRetake : handleCapture}
             disabled={capturing}
             activeOpacity={0.88}
           >
@@ -432,6 +477,22 @@ const s = StyleSheet.create({
     color: C.text.secondary,
   },
 
+  sweep: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    top: 0,
+    height: 60,
+    zIndex: 50,
+  },
+  sweepLine: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    top: '50%',
+    height: 1.5,
+    backgroundColor: 'rgba(200,115,58,0.60)',
+  },
   analyzeBtn: {
     flexDirection: 'row',
     alignItems: 'center',

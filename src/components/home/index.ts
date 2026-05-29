@@ -16,4 +16,5 @@ export { HomeBlackCottonRecommendations } from './HomeBlackCottonRecommendations
 export { HighlightCard } from './HighlightCard';
 export { HomeMomentsForts } from './HomeMomentsForts';
 export { HomeDiscoverShortcuts } from './HomeDiscoverShortcuts';
+export { HomePartnerOffersCard } from './HomePartnerOffersCard';
 export type { MomentCard } from '../../data/homeHighlights';

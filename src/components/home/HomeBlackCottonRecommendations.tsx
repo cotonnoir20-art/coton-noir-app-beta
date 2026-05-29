@@ -1,5 +1,5 @@
-import { useMemo } from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useMemo, useState } from 'react';
+import { LayoutAnimation, Platform, StyleSheet, Text, TouchableOpacity, UIManager, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { BCEmojiAvatar } from '../blackCotton/BCEmojiAvatar';
@@ -9,12 +9,17 @@ import { Colors } from '../../theme/colors';
 import { Type } from '../../theme/typography';
 import { buildBlackCottonHomeRecommendations } from '../../lib/blackCottonRecommendations';
 
+if (Platform.OS === 'android') {
+  UIManager.setLayoutAnimationEnabledExperimental?.(true);
+}
+
 type Props = {
   profile: HairProfile;
 };
 
 export function HomeBlackCottonRecommendations({ profile }: Props) {
   const router = useRouter();
+  const [expanded, setExpanded] = useState(false);
 
   const bc = useMemo(() => buildBlackCottonHomeRecommendations(profile), [
     profile.hairType,
@@ -29,9 +34,14 @@ export function HomeBlackCottonRecommendations({ profile }: Props) {
 
   if (!bc) return null;
 
+  const toggle = () => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setExpanded(e => !e);
+  };
+
   return (
     <View style={s.section}>
-      <Text style={s.sectionTitle}>Recommandations de Black Cotton</Text>
+      <Text style={s.sectionTitle}>Les tips de Black Cotton</Text>
 
       <View style={s.card}>
         <View style={s.coachRow}>
@@ -43,97 +53,110 @@ export function HomeBlackCottonRecommendations({ profile }: Props) {
         </View>
         <Text style={s.intro}>{bc.intro}</Text>
 
-        <Text style={s.blockLabel}>Priorités pour toi</Text>
-        {bc.priorities.map((p, i) => (
-          <View key={p.id} style={[s.priorityRow, i < bc.priorities.length - 1 && s.priorityRowBorder]}>
-            <AppIconBox
-              name={p.ion}
-              backgroundColor={p.ionBg}
-              color={p.ionColor}
-              size={44}
-              iconSize={20}
-              borderRadius={13}
-            />
-            <View style={s.priorityBody}>
-              <Text style={s.priorityTitle}>{p.title}</Text>
-              <Text style={s.priorityDetail}>{p.detail}</Text>
+        {expanded && (
+          <View>
+            <Text style={s.blockLabel}>Priorités pour toi</Text>
+            {bc.priorities.map((p, i) => (
+              <View key={p.id} style={[s.priorityRow, i < bc.priorities.length - 1 && s.priorityRowBorder]}>
+                <AppIconBox
+                  name={p.ion}
+                  backgroundColor={p.ionBg}
+                  color={p.ionColor}
+                  size={44}
+                  iconSize={20}
+                  borderRadius={13}
+                />
+                <View style={s.priorityBody}>
+                  <Text style={s.priorityTitle}>{p.title}</Text>
+                  <Text style={s.priorityDetail}>{p.detail}</Text>
+                </View>
+              </View>
+            ))}
+
+            <View style={s.detailBlock}>
+              <View style={s.detailHead}>
+                <AppIconBox
+                  name="sunny-outline"
+                  backgroundColor={Colors.amberPowder}
+                  color={Colors.amberDark}
+                  size={32}
+                  iconSize={16}
+                  borderRadius={10}
+                />
+                <Text style={s.detailTitle}>Routine quotidienne</Text>
+              </View>
+              <Text style={s.detailText}>{bc.routineParagraph}</Text>
             </View>
-          </View>
-        ))}
 
-        <View style={s.detailBlock}>
-          <View style={s.detailHead}>
-            <AppIconBox
-              name="sunny-outline"
-              backgroundColor={Colors.amberPowder}
-              color={Colors.amberDark}
-              size={32}
-              iconSize={16}
-              borderRadius={10}
-            />
-            <Text style={s.detailTitle}>Routine quotidienne</Text>
-          </View>
-          <Text style={s.detailText}>{bc.routineParagraph}</Text>
-        </View>
-
-        <View style={[s.detailBlock, s.detailBlockLast]}>
-          <View style={s.detailHead}>
-            <AppIconBox
-              name="water-outline"
-              backgroundColor={Colors.sageLight}
-              color={Colors.sageDark}
-              size={32}
-              iconSize={16}
-              borderRadius={10}
-            />
-            <Text style={s.detailTitle}>Wash day</Text>
-          </View>
-          <Text style={s.detailText}>{bc.washdayParagraph}</Text>
-        </View>
-
-        {bc.spotlight ? (
-          <TouchableOpacity
-            style={s.spotlight}
-            onPress={() => router.push(bc.spotlight!.route as any)}
-            activeOpacity={0.88}
-            accessibilityRole="button"
-          >
-            <View style={s.spotlightHead}>
-              <AppIconBox
-                name={
-                  bc.spotlight.kind === 'product'
-                    ? 'bag-handle-outline'
-                    : bc.spotlight.kind === 'recipe'
-                      ? 'restaurant-outline'
-                      : 'book-outline'
-                }
-                backgroundColor={Colors.amberLight}
-                color={Colors.amberDark}
-                size={40}
-                iconSize={20}
-                borderRadius={12}
-              />
-              <Text style={s.spotlightTitle} numberOfLines={2}>
-                {bc.spotlight.title}
-              </Text>
+            <View style={[s.detailBlock, s.detailBlockLast]}>
+              <View style={s.detailHead}>
+                <AppIconBox
+                  name="water-outline"
+                  backgroundColor={Colors.sageLight}
+                  color={Colors.sageDark}
+                  size={32}
+                  iconSize={16}
+                  borderRadius={10}
+                />
+                <Text style={s.detailTitle}>Wash day</Text>
+              </View>
+              <Text style={s.detailText}>{bc.washdayParagraph}</Text>
             </View>
-            <Text style={s.spotlightDetail}>{bc.spotlight.detail}</Text>
-            <View style={s.spotlightCta}>
-              <Text style={s.spotlightCtaText}>{bc.spotlight.cta}</Text>
-              <Ionicons name="chevron-forward" size={16} color={Colors.amberDark} />
-            </View>
-          </TouchableOpacity>
-        ) : null}
 
-        <TouchableOpacity
-          style={s.analyzeBtn}
-          onPress={() => router.push('/(tabs)/analyze' as any)}
-          activeOpacity={0.9}
-          accessibilityRole="button"
-          accessibilityLabel="Lancer une analyse photo Black Cotton"
-        >
-          <Ionicons name="scan-outline" size={18} color={Colors.white} />
-          <Text style={s.analyzeBtnText}>Affiner avec une analyse photo</Text>
+            {bc.spotlight ? (
+              <TouchableOpacity
+                style={s.spotlight}
+                onPress={() => router.push(bc.spotlight!.route as any)}
+                activeOpacity={0.88}
+                accessibilityRole="button"
+              >
+                <View style={s.spotlightHead}>
+                  <AppIconBox
+                    name={
+                      bc.spotlight.kind === 'product'
+                        ? 'bag-handle-outline'
+                        : bc.spotlight.kind === 'recipe'
+                          ? 'restaurant-outline'
+                          : 'book-outline'
+                    }
+                    backgroundColor={Colors.amberLight}
+                    color={Colors.amberDark}
+                    size={40}
+                    iconSize={20}
+                    borderRadius={12}
+                  />
+                  <Text style={s.spotlightTitle} numberOfLines={2}>
+                    {bc.spotlight.title}
+                  </Text>
+                </View>
+                <Text style={s.spotlightDetail}>{bc.spotlight.detail}</Text>
+                <View style={s.spotlightCta}>
+                  <Text style={s.spotlightCtaText}>{bc.spotlight.cta}</Text>
+                  <Ionicons name="chevron-forward" size={16} color={Colors.amberDark} />
+                </View>
+              </TouchableOpacity>
+            ) : null}
+
+            <TouchableOpacity
+              style={s.analyzeBtn}
+              onPress={() => router.push('/(tabs)/analyze' as any)}
+              activeOpacity={0.9}
+              accessibilityRole="button"
+              accessibilityLabel="Lancer une analyse photo Black Cotton"
+            >
+              <Ionicons name="scan-outline" size={18} color={Colors.white} />
+              <Text style={s.analyzeBtnText}>Affiner avec une analyse photo</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        <TouchableOpacity style={s.toggleBtn} onPress={toggle} activeOpacity={0.7}>
+          <Text style={s.toggleLabel}>{expanded ? 'Réduire' : 'Voir mes tips'}</Text>
+          <Ionicons
+            name={expanded ? 'chevron-up' : 'chevron-down'}
+            size={16}
+            color={Colors.amberDark}
+          />
         </TouchableOpacity>
       </View>
     </View>
@@ -144,6 +167,7 @@ const s = StyleSheet.create({
   section: { marginBottom: 22, paddingHorizontal: 20 },
   sectionTitle: {
     ...Type.cardTitle,
+    fontFamily: 'Satoshi_700Bold',
     color: Colors.ink,
     marginBottom: 10,
   },
@@ -173,7 +197,7 @@ const s = StyleSheet.create({
     fontFamily: 'DMSans_400Regular',
     color: Colors.ink,
     lineHeight: 21,
-    marginBottom: 16,
+    marginBottom: 4,
   },
   blockLabel: {
     fontSize: 11,
@@ -182,6 +206,7 @@ const s = StyleSheet.create({
     letterSpacing: 0.8,
     textTransform: 'uppercase',
     marginBottom: 10,
+    marginTop: 16,
   },
   priorityRow: {
     flexDirection: 'row',
@@ -281,5 +306,20 @@ const s = StyleSheet.create({
     fontSize: 14,
     fontFamily: 'DMSans_600SemiBold',
     color: Colors.white,
+  },
+  toggleBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    marginTop: 14,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: Colors.border,
+  },
+  toggleLabel: {
+    fontSize: 13,
+    fontFamily: 'DMSans_600SemiBold',
+    color: Colors.amberDark,
   },
 });

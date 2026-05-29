@@ -59,15 +59,26 @@ type Props = {
 
 const SCAN_BG = '#2A1208';
 
-function ScanResultCard({ result, loading }: { result?: OnboardingQuickScan; loading?: boolean }) {
+function ScanResultCard({
+  result, loading, objective, problematics, density,
+}: {
+  result?: OnboardingQuickScan;
+  loading?: boolean;
+  objective?: string;
+  problematics?: string[];
+  density?: string;
+}) {
   if (!loading && !result) return null;
+  const focus = displayObjective(normalizeObjectiveId(objective ?? '')) || objective;
   return (
     <View style={sc.card}>
       <View style={sc.header}>
         <View style={sc.iconWrap}>
           <Ionicons name="sparkles" size={16} color="#C8733A" />
         </View>
-        <Text style={sc.kicker}>ANALYSE IA · SCAN PRÉLIMINAIRE</Text>
+        <Text style={sc.kicker}>
+          {result ? 'TON PROFIL CAPILLAIRE APRÈS ANALYSE' : 'SCAN PRÉLIMINAIRE'}
+        </Text>
       </View>
 
       {loading ? (
@@ -85,7 +96,6 @@ function ScanResultCard({ result, loading }: { result?: OnboardingQuickScan; loa
             <View style={sc.scoreMeta}>
               <Text style={sc.metaLabel}>Type détecté</Text>
               <Text style={sc.metaValue}>{result.hairType}</Text>
-              <Text style={sc.metaLabel} numberOfLines={1}>Porosité · {result.porosity}</Text>
             </View>
           </View>
 
@@ -103,6 +113,51 @@ function ScanResultCard({ result, loading }: { result?: OnboardingQuickScan; loa
               ))}
             </View>
           )}
+
+          <View style={sc.divider} />
+
+          {focus ? (
+            <View style={sc.goalWrap}>
+              <Text style={sc.metaLabel}>TON OBJECTIF</Text>
+              <Text style={sc.goalText}>{focus}</Text>
+            </View>
+          ) : null}
+
+          <View style={sc.infoRows}>
+            {result.porosity ? (
+              <View style={sc.infoRow}>
+                <Ionicons name="water-outline" size={14} color="rgba(255,255,255,0.5)" />
+                <Text style={sc.infoRowLabel}>Porosité</Text>
+                <Text style={sc.infoRowValue}>{result.porosity}</Text>
+              </View>
+            ) : null}
+            {density ? (
+              <View style={sc.infoRow}>
+                <Ionicons name="layers-outline" size={14} color="rgba(255,255,255,0.5)" />
+                <Text style={sc.infoRowLabel}>Densité</Text>
+                <Text style={sc.infoRowValue}>{density}</Text>
+              </View>
+            ) : null}
+            {problematics && problematics.length > 0 ? (
+              <View style={sc.infoRow}>
+                <Ionicons name="alert-circle-outline" size={14} color="rgba(255,255,255,0.5)" />
+                <Text style={sc.infoRowLabel}>Problématiques</Text>
+                <Text style={sc.infoRowValue}>{problematics.length} identifiée{problematics.length > 1 ? 's' : ''}</Text>
+              </View>
+            ) : null}
+          </View>
+
+          {problematics && problematics.length > 0 ? (
+            <View style={sc.probsWrap}>
+              <View style={sc.probsChips}>
+                {problematics.slice(0, 4).map(p => (
+                  <View key={p} style={sc.probChip}>
+                    <Text style={sc.probChipText}>{p}</Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+          ) : null}
         </>
       ) : null}
     </View>
@@ -190,7 +245,7 @@ const sc = StyleSheet.create({
   },
   metaValue: {
     fontSize: 15,
-    fontFamily: Fonts.display,
+    fontFamily: Fonts.displayBold,
     color: '#fff',
     marginBottom: 4,
   },
@@ -220,6 +275,53 @@ const sc = StyleSheet.create({
     fontFamily: Fonts.bodyMedium,
     color: 'rgba(255,255,255,0.75)',
     flex: 1,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    marginVertical: 14,
+  },
+  goalWrap: { marginBottom: 10 },
+  goalText: {
+    fontSize: 15,
+    fontFamily: Fonts.display,
+    color: '#C8733A',
+    marginTop: 4,
+    lineHeight: 21,
+  },
+  infoRows: { gap: 6, marginBottom: 12 },
+  infoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    borderRadius: 10,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+  },
+  infoRowLabel: {
+    fontSize: 12,
+    fontFamily: Fonts.body,
+    color: 'rgba(255,255,255,0.5)',
+    flex: 1,
+  },
+  infoRowValue: {
+    fontSize: 12,
+    fontFamily: Fonts.bodyBold,
+    color: 'rgba(255,255,255,0.85)',
+  },
+  probsWrap: { marginTop: 2 },
+  probsChips: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 0 },
+  probChip: {
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+  },
+  probChipText: {
+    fontSize: 12,
+    fontFamily: Fonts.bodyMedium,
+    color: 'rgba(255,255,255,0.85)',
   },
 });
 
@@ -756,16 +858,26 @@ export function OnboardingFinalPlanStep({
         showObjectiveCard={false}
       />
 
-      <ScanResultCard result={scanResult} loading={scanLoading} />
-
-      <DiagnosticCard
-        hairType={hairType}
-        hairTypeUnsure={hairTypeUnsure}
-        porosity={porosity}
-        density={density}
-        problematics={problematics}
+      <ScanResultCard
+        result={scanResult}
+        loading={scanLoading}
         objective={objective}
+        problematics={problematics}
+        density={density}
       />
+
+      {!scanResult && !scanLoading && (
+        <DiagnosticCard
+          hairType={hairType}
+          hairTypeUnsure={hairTypeUnsure}
+          porosity={porosity}
+          density={density}
+          problematics={problematics}
+          objective={objective}
+        />
+      )}
+
+      <Text style={s.recoTitle}>Mes recommandations pour toi</Text>
 
       <TabBar active={activeTab} onPress={setActiveTab} />
 
@@ -979,6 +1091,12 @@ const co = StyleSheet.create({
 const s = StyleSheet.create({
   wrap: { paddingBottom: 24 },
   tabContent: { minHeight: 200 },
+  recoTitle: {
+    fontSize: 20,
+    fontFamily: Fonts.display,
+    color: Colors.ink,
+    marginBottom: 14,
+  },
   planHeader: {
     flexDirection: 'row',
     alignItems: 'flex-start',

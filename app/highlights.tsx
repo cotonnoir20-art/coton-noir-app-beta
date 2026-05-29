@@ -83,7 +83,7 @@ export default function HighlightsScreen() {
   return (
     <View style={[s.root, { paddingTop: insets.top }]}>
       <AppHeader
-        title="Moments forts"
+        title="À la une"
         subtitle={`Challenges, offres et actus.\n${HIGHLIGHTS_PTS_LEGEND}`}
         rightAction="none"
       />

@@ -39,6 +39,7 @@ function checkIpRateLimit(ip: string): boolean {
 
 // ── Validation photo ─────────────────────────────────────────────────────────
 const MAX_IMAGE_BYTES = 2_000_000;
+const MIN_IMAGE_BYTES = 8_000; // < 8 KB = image vide ou corrompue
 
 function estimateBase64Bytes(b64: string): number {
   return Math.floor(b64.replace(/\s/g, '').length * 0.75);
@@ -50,11 +51,12 @@ Tu analyses UNE photo de cheveux en la croisant avec le profil déclaré par l'u
 Tu retournes UNIQUEMENT un objet JSON valide, sans texte avant ni après, sans markdown.
 
 RÈGLES :
-- Pondère ce que tu vois sur la photo (50 %) et les données déclarées (50 %).
-- Si la photo est floue ou de mauvaise qualité, accorde plus de poids aux données déclarées.
+- Base-toi PRINCIPALEMENT sur ce que tu observes visuellement dans la photo (70 %). Les données déclarées sont un contexte secondaire (30 %).
+- Si la photo est floue ou sombre, décris ce qui est néanmoins visible et note-le dans la synthesis — ne bascule pas simplement sur les données déclarées.
+- Si la photo et le profil déclaré divergent, fais confiance à l'image. Ne mentionne pas le profil déclaré dans ta synthesis — formule ce que tu observes de façon positive et constructive.
 - Sois précise mais encourageante — jamais condescendante.
 - La synthesis doit faire 2 phrases maximum, en français naturel.
-- Les highlights sont 3 constats courts (< 8 mots chacun).
+- Les highlights sont 3 constats visuels courts (< 8 mots chacun), tirés de l'image.
 
 JSON à retourner (rien d'autre) :
 {
@@ -122,7 +124,12 @@ Deno.serve(async (req) => {
   if (!photoRaw?.base64 || typeof photoRaw.base64 !== 'string') {
     return jsonResponse({ error: 'photo_required' }, origin, 400);
   }
-  if (estimateBase64Bytes(photoRaw.base64) > MAX_IMAGE_BYTES) {
+  const estimatedBytes = estimateBase64Bytes(photoRaw.base64);
+  if (estimatedBytes < MIN_IMAGE_BYTES) {
+    console.error('[onboarding-scan] image trop petite, probablement vide', estimatedBytes, 'bytes');
+    return jsonResponse({ error: 'photo_too_small' }, origin, 400);
+  }
+  if (estimatedBytes > MAX_IMAGE_BYTES) {
     return jsonResponse({ error: 'photo_too_large' }, origin, 400);
   }
   const mimeType = typeof photoRaw.mimeType === 'string' ? photoRaw.mimeType : 'image/jpeg';
@@ -137,10 +144,10 @@ Deno.serve(async (req) => {
     else if (Array.isArray(v)) profile[k] = v.map(String).slice(0, 5).join(', ');
   }
 
-  // Appel Haiku 4.5
+  // Appel Sonnet 4.6 — meilleure lecture texture/porosité en 1 photo
   const anthropicBody = {
-    model: 'claude-haiku-4-5-20251001',
-    max_tokens: 400,
+    model: 'claude-sonnet-4-6',
+    max_tokens: 500,
     system: SYSTEM,
     messages: [
       {

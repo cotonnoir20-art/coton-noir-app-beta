@@ -123,6 +123,8 @@ export type HairProfile = {
   routineConsistency?: string;
   /** Freins capillaires (ids) : ["consistency", "dont_know", "no_structure", …] */
   hairBlockers?: string[];
+  /** Score santé capillaire 0-100 issu du scan IA (null = pas de scan effectué). */
+  healthScore?: number;
 };
 
 function resolveCoachDisplayName(name: string | null | undefined): string {
@@ -782,25 +784,31 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, [state.routinePlans, userEmail]);
 
   // Étapes recommandées du diagnostic → onglet Routine + carte accueil (si pas de plan perso).
+  // Ref pour ne capturer les étapes qu'une seule fois sans les mettre en dépendance
+  // (évite la boucle : dispatch → routineSteps change → effet se relance → dispatch…)
+  const routineStepsRef = useRef(state.routineSteps);
+  useEffect(() => { routineStepsRef.current = state.routineSteps; });
+
   useEffect(() => {
     if (!routinePlansReady.current) return;
     if (!state.profile.careStyle) return;
 
+    const steps = routineStepsRef.current;
     const needsDaily =
-      !state.routinePlans.daily && routineStepsMatchCatalog(state.routineSteps.daily, 'daily');
+      !state.routinePlans.daily && routineStepsMatchCatalog(steps.daily, 'daily');
     const needsNight =
-      !state.routinePlans.night && routineStepsMatchCatalog(state.routineSteps.night, 'night');
+      !state.routinePlans.night && routineStepsMatchCatalog(steps.night, 'night');
     if (!needsDaily && !needsNight) return;
 
     const reco = buildOnboardingRecommendations(diagnosticSnapshotFromProfile(state.profile));
     dispatch({
       type: 'applyRecoRoutineSteps',
       daily: needsDaily
-        ? recoStepsToRoutineSteps(reco.morning, state.routineSteps.daily)
-        : state.routineSteps.daily,
+        ? recoStepsToRoutineSteps(reco.morning, steps.daily)
+        : steps.daily,
       evening: needsNight
-        ? recoStepsToRoutineSteps(reco.evening, state.routineSteps.night)
-        : state.routineSteps.night,
+        ? recoStepsToRoutineSteps(reco.evening, steps.night)
+        : steps.night,
     });
   }, [
     state.profile.careStyle,
@@ -810,8 +818,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     state.profile.objective,
     state.routinePlans.daily,
     state.routinePlans.night,
-    state.routineSteps.daily,
-    state.routineSteps.night,
   ]);
 
   // Hors session : routines / soins planifiés uniquement (SecureStore, pas d’économie).
@@ -1007,6 +1013,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           hairConfidence:    profile.hair_confidence      ?? '',
           routineConsistency: profile.routine_consistency ?? '',
           hairBlockers:      profile.hair_blockers        ?? [],
+          healthScore: typeof profile.health_score === 'number' ? profile.health_score : undefined,
         };
 
         const metaHairType =

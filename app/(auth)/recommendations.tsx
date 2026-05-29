@@ -1,4 +1,5 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSupabaseProducts } from '../../src/lib/useSupabaseProducts';
 import { ActivityIndicator, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -13,12 +14,23 @@ import {
   diagnosticSnapshotFromProfile,
 } from '../../src/lib/onboardingRecommendations';
 import { buildBlackCottonHomeRecommendations } from '../../src/lib/blackCottonRecommendations';
+import { INITIAL_SCAN_RESULT_KEY } from '../../src/lib/onboardingStorage';
+import type { OnboardingQuickScan } from '../../src/services/onboardingScanApi';
 
 export default function RecommendationsScreen() {
   const router = useRouter();
   const { state, isAppReady } = useApp();
   const profile = state.profile;
   const { products } = useSupabaseProducts();
+
+  const [initialScan, setInitialScan] = useState<OnboardingQuickScan | null>(null);
+
+  useEffect(() => {
+    AsyncStorage.getItem(INITIAL_SCAN_RESULT_KEY).then(raw => {
+      if (!raw) return;
+      try { setInitialScan(JSON.parse(raw) as OnboardingQuickScan); } catch {}
+    });
+  }, []);
 
   const reco = useMemo(
     () => buildOnboardingRecommendations(diagnosticSnapshotFromProfile(profile), products),
@@ -59,6 +71,7 @@ export default function RecommendationsScreen() {
           problematics={profile.problematics ?? []}
           unlocked
           coachReco={coachReco}
+          scanResult={initialScan ?? undefined}
           onRestart={() => router.push('/hair-profile' as any)}
         />
 

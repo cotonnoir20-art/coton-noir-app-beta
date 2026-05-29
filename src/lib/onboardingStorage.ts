@@ -1,4 +1,4 @@
-import type { CareStyleId } from '../constants/careStyles';
+﻿import type { CareStyleId } from '../constants/careStyles';
 import type {
   OnboardingBlockerId,
   OnboardingConfidenceId,
@@ -7,8 +7,10 @@ import type {
 } from '../constants/onboardingEmotional';
 
 export const ONBOARDING_STORAGE_KEY = '@coton_noir_onboarding';
-/** Après inscription : ouvrir l’onglet Analyse une fois. */
+/** Après inscription : ouvrir l'onglet Analyse une fois. */
 export const PENDING_POST_ONBOARDING_SCAN_KEY = '@coton_noir_pending_scan';
+/** Resultat du scan initial onboarding - persist pour tout l ecosysteme app. */
+export const INITIAL_SCAN_RESULT_KEY = '@coton_noir_initial_scan_v1';
 
 export type OnboardingPersistedState = {
   step: number;

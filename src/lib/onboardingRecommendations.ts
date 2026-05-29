@@ -58,6 +58,8 @@ export type RecoRecipe = {
   ingredients?: string[];
   steps?: string[];
   description?: string;
+  difficulty?: string;
+  rating?: number;
 };
 
 export type RecoArticle = {
@@ -169,6 +171,8 @@ export function buildOnboardingRecommendations(input: DiagnosticSnapshot, overri
       ingredients: r.ingredients,
       steps: r.steps,
       description: r.description,
+      difficulty: r.difficulty,
+      rating: r.rating,
     };
   }
 

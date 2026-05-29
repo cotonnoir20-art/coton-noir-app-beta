@@ -57,7 +57,7 @@ const s = StyleSheet.create({
   cardCarousel: { borderRadius: 20, padding: 16, minHeight: 160, justifyContent: 'space-between' },
   cardList: { borderRadius: 20, padding: 16, minHeight: 140, justifyContent: 'space-between' },
   badge: { fontSize: 10, fontFamily: 'DMSans_700Bold', color: 'rgba(255,255,255,0.95)', letterSpacing: 0.5 },
-  cardTitle: { fontSize: 20, fontFamily: 'Satoshi_500Medium', color: Colors.white, marginTop: 8 },
+  cardTitle: { fontSize: 20, fontFamily: 'Satoshi_700Bold', color: Colors.white, marginTop: 8 },
   cardSub: { fontSize: 12, fontFamily: 'DMSans_400Regular', color: 'rgba(255,255,255,0.9)', marginTop: 4, lineHeight: 17 },
   footer: {
     marginTop: 14,

@@ -163,6 +163,7 @@ const s = StyleSheet.create({
   cardTitle: {
     ...Type.sectionTitle,
     fontSize: 17,
+    fontFamily: 'Satoshi_700Bold',
     color: Colors.ink,
   },
   seeAll: {

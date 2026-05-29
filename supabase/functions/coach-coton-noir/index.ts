@@ -238,6 +238,7 @@ function buildProfileCtx(profile: Record<string, string>): string {
     profile.routineType  && `Routine préférée : ${profile.routineType}`,
     profile.budget       && `Budget produits : ${profile.budget}`,
     profile.region       && `Région : ${profile.region}`,
+    profile.climate      && `Climat : ${profile.climate}`,
   ].filter(Boolean);
   return fields.length > 0
     ? "\n\nProfil déclaré par l'utilisatrice :\n" + fields.map(f => `- ${f}`).join('\n')
@@ -397,7 +398,7 @@ Deno.serve(async (req) => {
       const questionnaire = sanitizeQuestionnaire(body.questionnaire);
       const photoList = normalized.photos!;
 
-      // ── Étape 1 : Analyse visuelle — claude-sonnet-4-6 ─────────────────
+      // ── Étape 1 : Analyse visuelle — claude-opus-4-7 (3.75 MP, lit mieux la texture et la porosité) ──
       const visionContent: unknown[] = [];
       for (const photo of photoList) {
         visionContent.push({ type: 'text', text: `📸 ${photo.label} :` });
@@ -419,8 +420,8 @@ Deno.serve(async (req) => {
           'anthropic-version': '2023-06-01',
         },
         body: JSON.stringify({
-          model: 'claude-sonnet-4-6',
-          max_tokens: 800,
+          model: 'claude-opus-4-7',
+          max_tokens: 1000,
           system: VISION_SYSTEM,
           messages: [{ role: 'user', content: visionContent }],
         }),
@@ -443,7 +444,7 @@ Deno.serve(async (req) => {
         logCoachError('vision_parse', undefined, 'JSON parse failed');
       }
 
-      // ── Étape 2 : Recommandations — claude-haiku-4-5-20251001 ──────────
+      // ── Étape 2 : Routine & diagnostic — claude-sonnet-4-6 (génération texte pure) ─────────────
       const qctx = buildQuestionnaireCtx(questionnaire);
       const recoMsg = [
         `Analyse visuelle IA (${photoList.length} angle${photoList.length > 1 ? 's' : ''}) :\n${JSON.stringify(visualAnalysis, null, 2)}`,
@@ -459,7 +460,7 @@ Deno.serve(async (req) => {
           'anthropic-version': '2023-06-01',
         },
         body: JSON.stringify({
-          model: 'claude-haiku-4-5-20251001',
+          model: 'claude-sonnet-4-6',
           max_tokens: 1800,
           system: ANALYSIS_SYSTEM + buildProfileCtx(profile),
           messages: [{ role: 'user', content: recoMsg }],

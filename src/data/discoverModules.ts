@@ -39,10 +39,11 @@ export const DISCOVER_MODULES: DiscoverModule[] = [
   {
     id: 'buy',
     label: 'Acheter',
-    subtitle: 'Shop → fiche → codes partenaires',
+    subtitle: 'Shop → offres partenaires → codes',
     items: [
       { ion: 'bag-handle-outline', ionBg: Colors.cream, ionColor: Colors.ink, label: 'Boutique', route: '/shop' },
-      { ion: 'pricetag-outline', ionBg: Colors.amberLight, ionColor: Colors.amberDark, label: 'Codes promo', route: '/codes' },
+      { ion: 'storefront-outline', ionBg: Colors.amberLight, ionColor: Colors.amberDark, label: 'Offres partenaires', route: '/codes' },
+      { ion: 'pricetag-outline', ionBg: Colors.amberLight, ionColor: Colors.amberDark, label: 'Mes codes', route: '/codes' },
       { ion: 'people-outline', ionBg: Colors.sageLight, ionColor: Colors.sage, label: 'Partenaires', route: '/partners' },
     ],
   },
@@ -75,10 +76,11 @@ export const DISCOVER_MODULES: DiscoverModule[] = [
 
 /** Raccourcis accueil — alignés matrice navigation v2. */
 export const HOME_DISCOVER_SHORTCUTS: DiscoverModuleItem[] = [
-  { ion: 'camera-outline', ionBg: Colors.cream, ionColor: Colors.ink, label: 'Analyse', route: '/(tabs)/analyze' },
-  { ion: 'stats-chart-outline', ionBg: Colors.growthLight, ionColor: Colors.growth, label: 'Progression', route: '/growth' },
-  { ion: 'bag-handle-outline', ionBg: Colors.cream, ionColor: Colors.ink, label: 'Shop', route: '/shop' },
-  { ion: 'flask-outline', ionBg: Colors.sageLight, ionColor: Colors.sage, label: 'Recettes', route: '/recipes' },
-  { ion: 'chatbubbles-outline', ionBg: Colors.sageLight, ionColor: Colors.sage, label: 'Communauté', route: '/community' },
-  { ion: 'play-circle-outline', ionBg: Colors.amberLight, ionColor: Colors.amberDark, label: 'Tutos', route: '/tutorials' },
+  { ion: 'camera-outline',     ionBg: Colors.cream,      ionColor: Colors.ink,      label: 'Analyse',            route: '/(tabs)/analyze' },
+  { ion: 'storefront-outline', ionBg: Colors.amberLight, ionColor: Colors.amberDark, label: 'Offres partenaires', route: '/codes' },
+  { ion: 'stats-chart-outline',ionBg: Colors.growthLight,ionColor: Colors.growth,   label: 'Progression',        route: '/growth' },
+  { ion: 'bag-handle-outline', ionBg: Colors.cream,      ionColor: Colors.ink,      label: 'Shop',               route: '/shop' },
+  { ion: 'flask-outline',      ionBg: Colors.sageLight,  ionColor: Colors.sage,     label: 'Recettes',           route: '/recipes' },
+  { ion: 'chatbubbles-outline',ionBg: Colors.sageLight,  ionColor: Colors.sage,     label: 'Communauté',         route: '/community' },
+  { ion: 'play-circle-outline',ionBg: Colors.amberLight, ionColor: Colors.amberDark,label: 'Tutos',              route: '/tutorials' },
 ];

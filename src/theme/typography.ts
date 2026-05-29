@@ -53,7 +53,7 @@ export const Type = {
   cardTitle: {
     fontSize: 17,
     lineHeight: 23,
-    fontFamily: Fonts.display,
+    fontFamily: Fonts.displayBold,
   },
   greetingName: {
     fontSize: 19,

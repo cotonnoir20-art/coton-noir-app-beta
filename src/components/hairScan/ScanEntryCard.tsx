@@ -62,6 +62,7 @@ const CORNER_STROKE = 2.5;
 
 const styles = StyleSheet.create({
   card: {
+    flex: 1,
     backgroundColor: C.background.primary,
     borderRadius: 24,
     borderWidth: 1,
@@ -69,9 +70,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingVertical: 36,
     alignItems: 'center',
-    marginTop: 4,
-    marginBottom: 16,
-    minHeight: 280,
+    justifyContent: 'center',
     overflow: 'hidden',
     position: 'relative',
   },

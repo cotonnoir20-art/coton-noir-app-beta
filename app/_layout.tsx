@@ -44,10 +44,11 @@ function RootLayoutNav() {
   const pathname = usePathname();
   const router   = useRouter();
 
+  // isLanding = page marketing racine (app/index.tsx), pas l'accueil tabs
+  const inTabs = segments[0] === '(tabs)';
   const isLanding =
-    pathname === '/' ||
-    pathname === '' ||
-    (segments.length === 0 && !segments[0]);
+    !inTabs &&
+    (pathname === '/' || pathname === '');
 
   useEffect(() => {
     if (loading) return;
@@ -108,6 +109,7 @@ function RootLayoutNav() {
         <Stack.Screen name="plan-soin"     options={{ presentation: 'transparentModal', animation: 'fade' }} />
         <Stack.Screen name="product"       options={{ presentation: 'card', animation: 'slide_from_right' }} />
         <Stack.Screen name="achievements"  options={{ presentation: 'card', animation: 'slide_from_right' }} />
+        <Stack.Screen name="redeem"        options={{ presentation: 'card', animation: 'slide_from_right' }} />
       </Stack>
 
       {showTabBar && <AppTabBar />}

@@ -46,8 +46,9 @@ import {
 } from '../../src/components/onboarding/OnboardingStepViews';
 import { ScanEntryCard } from '../../src/components/hairScan/ScanEntryCard';
 import { OnboardingQuickCapture } from '../../src/components/hairScan/OnboardingQuickCapture';
+import { ScanAnalyzingOverlay } from '../../src/components/hairScan/ScanAnalyzingOverlay';
 import type { ScanPhoto } from '../../src/components/hairScan/HairZoneScanner';
-import { analyzeOnboardingPhoto } from '../../src/services/onboardingScanApi';
+import { analyzeOnboardingPhoto, parseScanHairType } from '../../src/services/onboardingScanApi';
 import type { OnboardingQuickScan } from '../../src/services/onboardingScanApi';
 import { OnboardingInterstitialStep } from '../../src/components/onboarding/OnboardingInterstitialStep';
 import {
@@ -63,7 +64,7 @@ import {
   weeksFromResultsPace,
   weeksUntilGoalDate,
 } from '../../src/constants/onboardingEmotional';
-import { ONBOARDING_STORAGE_KEY, PENDING_POST_ONBOARDING_SCAN_KEY } from '../../src/lib/onboardingStorage';
+import { INITIAL_SCAN_RESULT_KEY, ONBOARDING_STORAGE_KEY, PENDING_POST_ONBOARDING_SCAN_KEY } from '../../src/lib/onboardingStorage';
 import {
   buildOnboardingProfileRow,
   normalizeOnboardingHairType,
@@ -75,7 +76,7 @@ const SCAN_STEP = 14;
 const FINAL_STEP = 15;
 const SIGNUP_STEP = 16;
 const TOTAL = 17;
-const OPTIONAL_STEPS = new Set<number>([8, 9, 10, SCAN_STEP]);
+const OPTIONAL_STEPS = new Set<number>([8, 9, 10, 11, SCAN_STEP]);
 
 /** Migration des anciennes numérotations (étape fantôme 15, étape confiance 8). */
 function migrateOnboardingStep(saved: number): number {
@@ -88,8 +89,16 @@ function migrateOnboardingStep(saved: number): number {
 
 const INTERSTITIAL_BY_STEP: Record<number, (typeof ONBOARDING_INTERSTITIALS)[number]> = {
   7: ONBOARDING_INTERSTITIALS[1],
-  11: ONBOARDING_INTERSTITIALS[2],
 };
+
+const ROUTINE_FEARS = [
+  { id: 'consistency',  emoji: '🔄', label: 'Tenir ma routine sur la durée',        desc: "J'ai du mal à ne pas décrocher au bout de quelques semaines" },
+  { id: 'results',      emoji: '📉', label: 'Ne jamais voir de vrais résultats',     desc: "J'ai essayé des choses avant — sans résultat visible" },
+  { id: 'products',     emoji: '🧴', label: 'Choisir les bons produits',             desc: 'Trop de choix, peur de me tromper ou de gaspiller' },
+  { id: 'damage',       emoji: '💔', label: 'Que mes cheveux soient trop abîmés',    desc: "Je me demande si c'est encore récupérable" },
+] as const;
+
+type RoutineFearId = (typeof ROUTINE_FEARS)[number]['id'];
 
 function defaultGoalDate(): Date {
   const d = new Date();
@@ -163,8 +172,10 @@ export default function OnboardingScreen() {
   const [password, setPassword]   = useState('');
   const [loading, setLoading]     = useState(false);
   const [error, setError]         = useState('');
-  const [showCapture, setShowCapture] = useState(false);
-  const [scanLoading, setScanLoading] = useState(false);
+  const [routineFear, setRoutineFear] = useState<RoutineFearId | ''>('');
+  const [showCapture, setShowCapture]     = useState(false);
+  const [showAnalyzing, setShowAnalyzing] = useState(false);
+  const [scanLoading, setScanLoading]     = useState(false);
   const [scanResult, setScanResult]   = useState<OnboardingQuickScan | null>(null);
   const fadeAnim = useRef(new Animated.Value(1)).current;
   const animating = useRef(false);
@@ -193,6 +204,7 @@ export default function OnboardingScreen() {
             resultsWeeks: number;
             currentLength: string; targetLength: string; goalDateIso: string;
             region: string; budget: string; careStyle: CareStyleId;
+            routineFear: RoutineFearId;
             name: string; email: string;
           }>;
           if (typeof p.step === 'number') {
@@ -221,10 +233,11 @@ export default function OnboardingScreen() {
           if (p.goalDateIso && /^\d{4}-\d{2}-\d{2}$/.test(p.goalDateIso)) {
             setGoalDate(new Date(`${p.goalDateIso}T12:00:00`));
           }
-          if (p.region)    setRegion(p.region);
-          if (p.budget)    setBudget(p.budget);
-          if (p.careStyle) setCareStyle(p.careStyle);
-          if (p.name)      setName(p.name);
+          if (p.region)      setRegion(p.region);
+          if (p.budget)      setBudget(p.budget);
+          if (p.careStyle)   setCareStyle(p.careStyle);
+          if (p.routineFear) setRoutineFear(p.routineFear);
+          if (p.name)        setName(p.name);
           if (p.email)     setEmail(p.email);
         } catch {}
       }
@@ -245,26 +258,32 @@ export default function OnboardingScreen() {
         step, hairType, hairTypeUnsure, porosity, density, problematics, hairNotes, objective,
         confidence, routineConsistency, blockers, resultsPace, resultsWeeks,
         currentLength, targetLength, goalDateIso: toLocalISODate(goalDate),
-        region, budget, careStyle, name, email,
+        region, budget, careStyle, routineFear, name, email,
       }),
     );
   }, [
     hydrated, step, hairType, hairTypeUnsure, porosity, density, problematics, hairNotes, objective,
     confidence, routineConsistency, blockers, resultsPace,
-    currentLength, targetLength, goalDate, region, budget, careStyle, name, email,
+    currentLength, targetLength, goalDate, region, budget, careStyle, routineFear, name, email,
   ]);
 
   function next() { withFade(() => setStep(s => { const n = Math.min(s + 1, TOTAL - 1); return n === 3 ? 4 : n; })); }
   function skip() { next(); }
   function goToFinalPlan() {
+    setShowAnalyzing(false);
     void AsyncStorage.removeItem(PENDING_POST_ONBOARDING_SCAN_KEY);
+    withFade(() => setStep(FINAL_STEP));
+  }
+
+  function onAnalyzingComplete() {
+    setShowAnalyzing(false);
     withFade(() => setStep(FINAL_STEP));
   }
 
   async function handleScanCapture(photo: ScanPhoto) {
     setShowCapture(false);
+    setShowAnalyzing(true);
     setScanLoading(true);
-    withFade(() => setStep(FINAL_STEP));
     try {
       const result = await analyzeOnboardingPhoto(photo, {
         hairType: hairType || undefined,
@@ -274,6 +293,13 @@ export default function OnboardingScreen() {
         problematics: problematics.length ? problematics : undefined,
       });
       setScanResult(result);
+      // Scan IA > déclaré : la vision est plus fiable que le test auto-rapporté
+      if (result.porosity) setPorosity(result.porosity);
+      if (result.hairType) {
+        // parseScanHairType normalise "4B · Crépu dense" → "4B" pour le profil/reco
+        setHairType(parseScanHairType(result.hairType));
+        setHairTypeUnsure(false);
+      }
     } catch {
       // Scan indisponible — le plan s'affiche sans résultat scan
     } finally {
@@ -367,6 +393,11 @@ export default function OnboardingScreen() {
 
     await supabase.auth.getSession();
 
+    // P3 — persiste le résultat complet du scan pour tout l'écosystème app
+    if (scanResult?.synthesis) {
+      void AsyncStorage.setItem(INITIAL_SCAN_RESULT_KEY, JSON.stringify(scanResult));
+    }
+
     const profileRow = buildOnboardingProfileRow({
       userId: data.user.id,
       name: name.trim(),
@@ -389,6 +420,7 @@ export default function OnboardingScreen() {
       regionClimate: selectedRegion?.climate ?? '',
       budgetRange: selectedBudget?.range ?? '',
       careStyle,
+      healthScore: scanResult?.score,  // P1 — score santé initial
     });
 
     await savePendingOnboardingProfile(profileRow);
@@ -462,9 +494,14 @@ export default function OnboardingScreen() {
     if (!careStyle) return null;
     const selectedRegionRow = REGIONS.find(r => r.id === region);
     const selectedBudgetRow = BUDGETS.find(b => b.id === budget);
+    // Le scan IA prime toujours sur le déclaré (vision > test auto-rapporté).
+    const effectiveHairType = scanResult?.hairType
+      ? parseScanHairType(scanResult.hairType)
+      : normalizeOnboardingHairType(hairType, hairTypeUnsure);
+    const effectivePorosity = porosity || scanResult?.porosity || 'Moyenne';
     return buildOnboardingRecommendations({
-      hairType: normalizeOnboardingHairType(hairType, hairTypeUnsure),
-      porosity: porosity || 'Moyenne',
+      hairType: effectiveHairType,
+      porosity: effectivePorosity,
       density: density || 'Moyenne',
       objective: normalizeObjectiveId(objective),
       region: selectedRegionRow?.label ?? '',
@@ -474,26 +511,30 @@ export default function OnboardingScreen() {
       blockers,
       hairNotes: hairNotes.trim(),
       resultsWeeks,
-      hairTypeUnsure,
+      hairTypeUnsure: hairTypeUnsure && !scanResult?.hairType,
     }, products);
   }, [
-    careStyle, hairType, porosity, density, objective, region, budget,
-    problematics, blockers, hairNotes, resultsWeeks, hairTypeUnsure, products,
+    careStyle, hairType, hairTypeUnsure, porosity, density, objective, region, budget,
+    problematics, blockers, hairNotes, resultsWeeks, products, scanResult,
   ]);
 
   const coachReco = useMemo(() => {
     if (!careStyle) return null;
+    const effectiveHairType = scanResult?.hairType
+      ? parseScanHairType(scanResult.hairType)
+      : (hairType || '');
+    const effectivePorosity = porosity || scanResult?.porosity || '';
     return buildBlackCottonHomeRecommendations({
       name: name || '',
-      hairType: hairType || '',
-      porosity: porosity || '',
+      hairType: effectiveHairType,
+      porosity: effectivePorosity,
       density: density || '',
       length: '',
       objective: objective || '',
       problematics,
       careStyle,
     });
-  }, [careStyle, hairType, porosity, density, objective, problematics, name]);
+  }, [careStyle, hairType, hairTypeUnsure, porosity, density, objective, problematics, name, scanResult]);
 
   const canNext = (
     (step === 0 && (!!hairType || hairTypeUnsure)) ||
@@ -506,6 +547,7 @@ export default function OnboardingScreen() {
     step === 8 ||
     step === 9 ||
     step === 10 ||
+    step === 11 ||
     (step === 12 && !!careStyle) ||
     step === 13 ||
     step === SCAN_STEP ||
@@ -534,6 +576,7 @@ export default function OnboardingScreen() {
             step === 0 && S.contentHairStep,
             step === FINAL_STEP && S.contentFinalStep,
             ONBOARDING_INTERSTITIAL_STEPS.has(step) && S.contentInterstitial,
+            step === SCAN_STEP && S.contentScanStep,
           ]}
           keyboardShouldPersistTaps="handled"
         >
@@ -777,6 +820,30 @@ export default function OnboardingScreen() {
             </>
           )}
 
+          {step === 11 && (
+            <>
+              <Text style={S.stepTitle}>Ta plus grande crainte pour ta routine ?</Text>
+              <Text style={S.stepSub}>On personnalise ton plan pour y répondre directement.</Text>
+              {ROUTINE_FEARS.map(f => (
+                <TouchableOpacity
+                  key={f.id}
+                  style={[S.optionCard, routineFear === f.id && S.optionCardActive]}
+                  onPress={() => { setRoutineFear(f.id); setTimeout(next, 280); }}
+                >
+                  <Text style={S.optionEmoji}>{f.emoji}</Text>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[S.optionLabel, routineFear === f.id && S.optionLabelActive]}>{f.label}</Text>
+                    <Text style={S.optionDesc}>{f.desc}</Text>
+                  </View>
+                  {routineFear === f.id && <Ionicons name="checkmark-circle" size={22} color={Colors.amber} />}
+                </TouchableOpacity>
+              ))}
+              <TouchableOpacity onPress={skip} style={S.skipLink}>
+                <Text style={S.skipText}>Passer cette étape</Text>
+              </TouchableOpacity>
+            </>
+          )}
+
           {step === 12 && (
             <>
               <Text style={S.stepTitle}>
@@ -891,6 +958,13 @@ export default function OnboardingScreen() {
         />
       )}
 
+      {showAnalyzing && (
+        <ScanAnalyzingOverlay
+          apiDone={!scanLoading}
+          onComplete={onAnalyzingComplete}
+        />
+      )}
+
     </SafeAreaView>
   );
 }
@@ -901,6 +975,7 @@ const S = StyleSheet.create({
   content: { paddingHorizontal: 24, paddingBottom: 24, paddingTop: 8 },
   contentHairStep: { paddingBottom: 120 },
   contentFinalStep: { paddingBottom: 48 },
+  contentScanStep: { flexGrow: 1 },
   contentInterstitial: {
     flexGrow: 1,
     justifyContent: 'center',

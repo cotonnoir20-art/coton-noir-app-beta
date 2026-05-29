@@ -33,7 +33,7 @@ export function HomeMomentsForts({
   return (
     <View style={s.section}>
       <View style={s.head}>
-        <Text style={s.title}>Moments forts</Text>
+        <Text style={s.title}>À la une</Text>
         {showSeeAll ? (
           <TouchableOpacity onPress={onSeeAll} hitSlop={8}>
             <Text style={s.seeAll}>Voir tout →</Text>
@@ -62,7 +62,7 @@ export function HomeMomentsForts({
 }
 
 const s = StyleSheet.create({
-  section: { marginBottom: 22 },
+  section: { marginTop: 5, marginBottom: 22 },
   head: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, marginBottom: 12 },
   title: { ...Type.cardTitle, color: Colors.ink },
   seeAll: { fontSize: 13, fontFamily: 'DMSans_600SemiBold', color: Colors.amberDark },

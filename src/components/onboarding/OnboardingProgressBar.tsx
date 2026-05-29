@@ -89,15 +89,16 @@ export function OnboardingProgressBar({ step, optional, onBack }: Props) {
           })}
         </View>
 
-      </View>
-
-      {optional && (
-        <View style={s.optionalWrap}>
-          <View style={s.optionalBadge}>
-            <Text style={s.optionalText}>OPTIONNEL</Text>
-          </View>
+        {/* Pastille Optionnel — symétrique du bouton retour */}
+        <View style={s.optionalSlot}>
+          {optional && (
+            <View style={s.optionalBadge}>
+              <Text style={s.optionalText}>Optionnel</Text>
+            </View>
+          )}
         </View>
-      )}
+
+      </View>
     </View>
   );
 }
@@ -165,17 +166,22 @@ const s = StyleSheet.create({
   labelDone:   { color: Colors.amberDark },
   labelActive: { color: Colors.ink, fontFamily: 'DMSans_700Bold' },
 
-  optionalWrap:  { alignItems: 'center', marginTop: 6 },
+  optionalSlot: {
+    minWidth: 28,
+    flexShrink: 0,
+    alignItems: 'flex-end',
+    justifyContent: 'center',
+  },
   optionalBadge: {
     backgroundColor: Colors.amberLight,
     borderRadius: 999,
-    paddingHorizontal: 9,
+    paddingHorizontal: 7,
     paddingVertical: 3,
   },
   optionalText: {
     fontSize: 9,
-    fontFamily: 'DMSans_700Bold',
+    fontFamily: 'DMSans_600SemiBold',
     color: Colors.amberDark,
-    letterSpacing: 1.1,
+    letterSpacing: 0.3,
   },
 });

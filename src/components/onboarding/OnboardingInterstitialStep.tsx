@@ -88,10 +88,19 @@ function TestimonialsCard() {
     <View style={s.testimonialList}>
       {ONBOARDING_TESTIMONIALS.map(t => (
         <View key={`${t.name}-${t.city}`} style={s.testimonialCard}>
+          {/* Étoiles */}
+          <View style={s.starsRow}>
+            {[1,2,3,4,5].map(i => (
+              <Text key={i} style={s.star}>★</Text>
+            ))}
+          </View>
           <Text style={s.testimonialQuote}>« {t.quote} »</Text>
-          <Text style={s.testimonialMeta}>
-            — {t.name}, {t.city}
-          </Text>
+          <View style={s.testimonialFooter}>
+            <Text style={s.testimonialMeta}>{t.name}, {t.city}</Text>
+            <View style={s.resultBadge}>
+              <Text style={s.resultBadgeText}>{t.result}</Text>
+            </View>
+          </View>
         </View>
       ))}
     </View>
@@ -283,17 +292,43 @@ const s = StyleSheet.create({
     borderColor: Colors.border,
     padding: 16,
   },
+  starsRow: {
+    flexDirection: 'row',
+    gap: 2,
+    marginBottom: 8,
+  },
+  star: {
+    fontSize: 13,
+    color: Colors.amber,
+  },
   testimonialQuote: {
     fontSize: 15,
     fontFamily: 'DMSans_400Regular',
     fontStyle: 'italic',
     color: Colors.ink,
     lineHeight: 22,
-    marginBottom: 8,
+    marginBottom: 10,
+  },
+  testimonialFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: 8,
   },
   testimonialMeta: {
     fontSize: 12,
     fontFamily: 'DMSans_600SemiBold',
     color: Colors.warmGray,
+  },
+  resultBadge: {
+    backgroundColor: Colors.amber,
+    borderRadius: 20,
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+  },
+  resultBadgeText: {
+    fontSize: 11,
+    fontFamily: 'DMSans_700Bold',
+    color: Colors.amberDark,
   },
 });

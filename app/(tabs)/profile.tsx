@@ -588,7 +588,7 @@ export default function ProfileScreen() {
               <View style={S.settingsIconBox}>
                 <Ionicons name="flash-outline" size={18} color={Colors.amberDark} />
               </View>
-              <Text style={S.settingsLabel}>Moments forts</Text>
+              <Text style={S.settingsLabel}>À la une</Text>
             </View>
             <View style={S.settingsRight}>
               <Text style={S.settingsValue}>Défis & actus</Text>

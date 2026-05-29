@@ -12,8 +12,32 @@ import * as Clipboard from 'expo-clipboard';
 import { hapticLight, hapticSuccess } from '../src/lib/haptics';
 import { formatApproxEurCc } from '../src/lib/cotonCoins';
 import { normalizeHttpUrl, openSafeUrl } from '../src/lib/safeLinking';
+import { REWARDS } from '../src/data/rewards';
+import { getCurrentLevel } from '../src/data/levels';
+import { DEMO_BRAND_OFFERS } from '../src/data/demoBrandOffers';
 
 type IoniconName = React.ComponentProps<typeof Ionicons>['name'];
+
+type BrandOffer = {
+  id:                    string;
+  brand:                 string;
+  title:                 string;
+  description:           string | null;
+  discount:              string;
+  icon_name:             string | null;
+  color_theme:           string;
+  code_type:             'generic' | 'pool';
+  partner_url:           string | null;
+  eligibility_min_level: number;
+  eligibility_min_coins: number;
+  stock_remaining:       number | null;
+  expires_at:            string | null;
+};
+
+type ClaimedOffer = {
+  offer_id:      string;
+  code_assigned: string | null;
+};
 
 type PromoCode = {
   id:          string;
@@ -62,10 +86,18 @@ export default function CodesScreen() {
   const { state } = useApp();
   const [copied, setCopied] = useState<string | null>(null);
 
+  const currentLevel = getCurrentLevel(state.totalEarned);
+  const affordable   = REWARDS.filter(r => !r.locked && state.coins >= r.cost);
+  const upcoming     = REWARDS.filter(r => !r.locked && state.coins < r.cost).slice(0, 2);
+
   const [active, setActive]       = useState<PromoCode[]>([]);
   const [used, setUsed]           = useState<PromoCode[]>([]);
   const [loading, setLoading]     = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
+
+  const [brandOffers, setBrandOffers]   = useState<BrandOffer[]>([]);
+  const [claimedOffers, setClaimedOffers] = useState<ClaimedOffer[]>([]);
+  const [claiming, setClaiming]         = useState<string | null>(null);
 
   useEffect(() => {
     supabase
@@ -85,7 +117,82 @@ export default function CodesScreen() {
         }
         setLoading(false);
       });
+
+    supabase
+      .from('brand_offers')
+      .select('id,brand,title,description,discount,icon_name,color_theme,code_type,partner_url,eligibility_min_level,eligibility_min_coins,stock_remaining,expires_at')
+      .eq('active', true)
+      .order('sort_order')
+      .then(({ data }) => {
+        setBrandOffers((data && data.length > 0) ? data as BrandOffer[] : DEMO_BRAND_OFFERS as BrandOffer[]);
+      });
+
+    supabase
+      .from('user_claimed_offers')
+      .select('offer_id,code_assigned')
+      .then(({ data }) => {
+        if (data) setClaimedOffers(data as ClaimedOffer[]);
+      });
   }, []);
+
+  const now = new Date();
+  const eligibleOffers = brandOffers.filter(o =>
+    currentLevel.id >= o.eligibility_min_level &&
+    state.coins >= o.eligibility_min_coins &&
+    (o.stock_remaining === null || o.stock_remaining > 0) &&
+    (!o.expires_at || new Date(o.expires_at) > now)
+  );
+  const lockedOffers = brandOffers.filter(o =>
+    currentLevel.id < o.eligibility_min_level ||
+    state.coins < o.eligibility_min_coins
+  ).slice(0, 3);
+
+  function getClaimedCode(offerId: string): string | null | undefined {
+    const c = claimedOffers.find(c => c.offer_id === offerId);
+    return c ? c.code_assigned : undefined; // undefined = not claimed
+  }
+
+  async function handleClaim(offer: BrandOffer) {
+    // Offres démo : réclamer localement sans appeler Supabase
+    if (offer.id.startsWith('demo-')) {
+      const demo = DEMO_BRAND_OFFERS.find(d => d.id === offer.id);
+      const code = demo?.code_value ?? null;
+      setClaimedOffers(prev => [...prev, { offer_id: offer.id, code_assigned: code }]);
+      if (code) {
+        try { await Clipboard.setStringAsync(code); } catch {}
+        hapticSuccess();
+        Alert.alert('Code réclamé ! 🎉', `Ton code « ${code} » a été copié dans le presse-papiers.`);
+      } else {
+        hapticSuccess();
+        Alert.alert('Offre réclamée ! 🎉', 'Utilise le lien partenaire pour en profiter.');
+      }
+      return;
+    }
+
+    setClaiming(offer.id);
+    try {
+      const { data, error } = await supabase.rpc('claim_brand_offer', { p_offer_id: offer.id });
+      if (error || !data?.ok) {
+        const msg =
+          data?.error === 'out_of_stock' ? 'Plus de codes disponibles pour cette offre.' :
+          data?.error === 'expired'       ? 'Cette offre a expiré.' :
+          'Impossible de réclamer cette offre. Réessaie.';
+        Alert.alert('Offre indisponible', msg);
+        return;
+      }
+      setClaimedOffers(prev => [...prev, { offer_id: offer.id, code_assigned: data.code ?? null }]);
+      if (data.code) {
+        try { await Clipboard.setStringAsync(data.code); } catch {}
+        hapticSuccess();
+        Alert.alert('Code réclamé ! 🎉', `Ton code « ${data.code} » a été copié dans le presse-papiers.`);
+      } else {
+        hapticSuccess();
+        Alert.alert('Offre réclamée ! 🎉', 'Utilise le lien partenaire pour en profiter.');
+      }
+    } finally {
+      setClaiming(null);
+    }
+  }
 
   const totalPct = active.reduce((acc, c) => acc + pctFromDiscount(c.discount), 0);
 
@@ -142,8 +249,243 @@ export default function CodesScreen() {
           </View>
         </View>
 
+        {/* ── Offres partenaires ── */}
+        {brandOffers.length > 0 && (
+          <>
+            <Text style={S.secTitle}>Offres partenaires</Text>
+
+            {/* Offres éligibles */}
+            {eligibleOffers.map(offer => {
+              const theme     = THEMES[offer.color_theme] ?? THEMES.amber;
+              const iconKey   = (offer.icon_name ?? 'pricetag-outline') as IoniconName;
+              const claimed   = getClaimedCode(offer.id);
+              const isClaiming = claiming === offer.id;
+              const alreadyClaimed = claimed !== undefined;
+
+              return (
+                <View
+                  key={offer.id}
+                  style={[S.offerCard, alreadyClaimed && S.offerCardClaimed]}
+                >
+                  {/* Top row */}
+                  <View style={S.offerTop}>
+                    <View style={[S.offerIconWrap, { backgroundColor: theme.iconBg }]}>
+                      <Ionicons name={iconKey} size={16} color={theme.iconColor} />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={S.offerBrand}>{offer.brand}</Text>
+                      {offer.description && (
+                        <Text style={S.offerDesc}>{offer.description}</Text>
+                      )}
+                    </View>
+                    <View style={[S.discountBadge, { backgroundColor: theme.iconBg }]}>
+                      <Text style={[S.discountText, { color: theme.iconColor }]}>{offer.discount}</Text>
+                    </View>
+                  </View>
+
+                  <Text style={S.offerTitle}>{offer.title}</Text>
+
+                  {/* Code réclamé */}
+                  {alreadyClaimed && claimed ? (
+                    <View style={S.codeField}>
+                      <Text style={S.codeText}>{claimed}</Text>
+                      <TouchableOpacity
+                        style={S.copyBtn}
+                        onPress={async () => {
+                          try { await Clipboard.setStringAsync(claimed); } catch {}
+                          hapticSuccess();
+                          setCopied(claimed);
+                          setTimeout(() => setCopied(null), 1400);
+                        }}
+                      >
+                        <Ionicons
+                          name={copied === claimed ? 'checkmark-outline' : 'copy-outline'}
+                          size={15} color={theme.iconColor}
+                        />
+                        <Text style={[S.copyText, { color: theme.iconColor }]}>
+                          {copied === claimed ? 'Copié !' : 'Copier'}
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+                  ) : alreadyClaimed ? (
+                    /* Offre sans code (lien direct) */
+                    <View style={[S.claimedPill]}>
+                      <Ionicons name="checkmark-circle" size={14} color="#16A34A" />
+                      <Text style={S.claimedPillText}>Offre réclamée</Text>
+                    </View>
+                  ) : (
+                    /* Bouton réclamer */
+                    <TouchableOpacity
+                      style={[S.claimBtn, { backgroundColor: theme.iconColor }, isClaiming && { opacity: 0.65 }]}
+                      onPress={() => void handleClaim(offer)}
+                      disabled={isClaiming}
+                      activeOpacity={0.85}
+                    >
+                      {isClaiming
+                        ? <ActivityIndicator size="small" color="#fff" />
+                        : <Text style={S.claimBtnText}>Réclamer l'offre</Text>
+                      }
+                    </TouchableOpacity>
+                  )}
+
+                  {/* Footer : lien partenaire + stock + expiry */}
+                  <View style={S.offerFooter}>
+                    {offer.partner_url && (
+                      <TouchableOpacity
+                        style={S.partnerLink}
+                        onPress={() => openOffer(offer.partner_url)}
+                      >
+                        <Ionicons name="open-outline" size={12} color={Colors.warmGray} />
+                        <Text style={S.partnerLinkText}>Voir le site</Text>
+                      </TouchableOpacity>
+                    )}
+                    {offer.stock_remaining !== null && (
+                      <Text style={S.stockText}>{offer.stock_remaining} restants</Text>
+                    )}
+                    {offer.expires_at && (
+                      <Text style={S.expText}>Expire le {formatExp(offer.expires_at)}</Text>
+                    )}
+                  </View>
+                </View>
+              );
+            })}
+
+            {/* Offres verrouillées (aperçu) */}
+            {lockedOffers.length > 0 && (
+              <>
+                <Text style={S.lockedLabel}>BIENTÔT DISPONIBLES POUR TOI</Text>
+                {lockedOffers.map(offer => {
+                  const theme   = THEMES[offer.color_theme] ?? THEMES.amber;
+                  const iconKey = (offer.icon_name ?? 'pricetag-outline') as IoniconName;
+                  const needLevel = currentLevel.id < offer.eligibility_min_level;
+                  const needCoins = state.coins < offer.eligibility_min_coins;
+                  return (
+                    <View key={offer.id} style={S.offerCardLocked}>
+                      <View style={[S.offerIconWrap, { backgroundColor: Colors.cream }]}>
+                        <Ionicons name={iconKey} size={16} color={Colors.warmGray} />
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text style={S.offerBrandLocked}>{offer.brand} · {offer.discount}</Text>
+                        <Text style={S.offerTitleLocked}>{offer.title}</Text>
+                        <View style={S.lockCondRow}>
+                          {needLevel && (
+                            <View style={S.lockChip}>
+                              <Ionicons name="lock-closed-outline" size={10} color={Colors.warmGray} />
+                              <Text style={S.lockChipText}>Niveau {offer.eligibility_min_level} requis</Text>
+                            </View>
+                          )}
+                          {needCoins && (
+                            <View style={S.lockChip}>
+                              <Ionicons name="lock-closed-outline" size={10} color={Colors.warmGray} />
+                              <Text style={S.lockChipText}>{offer.eligibility_min_coins.toLocaleString('fr-FR')} CC requis</Text>
+                            </View>
+                          )}
+                        </View>
+                      </View>
+                    </View>
+                  );
+                })}
+              </>
+            )}
+
+            {eligibleOffers.length === 0 && lockedOffers.length === 0 && (
+              <View style={S.emptyBox}>
+                <EmptyAnimation emoji="🤝" size={88} />
+                <Text style={S.emptyText}>Les offres partenaires arrivent bientôt !</Text>
+              </View>
+            )}
+          </>
+        )}
+
+        {/* ── Récompenses disponibles ── */}
+        <View style={S.recoHeaderRow}>
+          <Text style={S.secTitle}>Récompenses disponibles</Text>
+          <TouchableOpacity onPress={() => router.push('/redeem' as any)} hitSlop={8}>
+            <Text style={S.seeAll}>Tout voir →</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Avantage niveau */}
+        <TouchableOpacity
+          style={S.levelCard}
+          onPress={() => router.push('/redeem' as any)}
+          activeOpacity={0.88}
+        >
+          <View style={S.levelIconWrap}>
+            <Text style={S.levelEmoji}>{currentLevel.emoji}</Text>
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={S.levelKicker}>NIVEAU {currentLevel.id} · {currentLevel.name.toUpperCase()}</Text>
+            <Text style={S.levelBenefit}>{currentLevel.benefit}</Text>
+          </View>
+          <Ionicons name="gift-outline" size={18} color={Colors.amber} />
+        </TouchableOpacity>
+
+        {/* Récompenses achetables maintenant */}
+        {affordable.length > 0 && (
+          <View style={S.recoGroup}>
+            <Text style={S.recoGroupLabel}>TU PEUX DÉBLOQUER MAINTENANT</Text>
+            {affordable.map(r => (
+              <TouchableOpacity
+                key={r.id}
+                style={S.recoCard}
+                onPress={() => router.push('/redeem' as any)}
+                activeOpacity={0.88}
+              >
+                <Text style={S.recoEmoji}>{r.emoji}</Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={S.recoName}>{r.name}</Text>
+                  <Text style={S.recoCost}>{r.cost.toLocaleString('fr-FR')} CC</Text>
+                </View>
+                <View style={S.availBadge}>
+                  <Ionicons name="checkmark-circle" size={14} color="#16A34A" />
+                  <Text style={S.availText}>Prêt</Text>
+                </View>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
+
+        {/* Prochaines récompenses */}
+        {upcoming.length > 0 && (
+          <View style={S.recoGroup}>
+            <Text style={S.recoGroupLabel}>PROCHAINEMENT</Text>
+            {upcoming.map(r => {
+              const pct = Math.min(100, Math.round((state.coins / r.cost) * 100));
+              const missing = r.cost - state.coins;
+              return (
+                <TouchableOpacity
+                  key={r.id}
+                  style={S.upcomingCard}
+                  onPress={() => router.push('/redeem' as any)}
+                  activeOpacity={0.88}
+                >
+                  <Text style={[S.recoEmoji, { opacity: 0.55 }]}>{r.emoji}</Text>
+                  <View style={{ flex: 1, gap: 6 }}>
+                    <View style={S.upcomingTop}>
+                      <Text style={S.recoName}>{r.name}</Text>
+                      <Text style={S.recoCost}>{r.cost.toLocaleString('fr-FR')} CC</Text>
+                    </View>
+                    <View style={S.progressBg}>
+                      <View style={[S.progressFill, { width: `${pct}%` as any }]} />
+                    </View>
+                    <Text style={S.missingText}>encore {missing.toLocaleString('fr-FR')} CC</Text>
+                  </View>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        )}
+
+        {affordable.length === 0 && upcoming.length === 0 && (
+          <View style={S.recoEmpty}>
+            <Ionicons name="gift-outline" size={28} color={Colors.warmGray} />
+            <Text style={S.recoEmptyText}>Continue à gagner des CC pour débloquer des récompenses !</Text>
+          </View>
+        )}
+
         {/* ── Codes disponibles ── */}
-        <Text style={S.secTitle}>Codes disponibles</Text>
+        <Text style={[S.secTitle, { marginTop: 8 }]}>Codes disponibles</Text>
 
         {loading ? (
           <View style={{ paddingVertical: 24, alignItems: 'center' }}>
@@ -304,6 +646,130 @@ const S = StyleSheet.create({
   secTitle: {
     fontSize: 17, fontFamily: 'Satoshi_500Medium',
     color: Colors.ink, marginBottom: 12,
+  },
+
+  /* Offres partenaires */
+  offerCard: {
+    backgroundColor: Colors.surface,
+    borderRadius: 16, borderWidth: 1, borderColor: Colors.border,
+    padding: 16, marginBottom: 12,
+  },
+  offerCardClaimed: {
+    borderColor: '#86EFAC', backgroundColor: '#F0FDF4',
+  },
+  offerCardLocked: {
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    backgroundColor: Colors.cream,
+    borderRadius: 14, borderWidth: 1, borderColor: Colors.border,
+    padding: 14, marginBottom: 8, opacity: 0.75,
+  },
+  offerTop: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, marginBottom: 10 },
+  offerIconWrap: {
+    width: 36, height: 36, borderRadius: 10,
+    alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+  },
+  offerBrand:  { fontSize: 13, fontFamily: 'DMSans_700Bold', color: Colors.ink },
+  offerDesc:   { fontSize: 11, fontFamily: 'DMSans_400Regular', color: Colors.warmGray, marginTop: 1 },
+  offerTitle:  { fontSize: 15, fontFamily: 'Satoshi_500Medium', color: Colors.ink, marginBottom: 12 },
+  discountBadge: { borderRadius: 8, paddingHorizontal: 9, paddingVertical: 4, flexShrink: 0 },
+  discountText:  { fontSize: 12, fontFamily: 'DMSans_700Bold' },
+  claimBtn: {
+    borderRadius: 12, paddingVertical: 12,
+    alignItems: 'center', justifyContent: 'center', marginBottom: 10,
+  },
+  claimBtnText: { fontSize: 14, fontFamily: 'DMSans_700Bold', color: '#fff' },
+  claimedPill: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    backgroundColor: '#DCFCE7', borderRadius: 999,
+    paddingHorizontal: 12, paddingVertical: 6,
+    alignSelf: 'flex-start', marginBottom: 10,
+  },
+  claimedPillText: { fontSize: 12, fontFamily: 'DMSans_700Bold', color: '#16A34A' },
+  offerFooter: { flexDirection: 'row', alignItems: 'center', gap: 12, flexWrap: 'wrap' },
+  partnerLink: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  partnerLinkText: { fontSize: 11, fontFamily: 'DMSans_400Regular', color: Colors.warmGray },
+  stockText: { fontSize: 11, fontFamily: 'DMSans_400Regular', color: Colors.warmGray },
+  lockedLabel: {
+    fontSize: 10, fontFamily: 'DMSans_700Bold', color: Colors.warmGray,
+    letterSpacing: 0.8, marginBottom: 8, marginTop: 4,
+  },
+  offerBrandLocked: { fontSize: 12, fontFamily: 'DMSans_700Bold', color: Colors.warmGray },
+  offerTitleLocked: { fontSize: 13, fontFamily: 'DMSans_500Medium', color: Colors.warmGray, marginTop: 2 },
+  lockCondRow: { flexDirection: 'row', gap: 6, marginTop: 6, flexWrap: 'wrap' },
+  lockChip: {
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    backgroundColor: Colors.border, borderRadius: 999,
+    paddingHorizontal: 8, paddingVertical: 3,
+  },
+  lockChipText: { fontSize: 10, fontFamily: 'DMSans_500Medium', color: Colors.warmGray },
+
+  /* Récompenses disponibles */
+  recoHeaderRow: {
+    flexDirection: 'row', alignItems: 'center',
+    justifyContent: 'space-between', marginBottom: 12,
+  },
+  seeAll: {
+    fontSize: 13, fontFamily: 'DMSans_600SemiBold', color: Colors.amber,
+  },
+  levelCard: {
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    backgroundColor: Colors.amberPowder,
+    borderRadius: 14, borderWidth: 1, borderColor: Colors.amberLight,
+    padding: 14, marginBottom: 10,
+  },
+  levelIconWrap: {
+    width: 40, height: 40, borderRadius: 12,
+    backgroundColor: Colors.amberLight,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  levelEmoji:   { fontSize: 20 },
+  levelKicker:  { fontSize: 10, fontFamily: 'DMSans_700Bold', color: Colors.amberDark, letterSpacing: 0.8, marginBottom: 3 },
+  levelBenefit: { fontSize: 13, fontFamily: 'DMSans_600SemiBold', color: Colors.ink },
+
+  recoGroup:      { marginBottom: 10 },
+  recoGroupLabel: {
+    fontSize: 10, fontFamily: 'DMSans_700Bold', color: Colors.warmGray,
+    letterSpacing: 0.8, marginBottom: 8,
+  },
+  recoCard: {
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    backgroundColor: Colors.surface,
+    borderRadius: 14, borderWidth: 1, borderColor: '#86EFAC',
+    padding: 14, marginBottom: 8,
+  },
+  recoEmoji: { fontSize: 22 },
+  recoName:  { fontSize: 13, fontFamily: 'DMSans_600SemiBold', color: Colors.ink },
+  recoCost:  { fontSize: 11, fontFamily: 'DMSans_400Regular', color: Colors.warmGray, marginTop: 2 },
+  availBadge: {
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    backgroundColor: '#DCFCE7', borderRadius: 999,
+    paddingHorizontal: 9, paddingVertical: 4,
+  },
+  availText: { fontSize: 11, fontFamily: 'DMSans_700Bold', color: '#16A34A' },
+
+  upcomingCard: {
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    backgroundColor: Colors.surface,
+    borderRadius: 14, borderWidth: 1, borderColor: Colors.border,
+    padding: 14, marginBottom: 8, opacity: 0.8,
+  },
+  upcomingTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  progressBg: {
+    height: 4, backgroundColor: Colors.border, borderRadius: 2, overflow: 'hidden',
+  },
+  progressFill: {
+    height: 4, backgroundColor: Colors.amber, borderRadius: 2,
+  },
+  missingText: { fontSize: 10, fontFamily: 'DMSans_400Regular', color: Colors.warmGray },
+
+  recoEmpty: {
+    alignItems: 'center', gap: 8,
+    backgroundColor: Colors.cream, borderRadius: 14,
+    paddingVertical: 20, paddingHorizontal: 16, marginBottom: 16,
+  },
+  recoEmptyText: {
+    fontSize: 13, fontFamily: 'DMSans_500Medium', color: Colors.warmGray,
+    textAlign: 'center', lineHeight: 19,
   },
 
   /* Active code card */

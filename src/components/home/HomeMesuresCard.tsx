@@ -182,6 +182,7 @@ const s = StyleSheet.create({
   section: { marginBottom: 22, paddingHorizontal: 14 },
   sectionTitle: {
     ...Type.cardTitle,
+    fontFamily: 'Satoshi_700Bold',
     color: Colors.ink,
     marginBottom: 10,
   },

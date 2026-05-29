@@ -1,6 +1,17 @@
 import { supabase } from '../lib/supabase';
 import type { ScanPhoto } from '../components/hairScan/HairZoneScanner';
 
+/**
+ * Extrait le code de type depuis le format brut retourné par le scan IA.
+ * "4B · Crépu dense" → "4B"   |   "3C · Bouclé" → "3C"
+ */
+export function parseScanHairType(raw: string): string {
+  if (!raw || raw === '—') return '';
+  const m = raw.match(/^(\d[A-C])/i);
+  if (m) return m[1].toUpperCase();
+  return raw.split('·')[0].trim() || raw;
+}
+
 export type OnboardingQuickScan = {
   hairType: string;
   porosity: string;

@@ -59,12 +59,12 @@ import {
   HomeMesuresCard,
   HomeHairAnalysisCard,
   HomeSoinsHistoryCard,
-  HomeRecommendedProductsCard,
-  HomeRecoExtras,
   HomeBlackCottonRecommendations,
   HomeDiscoverShortcuts,
+  HomePartnerOffersCard,
   HomeMomentsForts,
 } from '../../src/components/home';
+import { HomeRecoTabs } from '../../src/components/home/HomeRecoTabs';
 import { FirstMeasureGuidePopin } from '../../src/components/FirstMeasureGuidePopin';
 import {
   hasSeenFirstMeasureGuide,
@@ -554,6 +554,15 @@ export default function HomeScreen() {
             morningSteps={state.routineSteps.daily}
             eveningSteps={state.routineSteps.night}
           />
+          <HomeRecoTabs profile={profile} />
+          <HomeMomentsForts
+            moments={moments}
+            previewMax={3}
+            onSeeAll={() => router.push('/highlights' as any)}
+            onMomentPress={m => {
+              if (m.route) router.push(m.route as any);
+            }}
+          />
           <View style={s.hairWeekSection}>
             <HomeHairWeekCard
               coinHistory={state.coinHistory}
@@ -567,18 +576,9 @@ export default function HomeScreen() {
             plannedSoins={state.plannedSoins}
             washdaySteps={state.routineSteps.washday}
           />
-          <HomeRecommendedProductsCard profile={profile} />
-          <HomeRecoExtras profile={profile} />
           <HomeBlackCottonRecommendations profile={profile} />
+          <HomePartnerOffersCard />
           <HomeDiscoverShortcuts onSeeAll={() => router.push('/(tabs)/shortcuts' as any)} />
-          <HomeMomentsForts
-            moments={moments}
-            previewMax={3}
-            onSeeAll={() => router.push('/highlights' as any)}
-            onMomentPress={m => {
-              if (m.route) router.push(m.route as any);
-            }}
-          />
         </View>
 
         <View style={s.footer}>

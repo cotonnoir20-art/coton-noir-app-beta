@@ -37,8 +37,9 @@ export const EXPLORER_SECTIONS: { id: string; label: string; items: ExplorerItem
     id: 'save_buy',
     label: 'Économiser & acheter',
     items: [
+      { ion: 'storefront-outline', ionBg: Colors.amberLight, ionColor: Colors.amberDark, label: 'Offres partenaires', route: '/codes' },
+      { ion: 'pricetag-outline', ionBg: Colors.amberLight, ionColor: Colors.amberDark, label: 'Mes codes', route: '/codes' },
       { ion: 'flask-outline', ionBg: Colors.sageLight, ionColor: Colors.sage, label: 'Recettes', route: '/recipes' },
-      { ion: 'pricetag-outline', ionBg: Colors.amberLight, ionColor: Colors.amberDark, label: 'Codes promo', route: '/codes' },
       { ion: 'bag-handle-outline', ionBg: Colors.cream, ionColor: Colors.ink, label: 'Boutique', route: '/shop' },
       { ion: 'people-outline', ionBg: Colors.sageLight, ionColor: Colors.sage, label: 'Partenaires', route: '/partners' },
       { ion: 'cube-outline', ionBg: Colors.cream, ionColor: Colors.ink, label: 'Box', route: '/box' },
