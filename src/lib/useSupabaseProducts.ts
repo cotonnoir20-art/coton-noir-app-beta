@@ -16,7 +16,7 @@ export function useSupabaseProducts(): { products: Product[]; loading: boolean }
     let cancelled = false;
     fetchPublishedProducts()
       .then(fetched => {
-        console.log('[useSupabaseProducts] fetched', fetched.length, 'products, cancelled:', cancelled);
+        if (__DEV__) console.log('[useSupabaseProducts] fetched', fetched.length, 'products, cancelled:', cancelled);
         if (cancelled) return;
         if (fetched.length > 0) {
           _cache = fetched;
@@ -24,7 +24,7 @@ export function useSupabaseProducts(): { products: Product[]; loading: boolean }
           setProducts(fetched);
         }
       })
-      .catch(e => console.error('[useSupabaseProducts] unexpected error', e))
+      .catch(e => { if (__DEV__) console.error('[useSupabaseProducts] unexpected error', e); })
       .finally(() => {
         if (!cancelled) setLoading(false);
       });

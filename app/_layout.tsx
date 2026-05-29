@@ -141,8 +141,8 @@ export default function RootLayout() {
   });
 
   useEffect(() => {
-    if (error) {
-      console.warn('[fonts] Chargement partiel des polices — l’app continue.', error);
+    if (error && __DEV__) {
+      console.warn("[fonts] Chargement partiel des polices — l’app continue.", error);
     }
   }, [error]);
 

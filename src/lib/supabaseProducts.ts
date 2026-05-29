@@ -85,15 +85,15 @@ export async function fetchPublishedProducts(): Promise<Product[]> {
     .order('rating', { ascending: false });
 
   if (error) {
-    console.error('[supabaseProducts] fetch error:', error.message, error.code, error.details);
+    if (__DEV__) console.error('[supabaseProducts] fetch error:', error.message, error.code, error.details);
     // Retry sans filtre status ni order au cas où la colonne manque
     const fallback = await supabase.from('products').select('*');
-    console.warn('[supabaseProducts] fallback result:', fallback.data?.length ?? 0, 'rows, error:', fallback.error?.message);
+    if (__DEV__) console.warn('[supabaseProducts] fallback result:', fallback.data?.length ?? 0, 'rows, error:', fallback.error?.message);
     if (fallback.error || !fallback.data?.length) return [];
     return fallback.data.map(mapRow);
   }
 
-  console.log('[supabaseProducts] fetched', data?.length ?? 0, 'published products');
+  if (__DEV__) console.log('[supabaseProducts] fetched', data?.length ?? 0, 'published products');
   if (!data?.length) return [];
   return data.map(mapRow);
 }
