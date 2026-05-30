@@ -28,10 +28,48 @@ const sessionStorageAdapter: SecureKV = {
   },
 };
 
+const CHUNK_SIZE = 1800;
+
 const nativeAdapter: SecureKV = {
-  async getItem(key)        { return SecureStore.getItemAsync(key); },
-  async setItem(key, value) { await SecureStore.setItemAsync(key, value); },
-  async removeItem(key)     { await SecureStore.deleteItemAsync(key); },
+  async getItem(key) {
+    const chunksRaw = await SecureStore.getItemAsync(`${key}_chunks`);
+    if (chunksRaw) {
+      const count = parseInt(chunksRaw, 10);
+      const parts: string[] = [];
+      for (let i = 0; i < count; i++) {
+        parts.push((await SecureStore.getItemAsync(`${key}_chunk_${i}`)) ?? '');
+      }
+      return parts.join('');
+    }
+    return SecureStore.getItemAsync(key);
+  },
+  async setItem(key, value) {
+    if (value.length > CHUNK_SIZE) {
+      const chunks = Math.ceil(value.length / CHUNK_SIZE);
+      await SecureStore.setItemAsync(`${key}_chunks`, String(chunks));
+      for (let i = 0; i < chunks; i++) {
+        await SecureStore.setItemAsync(
+          `${key}_chunk_${i}`,
+          value.slice(i * CHUNK_SIZE, (i + 1) * CHUNK_SIZE),
+        );
+      }
+      await SecureStore.deleteItemAsync(key);
+      return;
+    }
+    await SecureStore.deleteItemAsync(`${key}_chunks`);
+    await SecureStore.setItemAsync(key, value);
+  },
+  async removeItem(key) {
+    const chunksRaw = await SecureStore.getItemAsync(`${key}_chunks`);
+    if (chunksRaw) {
+      const count = parseInt(chunksRaw, 10);
+      for (let i = 0; i < count; i++) {
+        await SecureStore.deleteItemAsync(`${key}_chunk_${i}`);
+      }
+      await SecureStore.deleteItemAsync(`${key}_chunks`);
+    }
+    await SecureStore.deleteItemAsync(key);
+  },
 };
 
 function pickWebKV(): SecureKV {
