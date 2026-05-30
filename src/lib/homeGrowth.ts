@@ -226,6 +226,7 @@ export function computeHairHealthScore(state: AppState): number | null {
 export function resolveHomeHealthScore(
   state: AppState,
   latestAnalysisScore: number | null | undefined,
+  profileHealthScore?: number | null,
 ): number | null {
   if (
     latestAnalysisScore != null &&
@@ -233,6 +234,14 @@ export function resolveHomeHealthScore(
     latestAnalysisScore > 0
   ) {
     return Math.min(100, Math.round(latestAnalysisScore));
+  }
+  // Fallback : score du scan onboarding stocké dans profiles.health_score
+  if (
+    profileHealthScore != null &&
+    Number.isFinite(profileHealthScore) &&
+    profileHealthScore > 0
+  ) {
+    return Math.min(100, Math.round(profileHealthScore));
   }
   return computeHairHealthScore(state);
 }

@@ -1,7 +1,11 @@
 import { createContext, useContext, useEffect, useState } from 'react';
+import { LogBox } from 'react-native';
 import { Session } from '@supabase/supabase-js';
 import { clearSensitiveAppStorage } from '../lib/appOfflineStorage';
 import { supabase } from '../lib/supabase';
+
+// Token expiré après reload dev — ne pas afficher comme erreur
+LogBox.ignoreLogs(['AuthApiError: Invalid Refresh Token']);
 
 type SignOutResult =
   | { ok: true }
@@ -19,17 +23,27 @@ const AuthContext = createContext<AuthContextType>({
   signOut: async () => ({ ok: true }),
 });
 
+function isInvalidTokenError(msg: string): boolean {
+  return msg.toLowerCase().includes('refresh token') || msg.toLowerCase().includes('invalid token');
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
+    supabase.auth.getSession().then(({ data: { session }, error }) => {
+      if (error && isInvalidTokenError(error.message)) {
+        void supabase.auth.signOut();
+        setSession(null);
+      } else {
+        setSession(session);
+      }
       setLoading(false);
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'TOKEN_REFRESHED' && !session) return;
       setSession(session);
     });
 

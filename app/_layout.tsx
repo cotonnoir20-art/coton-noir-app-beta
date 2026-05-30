@@ -19,7 +19,6 @@ import { AuthProvider, useAuth } from '../src/context/AuthContext';
 import { BlackCottonProvider } from '../src/context/BlackCottonContext';
 import { NotificationsProvider } from '../src/context/NotificationsContext';
 import { AppTabBar } from '../src/components/AppTabBar';
-import { BlackCottonFloatingAssistant } from '../src/components/blackCotton/BlackCottonFloatingAssistant';
 import { OnboardingAuthGate } from '../src/components/OnboardingAuthGate';
 import { ProductMilestonesBridge } from '../src/components/ProductMilestonesBridge';
 import { NotificationDeepLinkHandler } from '../src/components/NotificationDeepLinkHandler';
@@ -114,8 +113,8 @@ function RootLayoutNav() {
 
       {showTabBar && <AppTabBar />}
 
-      {/* Black Cotton overlay — rendered last so it appears above everything */}
-      {showTabBar && <BlackCottonFloatingAssistant />}
+      {/* Black Cotton overlay — masqué jusqu'au branchement chatbot */}
+      {/* {showTabBar && <BlackCottonFloatingAssistant />} */}
 
       {/* Célébration plein écran quand l'utilisatrice passe au niveau supérieur */}
       {!!session && <LevelUpCelebration />}

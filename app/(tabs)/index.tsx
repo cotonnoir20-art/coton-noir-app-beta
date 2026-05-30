@@ -214,7 +214,7 @@ export default function HomeScreen() {
   );
 
   const healthScore = useMemo(
-    () => resolveHomeHealthScore(state, analysisHealthScore),
+    () => resolveHomeHealthScore(state, analysisHealthScore, state.profile.healthScore),
     [state, analysisHealthScore],
   );
 

@@ -206,7 +206,7 @@ Deno.serve(async (req) => {
   const hairType = typeof result.hairType === 'string' ? result.hairType.slice(0, 60) : '—';
   const porosity = typeof result.porosity === 'string' ? result.porosity.slice(0, 20) : '—';
   const score = typeof result.score === 'number' ? Math.max(0, Math.min(100, Math.round(result.score))) : 50;
-  const synthesis = typeof result.synthesis === 'string' ? result.synthesis.slice(0, 300) : '';
+  const synthesis = typeof result.synthesis === 'string' ? result.synthesis.slice(0, 600) : '';
   const highlights = Array.isArray(result.highlights)
     ? result.highlights.slice(0, 3).map(h => String(h).slice(0, 80))
     : [];

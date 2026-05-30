@@ -28,6 +28,38 @@ export type OnboardingProfile = {
   problematics?: string[];
 };
 
+/** Mots-clés → problématique canonique détectée depuis les highlights/synthesis du scan. */
+const SCAN_KEYWORD_TO_PROBLEMATIC: Array<{ keywords: string[]; label: string }> = [
+  { keywords: ['alopécie', 'implantation', 'calvitie', 'traction'], label: 'Alopécie de traction' },
+  { keywords: ['chute', 'perte de cheveux', 'perte capillaire'], label: 'Chute de cheveux' },
+  { keywords: ['sèche', 'déshydrat', 'manque d\'hydratation', 'terne et fibreux', 'sécheresse'], label: 'Cheveux secs et cassants' },
+  { keywords: ['casse', 'cassant', 'fragilisé', 'fragilité'], label: 'Casse' },
+  { keywords: ['frisottis', 'frizz', 'gonflé'], label: 'Frisottis' },
+  { keywords: ['pellicule', 'démangeai'], label: 'Pellicules' },
+  { keywords: ['terne', 'sans brillance', 'manque de brillance', 'sans éclat'], label: 'Manque de brillance' },
+  { keywords: ['nœud', 'noeud', 'emmêlé', 'difficile à démêler'], label: 'Noeuds fréquents' },
+  { keywords: ['fourche', 'pointes abîmées', 'pointes sèches'], label: 'Fourches et pointes abîmées' },
+  { keywords: ['scalp', 'cuir chevelu irrité', 'cuir chevelu sensible'], label: 'Problèmes de cuir chevelu' },
+  { keywords: ['perte de définition', 'boucles aplaties', 'boucles relâchées'], label: 'Perte de définition des boucles' },
+];
+
+/**
+ * Extrait automatiquement les problématiques capillaires détectées
+ * dans les highlights et la synthesis du scan IA.
+ * Retourne au plus 3 labels canoniques.
+ */
+export function extractProblematicsFromScan(scan: OnboardingQuickScan): string[] {
+  const text = [scan.synthesis, ...scan.highlights].join(' ').toLowerCase();
+  const detected: string[] = [];
+  for (const { keywords, label } of SCAN_KEYWORD_TO_PROBLEMATIC) {
+    if (keywords.some(kw => text.includes(kw)) && !detected.includes(label)) {
+      detected.push(label);
+    }
+    if (detected.length >= 3) break;
+  }
+  return detected;
+}
+
 const ONBOARDING_SCAN_FUNCTION = 'onboarding-scan';
 
 export async function analyzeOnboardingPhoto(

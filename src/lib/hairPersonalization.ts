@@ -60,6 +60,11 @@ const PROBLEMATIC_TO_TAGS: Record<string, string[]> = {
   'Dommages chaleur':          ['protéines', 'masque', 'hydratation', 'chaleur'],
   'Dommages chimiques':        ['couleur', 'protéines', 'masque', 'hydratation', 'réparation'],
   'Problèmes de cuir chevelu': ['scalp', 'cuir chevelu', 'huile'],
+  'Alopécie de traction':      ['scalp', 'pousse', 'huile', 'cuir chevelu', 'compl'],
+  'Chute de cheveux':          ['pousse', 'scalp', 'compl', 'huile'],
+  'Cheveux secs et cassants':  ['sécheresse', 'hydratation', 'masque', 'huile', 'leave-in'],
+  'Fourches et pointes abîmées': ['pointes', 'huile', 'masque', 'hydratation'],
+  'Perte de définition des boucles': ['frisottis', 'leave-in', 'coiffage', 'hydratation'],
 };
 
 // ─── Mappings blockers ─────────────────────────────────────────────────────────

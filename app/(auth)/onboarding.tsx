@@ -48,7 +48,7 @@ import { ScanEntryCard } from '../../src/components/hairScan/ScanEntryCard';
 import { OnboardingQuickCapture } from '../../src/components/hairScan/OnboardingQuickCapture';
 import { ScanAnalyzingOverlay } from '../../src/components/hairScan/ScanAnalyzingOverlay';
 import type { ScanPhoto } from '../../src/components/hairScan/HairZoneScanner';
-import { analyzeOnboardingPhoto, parseScanHairType } from '../../src/services/onboardingScanApi';
+import { analyzeOnboardingPhoto, parseScanHairType, extractProblematicsFromScan } from '../../src/services/onboardingScanApi';
 import type { OnboardingQuickScan } from '../../src/services/onboardingScanApi';
 import { OnboardingInterstitialStep } from '../../src/components/onboarding/OnboardingInterstitialStep';
 import {
@@ -499,6 +499,13 @@ export default function OnboardingScreen() {
       ? parseScanHairType(scanResult.hairType)
       : normalizeOnboardingHairType(hairType, hairTypeUnsure);
     const effectivePorosity = porosity || scanResult?.porosity || 'Moyenne';
+    // Fusionner problématiques déclarées + détectées par le scan (sans dépasser 3)
+    const scanDetected = scanResult ? extractProblematicsFromScan(scanResult) : [];
+    const mergedProblematics = [
+      ...problematics,
+      ...scanDetected.filter(p => !problematics.includes(p)),
+    ].slice(0, 3);
+
     return buildOnboardingRecommendations({
       hairType: effectiveHairType,
       porosity: effectivePorosity,
@@ -507,7 +514,7 @@ export default function OnboardingScreen() {
       region: selectedRegionRow?.label ?? '',
       budget: selectedBudgetRow?.range ?? '',
       careStyle,
-      problematics,
+      problematics: mergedProblematics,
       blockers,
       hairNotes: hairNotes.trim(),
       resultsWeeks,

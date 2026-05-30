@@ -41,6 +41,13 @@ export const HAIR_PROBLEMATICS: HairProblematic[] = [
     onboardingLabel: 'Chute de cheveux',
   },
   {
+    id: 'traction_alopecia',
+    label: 'Alopécie de traction',
+    icon: 'bandage-outline',
+    emoji: '🎗️',
+    onboardingLabel: 'Alopécie de traction',
+  },
+  {
     id: 'split_ends',
     label: 'Fourches et pointes abîmées',
     icon: 'git-branch-outline',
@@ -149,6 +156,7 @@ export const ONBOARDING_PROBLEMATIC_IDS: string[] = [
   'dry_brittle',
   'curl_loss',
   'hair_loss',
+  'traction_alopecia',
   'dandruff',
   'dull',
   'split_ends',
