@@ -194,19 +194,95 @@ function buildPriorities(profile: HairProfile, reco: OnboardingRecommendations):
     );
   }
 
-  if (profile.region) {
-    items.push(
-      priority(
-        'climate',
-        `Climat ${profile.region}`,
-        profile.climate
-          ? `Chez toi (${profile.climate}) : adapte l’hydratation selon l’humidité — plus de spray quand l’air est sec, plus léger quand il est humide.`
-          : 'Adapte la quantité de produit à la saison : plus de protection en hiver, plus de légèreté en été.',
-        'partly-sunny-outline',
-        Colors.growthLight,
-        Colors.growth,
-      ),
-    );
+  // ── Tips problématiques (priorité sur climat et type générique) ────────────
+  type ProbTip = { title: string; detail: string; ion: IonName; ionBg: string; ionColor: string };
+  const PROBLEMATIC_TIPS: Record<string, ProbTip> = {
+    "Alopécie de traction": {
+      title: "Protège ta ligne d’implantation",
+      detail: "Évite les coiffures qui tirent sur les racines (tresses serrées, chignons hauts). Masse ton cuir chevelu 2-3x/semaine avec une huile légère (ricin, jojoba) pour stimuler la circulation.",
+      ion: "shield-outline", ionBg: Colors.alertLight, ionColor: Colors.alertDark,
+    },
+    "Chute de cheveux": {
+      title: "Stimule ton cuir chevelu",
+      detail: "Un massage quotidien de 3 à 5 min sur le cuir chevelu active la microcirculation. Ajoute une huile de ricin ou un complément alimentaire riche en biotine si la chute est importante.",
+      ion: "trending-up-outline", ionBg: Colors.growthLight, ionColor: Colors.growth,
+    },
+    "Cheveux secs et cassants": {
+      title: "Hydratation en profondeur",
+      detail: "Masque nourrissant hebdomadaire (30 min minimum) + méthode LCO : spray hydratant, leave-in crémeux, huile sur les longueurs. Seche à l’air libre ou diffuseur froid.",
+      ion: "water-outline", ionBg: Colors.sageLight, ionColor: Colors.sageDark,
+    },
+    "Casse": {
+      title: "Renforce la fibre",
+      detail: "Intègre un masque protéiné tous les 15 jours (kératine, protéines de blé). Démêle toujours sur cheveux humides, section par section, des pointes vers les racines.",
+      ion: "shield-checkmark-outline", ionBg: Colors.growthLight, ionColor: Colors.growth,
+    },
+    "Frisottis": {
+      title: "Dompte les frisottis",
+      detail: "Coiffe sur cheveux très humides avec un leave-in + gel définissant. Ne touche plus tes cheveux jusqu’au séchage complet — c’est là que les frisottis apparaissent.",
+      ion: "flash-outline", ionBg: Colors.amberLight, ionColor: Colors.amberDark,
+    },
+    "Pellicules": {
+      title: "Assainis ton cuir chevelu",
+      detail: "Utilise un shampoing antipelliculaire 1x/semaine (pyrithione de zinc ou kétoconazole). Entre les lavages, un spray à l’eau de rose ou à l’aloe vera soulage les démangeaisons.",
+      ion: "snow-outline", ionBg: Colors.sageLight, ionColor: Colors.sageDark,
+    },
+    "Manque de brillance": {
+      title: "Retrouve l’éclat",
+      detail: "Termine chaque lavage par un rinçage à l’eau froide pour refermer les écailles. Applique une huile légère (argan, jojoba) sur pointes humides — juste une noisette suffit.",
+      ion: "sunny-outline", ionBg: Colors.amberPowder, ionColor: Colors.amberInk,
+    },
+    "Noeuds fréquents": {
+      title: "Démêlage sans casse",
+      detail: "Démêle toujours sur cheveux saturés de produit (après-shampoing ou masque), jamais à sec. Travaille en petites sections avec un peigne à dents larges, des pointes vers les racines.",
+      ion: "git-network-outline", ionBg: Colors.blush, ionColor: Colors.rose,
+    },
+    "Fourches et pointes abîmées": {
+      title: "Soigne tes pointes",
+      detail: "Applique une huile ou un sérum sur les pointes à chaque manipulation. Planifie une coupe des pointes tous les 2-3 mois — même 1 cm éliminent les fourches et relancent la pousse.",
+      ion: "cut-outline", ionBg: Colors.amberLight, ionColor: Colors.amberDark,
+    },
+    "Problèmes de cuir chevelu": {
+      title: "Prends soin de ton cuir chevelu",
+      detail: "Le cuir chevelu est la base de tout : nettoie-le correctement à chaque lavage sans gratter. Masse avec une huile adaptée (tea tree si inflammation, ricin si pousse lente) 2x/semaine.",
+      ion: "body-outline", ionBg: Colors.sageLight, ionColor: Colors.sageDark,
+    },
+    "Dommages chaleur": {
+      title: "Répare les dommages thermiques",
+      detail: "Masque protéiné 1x/semaine + hydratant 1x/semaine en alternance. Stoppe les outils chauffants le temps de la réparation — au moins 4 semaines pour sentir une vraie différence.",
+      ion: "flame-outline", ionBg: Colors.alertLight, ionColor: Colors.alertDark,
+    },
+    "Dommages chimiques": {
+      title: "Reconstruis ta fibre",
+      detail: "Alterne masque protéiné et masque hydratant chaque semaine. Évite tout processus chimique supplémentaire jusqu’à ce que la fibre retrouve son élasticité.",
+      ion: "beaker-outline", ionBg: Colors.alertLight, ionColor: Colors.alertDark,
+    },
+    "Perte de définition des boucles": {
+      title: "Retrouve tes boucles",
+      detail: "Coiffe sur cheveux très humides avec la méthode praying hands (produit glissé entre les paumes sur chaque mèche). Un gel définissant léger scelle la définition jusqu’au séchage.",
+      ion: "refresh-outline", ionBg: Colors.amberLight, ionColor: Colors.amberDark,
+    },
+  };
+
+  const topProblematics = (profile.problematics ?? []).slice(0, 2);
+  for (const prob of topProblematics) {
+    const tip = PROBLEMATIC_TIPS[prob];
+    if (tip && items.length < 3) {
+      items.push(priority(`prob-${prob}`, tip.title, tip.detail, tip.ion, tip.ionBg, tip.ionColor));
+    }
+  }
+
+  // Score santé bas → tip urgence (si aucune problématique n’a déjà rempli le slot)
+  if (items.length < 3 && profile.healthScore != null && profile.healthScore < 40) {
+    const scoreDetail = `Ton score sante (${profile.healthScore}/100) indique que ta fibre a besoin d’attention. Concentre-toi sur un masque nourrissant et reduis les manipulations.`;
+    items.push(priority("score-low", "Intensifie tes soins cette semaine", scoreDetail, "analytics-outline", Colors.alertLight, Colors.alertDark));
+  }
+
+  if (items.length < 3 && profile.region) {
+    const climateDetail = profile.climate
+      ? `Chez toi (${profile.climate}) : adapte l’hydratation selon l’humidite — plus de spray quand l’air est sec, plus leger quand il est humide.`
+      : "Adapte la quantite de produit a la saison : plus de protection en hiver, plus de legerete en ete.";
+    items.push(priority("climate", `Climat ${profile.region}`, climateDetail, "partly-sunny-outline", Colors.growthLight, Colors.growth));
   }
 
   return items.slice(0, 3);
@@ -214,24 +290,32 @@ function buildPriorities(profile: HairProfile, reco: OnboardingRecommendations):
 
 function buildIntro(profile: HairProfile, reco: OnboardingRecommendations): { intro: string; mood: BlackCottonMood } {
   const objective = displayObjective(normalizeObjectiveId(profile.objective));
+  const topProb = profile.problematics?.[0];
+
   const parts = [
-    `J’ai affiné tes recommandations pour des cheveux ${profile.hairType || 'texturés'}`,
-    profile.porosity ? `à porosité ${profile.porosity.toLowerCase()}` : null,
-    objective ? `avec l’objectif « ${objective} »` : null,
+    "J’ai affine tes recommandations pour des cheveux " + (profile.hairType || "textures"),
+    profile.porosity ? ("a porosite " + profile.porosity.toLowerCase()) : null,
+    objective ? ("objectif : " + objective) : null,
+    topProb ? ("problematique : " + topProb) : null,
   ]
     .filter(Boolean)
-    .join(' ');
+    .join(", ");
 
   const morning = reco.morning[0]?.title;
   const evening = reco.evening[0]?.title;
-  const tail =
-    morning && evening
-      ? ` Commence par « ${morning} » le matin et « ${evening} » le soir — le détail est dans ton plan juste au-dessus.`
-      : '';
+  const tail = (morning && evening)
+    ? (" Commence par " + morning + " le matin et " + evening + " le soir — le detail est dans ton plan.")
+    : "";
+
+  const scoreAlert = (profile.healthScore != null && profile.healthScore < 40)
+    ? (" Ton score sante est de " + profile.healthScore + "/100 — j’ai priorise les soins les plus urgents.")
+    : "";
 
   return {
-    intro: `${parts}.${tail}`,
-    mood: profile.porosity === 'Élevée' ? 'coaching' : 'encouraging',
+    intro: parts + "." + scoreAlert + tail,
+    mood: (profile.healthScore != null && profile.healthScore < 40) ? "coaching"
+        : profile.porosity === "Elevee" ? "coaching"
+        : "encouraging",
   };
 }
 
