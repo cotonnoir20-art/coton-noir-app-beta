@@ -7,7 +7,7 @@
     "icon": "./assets/logo-dark.png",
     "description": "Ta copilote capillaire dans ton smartphone — diagnostic, routines, wash day, pousse en cm et communauté pour cheveux afro & texturés.",
     "userInterfaceStyle": "light",
-    "newArchEnabled": false,
+    "newArchEnabled": true,
     "splash": {
       "image": "./assets/brand/splash-logo.png",
       "resizeMode": "contain",
@@ -62,6 +62,7 @@
           "defaultChannel": "default"
         }
       ],
+      "expo-iap",
       [
         "expo-camera",
         {
