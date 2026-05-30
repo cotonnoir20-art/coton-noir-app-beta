@@ -32,6 +32,7 @@ import { WebProductionBlocker } from '../src/components/WebProductionBlocker';
 import { WebBetaBanner } from '../src/components/WebBetaBanner';
 import { DeviceIntegrityGuard } from '../src/components/DeviceIntegrityGuard';
 import { BrandSplashScreen } from '../src/components/splash/BrandSplashScreen';
+import { RootErrorBoundary } from '../src/components/RootErrorBoundary';
 
 setupNotificationsHandler();
 
@@ -156,6 +157,7 @@ export default function RootLayout() {
   }
 
   return (
+    <RootErrorBoundary>
     <WebProductionBlocker>
     <SafeAreaProvider style={{ flex: 1 }}>
       <WebBetaBanner />
@@ -187,5 +189,6 @@ export default function RootLayout() {
       />
     </SafeAreaProvider>
     </WebProductionBlocker>
+    </RootErrorBoundary>
   );
 }
