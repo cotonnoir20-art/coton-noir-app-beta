@@ -4,7 +4,7 @@
     "slug": "coton-noir-app",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/logo-dark.png",
     "description": "Ta copilote capillaire dans ton smartphone — diagnostic, routines, wash day, pousse en cm et communauté pour cheveux afro & texturés.",
     "userInterfaceStyle": "light",
     "newArchEnabled": false,
@@ -23,8 +23,8 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/icon.png",
-        "backgroundColor": "#631617"
+        "foregroundImage": "./assets/images/adaptive-icon.png",
+        "backgroundColor": "#1A1A1A"
       },
       "package": "com.cotonnoir.app",
       "versionCode": 3,
@@ -57,8 +57,8 @@
       [
         "expo-notifications",
         {
-          "icon": "./assets/icon.png",
-          "color": "#631617",
+          "icon": "./assets/logo-dark.png",
+          "color": "#1A1A1A",
           "defaultChannel": "default"
         }
       ],
