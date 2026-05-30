@@ -5,7 +5,7 @@
     "scheme": "cotonnoir",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/brand/splash-logo.png",
+    "icon": "./assets/logo-dark.png",
     "description": "Ta copilote capillaire dans ton smartphone — diagnostic, routines, wash day, pousse en cm et communauté pour cheveux afro & texturés.",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
@@ -17,7 +17,7 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "cotonnoir.app",
-      "buildNumber": "13",
+      "buildNumber": "14",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "NSCameraUsageDescription": "Coton Noir utilise la caméra pour scanner tes cheveux (racines, longueurs, pointes).",
@@ -63,7 +63,7 @@
       [
         "expo-notifications",
         {
-          "icon": "./assets/brand/splash-logo.png",
+          "icon": "./assets/logo-dark.png",
           "color": "#1A1A1A",
           "defaultChannel": "default"
         }
