@@ -46,6 +46,7 @@ export function OnboardingQuickCapture({ onCapture, onClose }: Props) {
   const { height: screenH } = useWindowDimensions();
   const [captured, setCaptured] = useState<ScanPhoto | null>(null);
   const [capturing, setCapturing] = useState(false);
+  const [retakeCount, setRetakeCount] = useState(0);
   const [capturedOverlay, setCapturedOverlay] = useState(false);
   const [facing, setFacing] = useState<'back' | 'front'>('back');
   const cameraRef = useRef<CameraView>(null);
@@ -76,6 +77,7 @@ export function OnboardingQuickCapture({ onCapture, onClose }: Props) {
 
   const handleRetake = useCallback(() => {
     setCaptured(null);
+    setRetakeCount(n => n + 1);
   }, []);
 
   const doProcess = useCallback(async (uri: string, base64?: string | null) => {
@@ -259,8 +261,8 @@ export function OnboardingQuickCapture({ onCapture, onClose }: Props) {
             )}
           </TouchableOpacity>
 
-          {/* Galerie — lien discret */}
-          <TouchableOpacity onPress={pickFromLibrary} style={s.galleryLink}>
+          {/* Galerie — lien discret (key force remount du picker web après retake) */}
+          <TouchableOpacity key={`gallery-${retakeCount}`} onPress={pickFromLibrary} style={s.galleryLink}>
             <Text style={s.galleryLinkText}>Importer depuis la galerie</Text>
           </TouchableOpacity>
 

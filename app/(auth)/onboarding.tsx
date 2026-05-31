@@ -301,7 +301,9 @@ export default function OnboardingScreen() {
         setHairTypeUnsure(false);
       }
     } catch {
-      // Scan indisponible — le plan s'affiche sans résultat scan
+      // Scan indisponible — on débloque l'overlay et passe au plan sans résultat
+      setShowAnalyzing(false);
+      withFade(() => setStep(FINAL_STEP));
     } finally {
       setScanLoading(false);
     }
