@@ -18,7 +18,9 @@ export const EXPLORER_SECTIONS: { id: string; label: string; items: ExplorerItem
     items: [
       { ion: 'leaf-outline', ionBg: Colors.sageLight, ionColor: Colors.sage, label: 'Ma routine', route: '/(tabs)/routine' },
       { ion: 'water-outline', ionBg: '#DBEAFE', ionColor: '#2563EB', label: 'Wash day', route: '/washday' },
+      { ion: 'bag-outline', ionBg: Colors.amberPowder, ionColor: Colors.amberDark, label: 'Ma trousse', route: '/ma-trousse' },
       { ion: 'camera-outline', ionBg: Colors.cream, ionColor: Colors.ink, label: 'Analyse IA', route: '/(tabs)/analyze' },
+      { ion: 'cellular-outline', ionBg: Colors.growthLight, ionColor: Colors.growth, label: 'Mon ADN', route: '/adn-capillaire' },
       { ion: 'person-circle-outline', ionBg: Colors.blush, ionColor: Colors.rose, label: 'Profil capillaire', route: '/hair-profile' },
       { ion: 'settings-outline', ionBg: Colors.cream, ionColor: Colors.ink, label: 'Paramètres', route: '/(tabs)/profile' },
     ],

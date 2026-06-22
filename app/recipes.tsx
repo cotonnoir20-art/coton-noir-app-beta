@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   Dimensions,
   Modal,
   ScrollView,
@@ -11,7 +12,7 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -38,8 +39,43 @@ import {
   loadRecipeReviews,
   type RecipeReviewItem,
 } from '../src/lib/recipeReviews';
+import {
+  deletePersonalRecipe,
+  listPersonalRecipes,
+  type PersonalRecipe,
+} from '../src/lib/personalRecipesStorage';
 
 const LIKES_KEY = '@coton_noir_recipe_likes';
+
+function personalToRecipe(pr: PersonalRecipe): Recipe {
+  return {
+    id: pr.id,
+    name: pr.name,
+    description: pr.description,
+    category: pr.category,
+    difficulty: pr.difficulty,
+    duration: pr.prep_minutes + pr.pose_minutes,
+    prep_minutes: pr.prep_minutes,
+    pose_minutes: pr.pose_minutes,
+    rating: 5,
+    likes: 0,
+    ingredient_count: pr.ingredients.filter(i => i.trim()).length,
+    avg_cost_eur: 0,
+    thumb_emoji: pr.thumb_emoji,
+    thumb_bg: pr.thumb_bg,
+    featured: false,
+    signature: false,
+    hair_types: [],
+    ingredients: pr.ingredients.filter(i => i.trim()),
+    steps: pr.steps.filter(s => s.trim()),
+    admin_tags: [],
+    image: null,
+    created_at: pr.createdAt,
+    notes: null,
+    porosity: [],
+    frequency: null,
+  };
+}
 
 const GRID_GAP = 12;
 const GRID_PAD = 16;
@@ -106,6 +142,8 @@ export default function RecipesScreen() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [category, setCategory] = useState<'Toutes' | RecipeCategory>('Toutes');
   const [selected, setSelected] = useState<Recipe | null>(null);
+  const navigatingRef = useRef(false);
+  const [personalRecipes, setPersonalRecipes] = useState<PersonalRecipe[]>([]);
   const [likedIds, setLikedIds] = useState<Record<string, boolean>>({});
   const [favIds, setFavIds] = useState<Record<string, boolean>>({});
   const [reviews, setReviews] = useState<Record<string, RecipeReviewItem[]>>({});
@@ -133,6 +171,10 @@ export default function RecipesScreen() {
         setLoading(false);
       });
   }, []);
+
+  useFocusEffect(useCallback(() => {
+    void listPersonalRecipes().then(setPersonalRecipes);
+  }, []));
 
   useEffect(() => {
     AsyncStorage.getItem(LIKES_KEY).then(raw => {
@@ -310,6 +352,33 @@ export default function RecipesScreen() {
           />
         ) : null}
 
+        {/* Mes recettes perso */}
+        {personalRecipes.length > 0 ? (
+          <>
+            <View style={S.personalTitleRow}>
+              <Text style={S.sectionTitle}>Mes recettes</Text>
+              <TouchableOpacity
+                style={S.createBtn}
+                onPress={() => router.push('/create-recipe')}
+                activeOpacity={0.85}
+              >
+                <Ionicons name="add" size={14} color="#fff" />
+                <Text style={S.createBtnText}>Créer</Text>
+              </TouchableOpacity>
+            </View>
+            <View style={S.grid}>
+              {personalRecipes.map(pr => (
+                <RecipeGridCard
+                  key={pr.id}
+                  recipe={personalToRecipe(pr)}
+                  onPress={() => setSelected(personalToRecipe(pr))}
+                  isPersonal
+                />
+              ))}
+            </View>
+          </>
+        ) : null}
+
         {/* Grille populaires */}
         <Text style={S.sectionTitle}>Recettes populaires</Text>
 
@@ -326,19 +395,19 @@ export default function RecipesScreen() {
           </View>
         )}
 
-        {/* CTA communauté */}
+        {/* CTA créer recette */}
         <View style={S.ctaBanner}>
           <Text style={S.ctaEmoji}>📖</Text>
           <View style={S.ctaTextWrap}>
             <Text style={S.ctaTitle}>Tu as ta propre recette ?</Text>
-            <Text style={S.ctaSub}>Partage-la avec la communauté · +30 pts</Text>
+            <Text style={S.ctaSub}>Crée-la et retrouve-la ici à tout moment</Text>
           </View>
           <TouchableOpacity
             style={S.ctaBtn}
-            onPress={() => router.push('/community')}
+            onPress={() => router.push('/create-recipe')}
             activeOpacity={0.88}
           >
-            <Text style={S.ctaBtnText}>Ajouter</Text>
+            <Text style={S.ctaBtnText}>Créer</Text>
           </TouchableOpacity>
         </View>
 
@@ -450,8 +519,51 @@ export default function RecipesScreen() {
                         <Text style={S.ingredText}>{ing}</Text>
                       </View>
                     ))}
+                    <TouchableOpacity
+                      style={S.scanIngrBtn}
+                      onPress={() => {
+                        setSelected(null);
+                        router.push({
+                          pathname: '/ingredient-scan',
+                          params: {
+                            ingredients: selected.ingredients.join(', '),
+                            productName: selected.name,
+                          },
+                        } as any);
+                      }}
+                      activeOpacity={0.85}
+                    >
+                      <Ionicons name="flask-outline" size={16} color={Colors.amber} />
+                      <Text style={S.scanIngrBtnText}>Analyser les ingrédients</Text>
+                    </TouchableOpacity>
                   </View>
                 ) : null}
+
+                {/* Timer soin */}
+                <TouchableOpacity
+                  style={S.timerCta}
+                  onPress={() => {
+                    if (navigatingRef.current) return;
+                    navigatingRef.current = true;
+                    // Capturer les valeurs avant de fermer le modal
+                    const name = selected.name;
+                    const prepMinutes = String(selected.prep_minutes ?? 0);
+                    const poseMinutes = String(selected.pose_minutes ?? selected.duration ?? 20);
+                    // Fermer le modal, puis naviguer après l'animation
+                    setSelected(null);
+                    setTimeout(() => {
+                      navigatingRef.current = false;
+                      router.push({
+                        pathname: '/soin-timer',
+                        params: { name, prepMinutes, poseMinutes },
+                      } as any);
+                    }, 350);
+                  }}
+                  activeOpacity={0.85}
+                >
+                  <Ionicons name="timer-outline" size={18} color="#fff" />
+                  <Text style={S.timerCtaText}>Commencer ce soin</Text>
+                </TouchableOpacity>
 
                 <TouchableOpacity
                   style={S.routineCta}
@@ -485,6 +597,49 @@ export default function RecipesScreen() {
                   <View style={[S.block, { backgroundColor: 'rgba(139,175,122,0.10)', borderRadius: 12, padding: 14 }]}>
                     <Text style={[S.blockTitle, { marginBottom: 6 }]}>📝 Note</Text>
                     <Text style={S.stepText}>{selected.notes}</Text>
+                  </View>
+                ) : null}
+
+                {/* Actions recette perso */}
+                {selected && personalRecipes.some(pr => pr.id === selected.id) ? (
+                  <View style={S.personalActions}>
+                    <TouchableOpacity
+                      style={S.editBtn}
+                      activeOpacity={0.85}
+                      onPress={() => {
+                        const id = selected.id;
+                        setSelected(null);
+                        setTimeout(() => router.push({
+                          pathname: '/create-recipe',
+                          params: { editId: id },
+                        } as any), 350);
+                      }}
+                    >
+                      <Ionicons name="create-outline" size={15} color={Colors.ink} />
+                      <Text style={S.editBtnText}>Modifier</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={S.deleteBtn}
+                      activeOpacity={0.85}
+                      onPress={() => {
+                        const id = selected.id;
+                        Alert.alert('Supprimer ?', 'Cette recette sera définitivement supprimée.', [
+                          { text: 'Annuler', style: 'cancel' },
+                          {
+                            text: 'Supprimer',
+                            style: 'destructive',
+                            onPress: async () => {
+                              await deletePersonalRecipe(id);
+                              setPersonalRecipes(prev => prev.filter(pr => pr.id !== id));
+                              setSelected(null);
+                            },
+                          },
+                        ]);
+                      }}
+                    >
+                      <Ionicons name="trash-outline" size={15} color={Colors.rose} />
+                      <Text style={S.deleteBtnText}>Supprimer</Text>
+                    </TouchableOpacity>
                   </View>
                 ) : null}
 
@@ -648,7 +803,7 @@ function FeaturedRecipeCard({
   );
 }
 
-function RecipeGridCard({ recipe, onPress }: { recipe: Recipe; onPress: () => void }) {
+function RecipeGridCard({ recipe, onPress, isPersonal }: { recipe: Recipe; onPress: () => void; isPersonal?: boolean }) {
   const catStyle = CATEGORY_STYLES[recipe.category];
   const diffStyle = DIFFICULTY_STYLES[recipe.difficulty];
   return (
@@ -659,9 +814,15 @@ function RecipeGridCard({ recipe, onPress }: { recipe: Recipe; onPress: () => vo
     >
       <View style={[S.gridHero, { backgroundColor: recipe.thumb_bg }]}>
         <Text style={S.gridEmoji}>{recipe.thumb_emoji}</Text>
-        <View style={[S.gridCatBadge, { backgroundColor: Colors.surface }]}>
-          <Text style={[S.gridCatText, { color: catStyle.text }]}>{recipe.category}</Text>
-        </View>
+        {isPersonal ? (
+          <View style={S.persoBadge}>
+            <Text style={S.persoBadgeText}>Perso</Text>
+          </View>
+        ) : (
+          <View style={[S.gridCatBadge, { backgroundColor: Colors.surface }]}>
+            <Text style={[S.gridCatText, { color: catStyle.text }]}>{recipe.category}</Text>
+          </View>
+        )}
       </View>
       <View style={S.gridBody}>
         <Text style={S.gridTitle} numberOfLines={2}>
@@ -1022,6 +1183,22 @@ const S = StyleSheet.create({
     color: Colors.ink,
     lineHeight: 20,
   },
+  scanIngrBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    alignSelf: 'flex-start',
+    marginTop: 6,
+    backgroundColor: Colors.amberPowder,
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+  },
+  scanIngrBtnText: {
+    fontSize: 13,
+    fontFamily: 'DMSans_600SemiBold',
+    color: Colors.amberInk,
+  },
   stepRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, marginBottom: 12 },
   stepNum: {
     width: 26,
@@ -1076,6 +1253,21 @@ const S = StyleSheet.create({
   },
   reviewSubmitOff: { backgroundColor: Colors.warmGray, opacity: 0.6 },
   reviewSubmitText: { fontSize: 13, fontFamily: 'DMSans_700Bold', color: '#fff' },
+  timerCta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: Colors.amber,
+    borderRadius: 14,
+    paddingVertical: 14,
+    marginBottom: 12,
+  },
+  timerCtaText: {
+    fontSize: 14,
+    fontFamily: 'DMSans_700Bold',
+    color: '#fff',
+  },
   routineCta: {
     backgroundColor: Colors.ink,
     borderRadius: 14,
@@ -1140,6 +1332,41 @@ const S = StyleSheet.create({
   },
   likeBtnBigActive: { backgroundColor: Colors.rose },
   likeBtnBigText: { fontSize: 13, fontFamily: 'DMSans_700Bold', color: Colors.rose },
+  // ── Mes recettes perso ──
+  personalTitleRow: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingHorizontal: 16, marginBottom: 14,
+  },
+  createBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 5,
+    backgroundColor: Colors.ink, borderRadius: 999,
+    paddingHorizontal: 12, paddingVertical: 6,
+  },
+  createBtnText: { fontSize: 12, fontFamily: 'DMSans_700Bold', color: '#fff' },
+  persoBadge: {
+    position: 'absolute', top: 8, left: 8,
+    backgroundColor: Colors.amberLight, borderRadius: 8,
+    paddingHorizontal: 8, paddingVertical: 3,
+  },
+  persoBadgeText: { fontSize: 10, fontFamily: 'DMSans_700Bold', color: Colors.amberDark },
+
+  // ── Actions recette perso (dans modal) ──
+  personalActions: {
+    flexDirection: 'row', gap: 10, marginBottom: 16,
+  },
+  editBtn: {
+    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7,
+    backgroundColor: Colors.surface, borderWidth: 1.5, borderColor: Colors.border,
+    borderRadius: 12, paddingVertical: 11,
+  },
+  editBtnText: { fontSize: 13, fontFamily: 'DMSans_600SemiBold', color: Colors.ink },
+  deleteBtn: {
+    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7,
+    backgroundColor: Colors.blush, borderWidth: 1.5, borderColor: Colors.blush,
+    borderRadius: 12, paddingVertical: 11,
+  },
+  deleteBtnText: { fontSize: 13, fontFamily: 'DMSans_600SemiBold', color: Colors.rose },
+
   recipeActionsRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',

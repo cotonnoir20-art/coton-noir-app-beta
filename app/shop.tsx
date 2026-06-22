@@ -232,6 +232,20 @@ export default function ShopScreen() {
       {/* ── Header ── */}
       <AppHeader title="Produits" />
 
+      {/* ── Bannières accès rapide ── */}
+      <View style={S.bannersRow}>
+        <TouchableOpacity style={[S.bannerCard, S.bannerAmber]} onPress={() => router.push('/ingredient-scan')} activeOpacity={0.85}>
+          <Text style={S.bannerEmoji}>🔬</Text>
+          <Text style={S.bannerTitle}>Analyser</Text>
+          <Text style={[S.bannerSub, { color: Colors.amberInk }]}>ingrédients</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={[S.bannerCard, S.bannerSage]} onPress={() => router.push('/ma-trousse')} activeOpacity={0.85}>
+          <Text style={S.bannerEmoji}>🧴</Text>
+          <Text style={[S.bannerTitle, { color: Colors.sageDark }]}>Ma trousse</Text>
+          <Text style={[S.bannerSub, { color: Colors.sageDark }]}>mes produits</Text>
+        </TouchableOpacity>
+      </View>
+
       {/* ── Search ── */}
       <View style={S.searchRow}>
         <Text style={S.searchIcon}>🔍</Text>
@@ -955,4 +969,32 @@ const S = StyleSheet.create({
   emptyIcon:   { fontSize: 48 },
   emptyText:   { fontSize: 16, fontFamily: 'DMSans_500Medium', color: Colors.warmGray },
   emptyAction: { fontSize: 14, fontFamily: 'DMSans_600SemiBold', color: Colors.amber },
+
+  // ── Bannières accès rapide ──
+  bannersRow: {
+    flexDirection: 'row',
+    marginHorizontal: 16,
+    marginBottom: 10,
+    gap: 10,
+  },
+  bannerCard: {
+    flex: 1,
+    borderRadius: 14,
+    borderWidth: 1,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    alignItems: 'flex-start',
+    gap: 2,
+  },
+  bannerAmber: {
+    backgroundColor: Colors.amberPowder,
+    borderColor: Colors.amberLight,
+  },
+  bannerSage: {
+    backgroundColor: Colors.sageLight,
+    borderColor: '#C5DED7',
+  },
+  bannerEmoji: { fontSize: 22, marginBottom: 4 },
+  bannerTitle: { fontSize: 13, fontFamily: 'DMSans_600SemiBold', color: Colors.amberInk },
+  bannerSub:   { fontSize: 11, fontFamily: 'DMSans_400Regular', opacity: 0.75 },
 });

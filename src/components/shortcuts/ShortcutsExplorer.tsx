@@ -21,7 +21,7 @@ export function ShortcutsExplorer({ contentPaddingBottom = 24 }: Props) {
           <View style={s.grid}>
             {sec.items.map(item => (
               <TouchableOpacity
-                key={item.route}
+                key={item.label}
                 style={[s.card, item.premium && s.cardPremium, { width: cardW }]}
                 onPress={() => router.push(item.route as any)}
                 accessibilityRole="button"

@@ -505,11 +505,11 @@ export default function CodesScreen() {
             <Text style={S.emptyText}>Aucun code disponible pour le moment.</Text>
           </View>
         ) : (
-          active.map(c => {
+          active.map((c, idx) => {
             const theme   = THEMES[c.color_theme] ?? THEMES.amber;
             const iconKey = (c.icon_name ?? 'pricetag-outline') as IoniconName;
             return (
-              <View key={c.id} style={S.card}>
+              <View key={`${c.id}-${idx}`} style={S.card}>
                 <View style={S.cardTop}>
                   <View style={[S.brandIcon, { backgroundColor: theme.iconBg }]}>
                     <Ionicons name={iconKey} size={16} color={theme.iconColor} />
@@ -780,14 +780,14 @@ const S = StyleSheet.create({
   },
   cardTop: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, marginBottom: 14 },
   brandIcon: { width: 36, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
-  brandName: { fontSize: 14, fontFamily: 'DMSans_700Bold', color: Colors.ink },
+  brandName: { fontSize: 14, fontFamily: 'DMSans_700Bold', color: Colors.ink, flex: 1 },
   brandDesc: { fontSize: 11, fontFamily: 'DMSans_400Regular', color: Colors.warmGray, marginTop: 2 },
   offBadge:  { borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3, flexShrink: 0 },
   offText:   { fontSize: 12, fontFamily: 'DMSans_700Bold' },
 
-  heroRow:  { flexDirection: 'row', alignItems: 'baseline', gap: 10, marginBottom: 12 },
-  heroOff:  { fontSize: 32, fontFamily: 'Satoshi_500Medium' },
-  heroDesc: { fontSize: 12, fontFamily: 'DMSans_400Regular', color: Colors.warmGray, flex: 1, flexWrap: 'wrap' },
+  heroRow:  { flexDirection: 'column', gap: 2, marginBottom: 12 },
+  heroOff:  { fontSize: 28, fontFamily: 'Satoshi_500Medium' },
+  heroDesc: { fontSize: 13, fontFamily: 'DMSans_400Regular', color: Colors.warmGray },
 
   codeField: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',

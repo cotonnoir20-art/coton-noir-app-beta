@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -31,16 +31,21 @@ type HairZoneScannerProps = {
 };
 
 async function processAsset(uri: string, base64?: string | null): Promise<ScanPhoto> {
-  const resized = await ImageManipulator.manipulateAsync(
-    uri,
-    [{ resize: { width: 800 } }],
-    { compress: 0.4, format: ImageManipulator.SaveFormat.JPEG, base64: true },
-  );
-  return {
-    uri: resized.uri,
-    base64: resized.base64 ?? base64 ?? '',
-    mimeType: 'image/jpeg',
-  };
+  try {
+    const resized = await ImageManipulator.manipulateAsync(
+      uri,
+      [{ resize: { width: 800 } }],
+      { compress: 0.4, format: ImageManipulator.SaveFormat.JPEG, base64: true },
+    );
+    return {
+      uri: resized.uri,
+      base64: resized.base64 ?? base64 ?? '',
+      mimeType: 'image/jpeg',
+    };
+  } catch {
+    // Fallback si ImageManipulator échoue (ex : web, format non supporté)
+    return { uri, base64: base64 ?? '', mimeType: 'image/jpeg' };
+  }
 }
 
 export function HairZoneScanner({
@@ -54,14 +59,74 @@ export function HairZoneScanner({
   const [capturing, setCapturing] = useState(false);
   const [capturedOverlay, setCapturedOverlay] = useState(false);
   const [facing, setFacing] = useState<'back' | 'front'>('back');
+  const [retaking, setRetaking] = useState(false);
   const cameraRef = useRef<CameraView>(null);
   const [permission, requestPermission] = useCameraPermissions();
+
+  // Input DOM natif pour web — contourne les bugs d'expo-image-picker sur web
+  const fileInputRef = useRef<any>(null);
+  const fileResolveRef = useRef<((f: File | null) => void) | null>(null);
+
+  useEffect(() => {
+    if (Platform.OS !== 'web') return;
+    const doc = (globalThis as any).document;
+    if (!doc) return;
+    const input = doc.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.style.cssText = 'position:fixed;opacity:0;pointer-events:none;width:1px;height:1px;';
+    const onChange = () => {
+      const file = input.files?.[0] ?? null;
+      input.value = ''; // reset : permet de re-sélectionner le même fichier
+      const res = fileResolveRef.current;
+      fileResolveRef.current = null;
+      res?.(file);
+    };
+    const onCancel = () => {
+      const res = fileResolveRef.current;
+      fileResolveRef.current = null;
+      res?.(null);
+    };
+    input.addEventListener('change', onChange);
+    input.addEventListener('cancel', onCancel);
+    doc.body.appendChild(input);
+    fileInputRef.current = input;
+    return () => {
+      input.removeEventListener('change', onChange);
+      input.removeEventListener('cancel', onCancel);
+      if (doc.body.contains(input)) doc.body.removeChild(input);
+    };
+  }, []);
+
+  // Ouvre le sélecteur de fichier web — l'appel .click() est synchrone (geste utilisateur préservé)
+  const pickWebFile = useCallback((): Promise<File | null> => {
+    return new Promise((resolve) => {
+      if (!fileInputRef.current) { resolve(null); return; }
+      fileResolveRef.current = resolve;
+      fileInputRef.current.click();
+      // Fallback si l'événement cancel n'est pas supporté (navigateurs anciens)
+      const win = (globalThis as any).window;
+      const onFocus = () => {
+        win?.removeEventListener?.('focus', onFocus);
+        setTimeout(() => {
+          if (fileResolveRef.current === resolve) {
+            fileResolveRef.current = null;
+            resolve(null);
+          }
+        }, 300);
+      };
+      win?.addEventListener?.('focus', onFocus);
+    });
+  }, []);
 
   const zone = HAIR_SCAN_ZONES[step];
   const capturedCount = photos.filter(Boolean).length;
   const allCaptured = capturedCount >= HAIR_SCAN_ZONES.length;
   const currentCaptured = Boolean(photos[step]);
   const canAnalyze = capturedCount >= minPhotos;
+
+  // Réinitialise le mode retake quand on change d'angle
+  useEffect(() => { setRetaking(false); }, [step]);
 
   const advanceToNextUncaptured = useCallback((currentStep: number, currentPhotos: (ScanPhoto | null)[]) => {
     // First uncaptured after current step
@@ -76,6 +141,7 @@ export function HairZoneScanner({
   }, []);
 
   const afterCapture = useCallback((capturedStep: number, updatedPhotos: (ScanPhoto | null)[]) => {
+    setRetaking(false);
     hapticSuccess();
     setCapturedOverlay(true);
     setTimeout(() => {
@@ -85,6 +151,32 @@ export function HairZoneScanner({
   }, [advanceToNextUncaptured]);
 
   const pickFromLibrary = useCallback(async () => {
+    if (Platform.OS === 'web') {
+      // Web : input DOM natif (pas expo-image-picker qui a des bugs de reset sur web)
+      const file = await pickWebFile();
+      if (!file) return;
+      const uri = URL.createObjectURL(file);
+      const base64 = await new Promise<string>((res) => {
+        const reader = new (globalThis as any).FileReader();
+        reader.onload = () => res(((reader.result as string) ?? '').split(',')[1] ?? '');
+        reader.readAsDataURL(file);
+      });
+      setCapturing(true);
+      try {
+        const photo = await processAsset(uri, base64);
+        URL.revokeObjectURL(uri);
+        onPhoto(step, photo);
+        const next = [...photos];
+        next[step] = photo;
+        afterCapture(step, next);
+      } catch {
+        URL.revokeObjectURL(uri);
+        Alert.alert('Erreur', 'Impossible de traiter cette image. Réessaie.');
+      } finally {
+        setCapturing(false);
+      }
+      return;
+    }
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!perm.granted) {
       Alert.alert('Permission refusée', "Active l'accès à la galerie dans les réglages.");
@@ -107,7 +199,7 @@ export function HairZoneScanner({
     } finally {
       setCapturing(false);
     }
-  }, [afterCapture, onPhoto, photos, step]);
+  }, [afterCapture, onPhoto, photos, step, pickWebFile]);
 
   const capturePhoto = useCallback(async () => {
     if (Platform.OS === 'web') {
@@ -150,8 +242,8 @@ export function HairZoneScanner({
 
   return (
     <View style={styles.root}>
-      {/* Caméra live (natif uniquement, quand pas de photo pour cet angle) */}
-      {Platform.OS !== 'web' && permission?.granted && !currentCaptured && (
+      {/* Caméra live (natif uniquement : pas de photo encore, OU mode retake actif) */}
+      {Platform.OS !== 'web' && permission?.granted && (!currentCaptured || retaking) && (
         <CameraView ref={cameraRef} style={StyleSheet.absoluteFill} facing={facing} />
       )}
 
@@ -182,8 +274,8 @@ export function HairZoneScanner({
 
         {/* ── Zone viewfinder ── */}
         <View style={styles.viewfinderBlock}>
-          {/* Photo capturée en fond */}
-          {currentCaptured && (
+          {/* Photo capturée en fond (masquée si mode retake pour voir la caméra) */}
+          {currentCaptured && !retaking && (
             <Image
               source={{ uri: photos[step]!.uri }}
               style={styles.capturedBg}
@@ -194,8 +286,8 @@ export function HairZoneScanner({
           {/* Coins décoratifs */}
           <ScanViewfinder />
 
-          {/* Bouton flip caméra (natif, pas de photo en cours) */}
-          {Platform.OS !== 'web' && permission?.granted && !currentCaptured && (
+          {/* Bouton flip caméra (natif, pas de photo en cours OU mode retake) */}
+          {Platform.OS !== 'web' && permission?.granted && (!currentCaptured || retaking) && (
             <TouchableOpacity
               style={styles.flipBtn}
               onPress={() => {
@@ -218,8 +310,8 @@ export function HairZoneScanner({
             </View>
           )}
 
-          {/* Instructions (aucune photo sur cet angle) */}
-          {!currentCaptured && !capturedOverlay && (
+          {/* Instructions (aucune photo sur cet angle, OU mode retake actif) */}
+          {(!currentCaptured || retaking) && !capturedOverlay && (
             <View style={styles.instructionBlock}>
               {!permission?.granted && Platform.OS !== 'web' ? (
                 <TouchableOpacity style={styles.permBtn} onPress={() => requestPermission()}>
@@ -288,34 +380,42 @@ export function HairZoneScanner({
         {/* ── Boutons footer ── */}
         <View style={styles.footer}>
 
-          {/* Bouton capture — toujours visible pour permettre de reprendre */}
-          <TouchableOpacity
-            style={[
-              styles.captureBtn,
-              capturing && styles.captureBtnDisabled,
-              currentCaptured && styles.captureBtnRetake,
-            ]}
-            onPress={capturePhoto}
-            disabled={capturing}
-            activeOpacity={0.88}
-          >
-            {capturing ? (
-              <ActivityIndicator color={C.text.primary} size="small" />
-            ) : (
-              <>
-                <Ionicons
-                  name={currentCaptured ? 'refresh' : 'camera'}
-                  size={20}
-                  color={C.text.primary}
-                />
-                <Text style={styles.captureBtnText}>
-                  {currentCaptured
-                    ? `Reprendre — ${zone.label}`
-                    : `Capturer — ${zone.label}`}
-                </Text>
-              </>
-            )}
-          </TouchableOpacity>
+          {/* Bouton capture / reprendre */}
+          {(() => {
+            // Sur natif : "Reprendre" entre en mode retake (monte la caméra), puis "Capturer" tire la photo.
+            // Sur web : "Reprendre" et "Capturer" ouvrent tous deux la galerie.
+            const showRetakeLabel = currentCaptured && !retaking;
+            const isNativeRetake = showRetakeLabel && Platform.OS !== 'web';
+            return (
+              <TouchableOpacity
+                style={[
+                  styles.captureBtn,
+                  capturing && styles.captureBtnDisabled,
+                  showRetakeLabel && styles.captureBtnRetake,
+                ]}
+                onPress={isNativeRetake ? () => setRetaking(true) : capturePhoto}
+                disabled={capturing}
+                activeOpacity={0.88}
+              >
+                {capturing ? (
+                  <ActivityIndicator color={C.text.primary} size="small" />
+                ) : (
+                  <>
+                    <Ionicons
+                      name={showRetakeLabel ? 'refresh' : 'camera'}
+                      size={20}
+                      color={C.text.primary}
+                    />
+                    <Text style={styles.captureBtnText}>
+                      {showRetakeLabel
+                        ? `Reprendre — ${zone.label}`
+                        : `Capturer — ${zone.label}`}
+                    </Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            );
+          })()}
 
           {/* Import galerie */}
           <TouchableOpacity onPress={pickFromLibrary} style={styles.galleryLink}>

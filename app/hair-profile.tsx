@@ -38,6 +38,12 @@ export default function HairProfileScreen() {
   const [saved, setSaved] = useState(false);
   const completion = getProfileCompletion(localProfile);
 
+  const adnPorosity  = resolvePorosity(localProfile.porosity);
+  const locMethod    = adnPorosity === 'Faible' ? 'LCO' : 'LOC';
+  const adnSub       = localProfile.hairType
+    ? `${localProfile.hairType} · Porosité ${adnPorosity.toLowerCase()} · Méthode ${locMethod}`
+    : 'Complète ton profil pour voir ton ADN';
+
   function setValue(key: string, value: string) {
     setLocalProfile(prev => ({ ...prev, [key]: value }));
     setSaved(false);
@@ -79,6 +85,20 @@ export default function HairProfileScreen() {
           onPress={() => {}}
           compact
         />
+
+        {/* ── Accès Mon ADN Capillaire ── */}
+        <TouchableOpacity
+          style={styles.adnCard}
+          onPress={() => router.push('/adn-capillaire')}
+          activeOpacity={0.85}
+        >
+          <View style={{ flex: 1 }}>
+            <Text style={styles.adnCardTitle}>🧬 Mon ADN Capillaire</Text>
+            <Text style={styles.adnCardSub}>{adnSub}</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={18} color={Colors.amber} />
+        </TouchableOpacity>
+
         <Text style={styles.intro}>
           Plus ton profil est précis, plus les recos (Black Cotton, recettes, produits) sont adaptées.
         </Text>
@@ -328,4 +348,27 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   saveBigBtnText: { fontSize: 16, fontFamily: 'DMSans_700Bold', color: Colors.white },
+
+  adnCard: {
+    marginHorizontal: 20,
+    marginBottom: 14,
+    backgroundColor: Colors.ink,
+    borderRadius: 16,
+    padding: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  adnCardTitle: {
+    fontSize: 15,
+    fontFamily: 'DMSans_700Bold',
+    color: Colors.white,
+    marginBottom: 3,
+  },
+  adnCardSub: {
+    fontSize: 12,
+    fontFamily: 'DMSans_400Regular',
+    color: 'rgba(255,255,255,0.65)',
+    lineHeight: 17,
+  },
 });

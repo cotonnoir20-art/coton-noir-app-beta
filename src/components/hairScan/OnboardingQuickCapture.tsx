@@ -30,12 +30,16 @@ type Props = {
 };
 
 async function processAsset(uri: string, base64?: string | null): Promise<ScanPhoto> {
-  const resized = await ImageManipulator.manipulateAsync(
-    uri,
-    [{ resize: { width: 800 } }],
-    { compress: 0.75, format: ImageManipulator.SaveFormat.JPEG, base64: true },
-  );
-  return { uri: resized.uri, base64: resized.base64 ?? base64 ?? '', mimeType: 'image/jpeg' };
+  try {
+    const resized = await ImageManipulator.manipulateAsync(
+      uri,
+      [{ resize: { width: 800 } }],
+      { compress: 0.75, format: ImageManipulator.SaveFormat.JPEG, base64: true },
+    );
+    return { uri: resized.uri, base64: resized.base64 ?? base64 ?? '', mimeType: 'image/jpeg' };
+  } catch {
+    return { uri, base64: base64 ?? '', mimeType: 'image/jpeg' };
+  }
 }
 
 /**
@@ -51,6 +55,60 @@ export function OnboardingQuickCapture({ onCapture, onClose }: Props) {
   const [facing, setFacing] = useState<'back' | 'front'>('back');
   const cameraRef = useRef<CameraView>(null);
   const [permission, requestPermission] = useCameraPermissions();
+
+  // Input DOM natif pour web (contourne les bugs expo-image-picker)
+  const fileInputRef = useRef<any>(null);
+  const fileResolveRef = useRef<((f: File | null) => void) | null>(null);
+
+  useEffect(() => {
+    if (Platform.OS !== 'web') return;
+    const doc = (globalThis as any).document;
+    if (!doc) return;
+    const input = doc.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.style.cssText = 'position:fixed;opacity:0;pointer-events:none;width:1px;height:1px;';
+    const onChange = () => {
+      const file = input.files?.[0] ?? null;
+      input.value = '';
+      const res = fileResolveRef.current;
+      fileResolveRef.current = null;
+      res?.(file);
+    };
+    const onCancel = () => {
+      const res = fileResolveRef.current;
+      fileResolveRef.current = null;
+      res?.(null);
+    };
+    input.addEventListener('change', onChange);
+    input.addEventListener('cancel', onCancel);
+    doc.body.appendChild(input);
+    fileInputRef.current = input;
+    return () => {
+      input.removeEventListener('change', onChange);
+      input.removeEventListener('cancel', onCancel);
+      if (doc.body.contains(input)) doc.body.removeChild(input);
+    };
+  }, []);
+
+  const pickWebFile = useCallback((): Promise<File | null> => {
+    return new Promise((resolve) => {
+      if (!fileInputRef.current) { resolve(null); return; }
+      fileResolveRef.current = resolve;
+      fileInputRef.current.click();
+      const win = (globalThis as any).window;
+      const onFocus = () => {
+        win?.removeEventListener?.('focus', onFocus);
+        setTimeout(() => {
+          if (fileResolveRef.current === resolve) {
+            fileResolveRef.current = null;
+            resolve(null);
+          }
+        }, 300);
+      };
+      win?.addEventListener?.('focus', onFocus);
+    });
+  }, []);
 
   // Balayage haut → bas sur le viewfinder (arrêté une fois la photo capturée)
   const sweep = useRef(new Animated.Value(0)).current;
@@ -89,18 +147,29 @@ export function OnboardingQuickCapture({ onCapture, onClose }: Props) {
     return photo;
   }, []);
 
+  const processWebFile = useCallback(async (file: File) => {
+    const uri = URL.createObjectURL(file);
+    const base64 = await new Promise<string>((res) => {
+      const reader = new (globalThis as any).FileReader();
+      reader.onload = () => res(((reader.result as string) ?? '').split(',')[1] ?? '');
+      reader.readAsDataURL(file);
+    });
+    setCapturing(true);
+    try {
+      await doProcess(uri, base64);
+      URL.revokeObjectURL(uri);
+    } catch {
+      URL.revokeObjectURL(uri);
+      Alert.alert('Erreur', 'Impossible de traiter cette image. Réessaie.');
+    } finally {
+      setCapturing(false);
+    }
+  }, [doProcess]);
+
   const handleCapture = useCallback(async () => {
     if (Platform.OS === 'web') {
-      const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (!perm.granted) {
-        Alert.alert('Permission refusée', "Active l'accès à la galerie dans les réglages.");
-        return;
-      }
-      const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], base64: true, quality: 0.7 });
-      if (result.canceled || !result.assets?.[0]) return;
-      setCapturing(true);
-      try { await doProcess(result.assets[0].uri, result.assets[0].base64); }
-      finally { setCapturing(false); }
+      const file = await pickWebFile();
+      if (file) await processWebFile(file);
       return;
     }
     if (!permission?.granted) {
@@ -122,9 +191,14 @@ export function OnboardingQuickCapture({ onCapture, onClose }: Props) {
     } finally {
       setCapturing(false);
     }
-  }, [doProcess, permission?.granted, requestPermission]);
+  }, [doProcess, permission?.granted, requestPermission, pickWebFile, processWebFile]);
 
   const pickFromLibrary = useCallback(async () => {
+    if (Platform.OS === 'web') {
+      const file = await pickWebFile();
+      if (file) await processWebFile(file);
+      return;
+    }
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!perm.granted) {
       Alert.alert('Permission refusée', "Active l'accès à la galerie dans les réglages.");
@@ -135,7 +209,7 @@ export function OnboardingQuickCapture({ onCapture, onClose }: Props) {
     setCapturing(true);
     try { await doProcess(result.assets[0].uri, result.assets[0].base64); }
     finally { setCapturing(false); }
-  }, [doProcess]);
+  }, [doProcess, pickWebFile, processWebFile]);
 
   return (
     <View style={s.root}>
