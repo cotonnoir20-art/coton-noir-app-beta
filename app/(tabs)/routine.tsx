@@ -23,6 +23,7 @@ import {
   formatDualEarnReward,
 } from '../../src/lib/cotonCoins';
 import { buildHairWeekAgenda, type WeekAgendaItem } from '../../src/lib/hairWeekPlan';
+import { getRoutineADNTip } from '../../src/lib/adnRecommendations';
 import { HairWeekAgenda } from '../../src/components/workflows/HairWeekAgenda';
 
 const TABS: {
@@ -187,6 +188,8 @@ export default function RoutineScreen() {
     () => buildHairWeekAgenda({ coinHistory: state.coinHistory, plannedSoins: state.plannedSoins }),
     [state.coinHistory, state.plannedSoins],
   );
+
+  const adnTip = useMemo(() => getRoutineADNTip(state.profile), [state.profile]);
 
   const onWeekSlotPress = useCallback(
     (item: WeekAgendaItem) => {
@@ -486,6 +489,20 @@ export default function RoutineScreen() {
               <Text style={S.tipsHeaderSub}>Astuces pour optimiser ta routine</Text>
             </View>
           </View>
+
+          {/* Conseil ADN personnalisé */}
+          {adnTip ? (
+            <View style={[S.tipRow, S.tipRowBorder, S.adnTipRow]}>
+              <View style={S.adnTipBadge}>
+                <Text style={S.adnTipBadgeText}>{adnTip.method}</Text>
+              </View>
+              <View style={S.tipBody}>
+                <Text style={S.tipTitle}>{adnTip.title}</Text>
+                <Text style={S.tipText}>{adnTip.tip}</Text>
+              </View>
+            </View>
+          ) : null}
+
           {TIPS.map((tip, i) => (
             <View key={i} style={[S.tipRow, i < TIPS.length - 1 && S.tipRowBorder]}>
               <AppIconBox name={tip.name} backgroundColor={tip.bg} color={tip.color} size={40} iconSize={19} borderRadius={12} />
@@ -946,6 +963,13 @@ const S = StyleSheet.create({
   tipBody:  { flex: 1 },
   tipTitle: { fontSize: 13, fontFamily: 'DMSans_700Bold', color: Colors.ink, marginBottom: 4 },
   tipText:  { fontSize: 12, fontFamily: 'DMSans_400Regular', color: Colors.warmGray, lineHeight: 18 },
+  adnTipRow: { backgroundColor: Colors.amberPowder },
+  adnTipBadge: {
+    backgroundColor: Colors.amber, borderRadius: 10,
+    paddingHorizontal: 10, paddingVertical: 6,
+    alignSelf: 'flex-start',
+  },
+  adnTipBadgeText: { fontSize: 13, fontFamily: 'DMSans_700Bold', color: Colors.ink, letterSpacing: 0.5 },
 
   celebCard: {
     backgroundColor: Colors.amberLight,

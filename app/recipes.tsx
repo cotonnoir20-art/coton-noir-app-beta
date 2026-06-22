@@ -44,6 +44,7 @@ import {
   listPersonalRecipes,
   type PersonalRecipe,
 } from '../src/lib/personalRecipesStorage';
+import { getPersonalizedRecipes } from '../src/lib/adnRecommendations';
 
 const LIKES_KEY = '@coton_noir_recipe_likes';
 
@@ -222,6 +223,11 @@ export default function RecipesScreen() {
     return list.filter(r => r.category === category);
   }, [allRecipes, category, featured?.id]);
 
+  const profileRecipes = useMemo(
+    () => getPersonalizedRecipes(state.profile, 4).filter(r => r.id !== featured?.id),
+    [state.profile, featured?.id],
+  );
+
   useEffect(() => {
     const openId = params.openId?.trim();
     if (!openId || loading) return;
@@ -350,6 +356,20 @@ export default function RecipesScreen() {
             likeCount={likeCount(featured)}
             onPress={() => setSelected(featured)}
           />
+        ) : null}
+
+        {/* Pour ton profil */}
+        {profileRecipes.length > 0 && (category === 'Toutes') ? (
+          <>
+            <View style={S.personalTitleRow}>
+              <Text style={S.sectionTitle}>🎯 Pour ton profil</Text>
+            </View>
+            <View style={S.grid}>
+              {profileRecipes.map(r => (
+                <RecipeGridCard key={r.id} recipe={r} onPress={() => setSelected(r)} />
+              ))}
+            </View>
+          </>
         ) : null}
 
         {/* Mes recettes perso */}

@@ -23,6 +23,7 @@ import {
   isWashdayCalendarToday,
 } from '../src/lib/washdayHistory';
 import { toLocalISODate } from '../src/lib/homeGrowth';
+import { getWashdayReco } from '../src/lib/adnRecommendations';
 import { trackProductEvent } from '../src/lib/productAnalytics';
 import { appendJournalEntry } from '../src/lib/journalStorage';
 import {
@@ -157,6 +158,8 @@ export default function WashDayScreen() {
     () => Math.max(1, ...monthlyFreq.map(m => m.count)),
     [monthlyFreq],
   );
+
+  const washdayReco = useMemo(() => getWashdayReco(state.profile), [state.profile]);
 
   function prevMonthWd() {
     setCalDate(d => d.month === 0 ? { year: d.year - 1, month: 11 } : { ...d, month: d.month - 1 });
@@ -452,6 +455,24 @@ export default function WashDayScreen() {
             </Text>
             <Text style={S.productTestLink}>Ajouter mon commentaire →</Text>
           </TouchableOpacity>
+        ) : null}
+
+        {/* ── Fréquence recommandée par le profil ADN ── */}
+        {washdayReco ? (
+          <View style={S.adnFreqCard}>
+            <View style={S.adnFreqLeft}>
+              <Text style={S.adnFreqLabel}>🧬 Fréquence recommandée</Text>
+              <Text style={S.adnFreqValue}>{washdayReco.label}</Text>
+              <Text style={S.adnFreqRange}>{washdayReco.rangeLabel} · selon ton profil ADN</Text>
+            </View>
+            <View style={S.adnFreqBubble}>
+              <Text style={S.adnFreqNum}>{washdayReco.frequencyDays}</Text>
+              <Text style={S.adnFreqUnit}>j</Text>
+            </View>
+          </View>
+        ) : null}
+        {washdayReco ? (
+          <Text style={S.adnFreqTip}>{washdayReco.tip}</Text>
         ) : null}
 
         <TouchableOpacity
@@ -1174,6 +1195,28 @@ const S = StyleSheet.create({
     fontFamily: 'DMSans_700Bold',
     color: Colors.amberDark,
   },
+  adnFreqCard: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    backgroundColor: Colors.amberPowder, borderRadius: 16,
+    borderWidth: 1, borderColor: Colors.amberLight,
+    padding: 16, marginBottom: 6,
+  },
+  adnFreqLeft: { flex: 1 },
+  adnFreqLabel: { fontSize: 11, fontFamily: 'DMSans_700Bold', color: Colors.amberDark, textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 4 },
+  adnFreqValue: { fontSize: 18, fontFamily: 'Satoshi_500Medium', color: Colors.ink, marginBottom: 2 },
+  adnFreqRange:  { fontSize: 11, fontFamily: 'DMSans_400Regular', color: Colors.warmGray },
+  adnFreqBubble: {
+    width: 56, height: 56, borderRadius: 28,
+    backgroundColor: Colors.amber,
+    alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 1,
+  },
+  adnFreqNum:  { fontSize: 22, fontFamily: 'DMSans_700Bold', color: Colors.ink },
+  adnFreqUnit: { fontSize: 12, fontFamily: 'DMSans_600SemiBold', color: Colors.ink, paddingTop: 4 },
+  adnFreqTip: {
+    fontSize: 12, fontFamily: 'DMSans_400Regular', color: Colors.warmGray,
+    lineHeight: 17, marginBottom: 12, fontStyle: 'italic',
+  },
+
   planCard: {
     marginTop: 12,
     marginBottom: 8,
