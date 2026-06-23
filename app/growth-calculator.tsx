@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import {
   KeyboardAvoidingView,
   Modal,
@@ -11,7 +11,7 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../src/theme/colors';
 import { useApp } from '../src/context/AppContext';
@@ -44,6 +44,13 @@ export default function GrowthCalculatorScreen() {
   const [landmarkLength, setLandmarkLength] = useState(state.profile.length ?? '');
   const [landmarkTarget, setLandmarkTarget] = useState(state.profile.targetLength ?? '');
   const [landmarkSaved, setLandmarkSaved] = useState(false);
+
+  // Re-sync depuis le profil quand l'utilisateur revient sur cet écran
+  useFocusEffect(useCallback(() => {
+    setLandmarkLength(state.profile.length ?? '');
+    setLandmarkTarget(state.profile.targetLength ?? '');
+    setLandmarkSaved(false);
+  }, [state.profile.length, state.profile.targetLength]));
 
   const {
     targetCm,

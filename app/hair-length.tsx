@@ -1,11 +1,11 @@
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { FirstMeasureGuidePopin } from '../src/components/FirstMeasureGuidePopin';
 import {
   Image, KeyboardAvoidingView, Platform, ScrollView,
   StyleSheet, Text, TextInput, TouchableOpacity, View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../src/theme/colors';
 import { useApp, type GrowthEntry } from '../src/context/AppContext';
@@ -37,6 +37,13 @@ export default function HairLengthScreen() {
   const [landmarkLength, setLandmarkLength] = useState(profile.length ?? '');
   const [landmarkTarget, setLandmarkTarget] = useState(profile.targetLength ?? '');
   const [landmarkSaved, setLandmarkSaved] = useState(false);
+
+  // Re-sync depuis le profil quand l'utilisateur revient sur cet écran
+  useFocusEffect(useCallback(() => {
+    setLandmarkLength(profile.length ?? '');
+    setLandmarkTarget(profile.targetLength ?? '');
+    setLandmarkSaved(false);
+  }, [profile.length, profile.targetLength]));
 
   const hasZoneHistory = growthHistory.length > 0;
 
